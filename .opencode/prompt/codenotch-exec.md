@@ -44,12 +44,24 @@ Se o ticket tocar a camada de janela, faça a verificação em desktop real desc
 ticket (ex.: `xprop -id <XID> _NET_WM_STRUT_PARTIAL` no `:1`). O que não puder ser
 verificado ao vivo deve ser relatado como não-verificado — nunca alegue.
 
+## Regras de git (proteção contra perda)
+
+- Você trabalha na branch principal (`cross-platform-port`) do repo
+  `/media/ccrs/development/codenotch`.
+- **Commit frequentemente** seu progresso com `git add` + `git commit` para que um
+  cancelamento ou `git reset` não perca trabalho.
+- Mensagens de commit podem ser simples (`wip: ...`, `feat: ...`, `test: ...`).
+- **NUNCA** faça `git push`, `git reset --hard` sem avisar, `git revert` ou merge para
+  outra branch.
+- Se precisar descartar algo, use `git reset --soft` ou avise o orquestrador.
+
 ## Ao terminar
 
 Retorne literalmente:
 
-1. Por alteração: arquivo + um curto resumo do diff.
+1. Hash do último commit na branch (`git rev-parse HEAD`).
 2. `git -C /media/ccrs/development/codenotch status --short`.
-3. Confirmação de que `windows/` não foi modificado.
-4. Suposições que você teve de fazer.
-5. `--outcome success` ou `--outcome failed` com o motivo. Nunca alegue sucesso parcial.
+3. Por alteração: arquivo + um curto resumo do diff.
+4. Confirmação de que `windows/` não foi modificado.
+5. Suposições que você teve de fazer.
+6. `--outcome success` ou `--outcome failed` com o motivo. Nunca alegue sucesso parcial.
