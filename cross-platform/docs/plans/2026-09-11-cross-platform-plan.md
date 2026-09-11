@@ -3,7 +3,8 @@
 - Supersedes: `2026-09-11-linux-port-plan.md` (folded in below)
 - Spec: `docs/specs/2026-09-11-linux-port-spec.md`
 - Platform notes: `docs/notes/window-managers.md`
-- Started: 2026-09-11 · Status: planning approved, not yet executed
+- Started: 2026-09-11 · Status: Epic 0 done (gate re-verified 2026-09-11 on the
+  Linux host), Epics A + C ticketized in `docs/plans/tickets/`, dispatch underway.
 - Working mode: orchestrated — the orchestrator dispatches tickets to executor
   agents (the oikos-style executor pool) and validates their output.
 
@@ -58,6 +59,11 @@ cross-platform/
 | T0.3 Linux runtime behaviour | `main.rs` → `xdg-open` for `open_data_dir`/`open_provider_page`/`open_usage_page` (keep `explorer`/`cmd /C start` + `CREATE_NO_WINDOW` on Windows); `hooks_install.rs` → platform hook name; `codenotch-hook` → `read_port()` on `~/.config/codenotch/config.json` and `spawn_main()` without `.exe`; `i18n::resolve_auto()` from `$LANG`/`LC_ALL`; `agy_cli::find_agy()` and `codex::find_executable()` Linux candidates | `cargo check` clean; no Windows branch touched |
 | T0.4 Icons | Add `icons/icon.png`; extend `bundle.icon` | `generate_context!` runs on Linux |
 | T0.5 Verify | `cargo build` + `cargo test` headless on the Linux host | green; Windows build verified on host/CI as follow-up |
+
+**Done.** Gate re-run 2026-09-11: `cargo check --workspace` + `cargo test --workspace`
+green on the Linux host (`rustc 1.98.1`, X11 `:1` with a WM). Notes: the tray feature
+compiles without the `appindicator3-0.1` pkg-config name (`libappindicator v0.9.0` was
+pulled); `cargo tauri` CLI not installed — only needed for packaging (Epic E).
 
 **Done:** `cross-platform/` compiles and tests on Linux; nothing Windows changed.
 
@@ -174,7 +180,10 @@ the merge of validated agent output. Executor agents receive:
   claimed.
 
 Executor output is validated by the orchestrator (compile + the pinned tests +
-diff review) before it is accepted. Work items land in `docs/plans/tickets/`.
+diff review) before it is accepted. Work items land in `docs/plans/tickets/`
+(one file per ticket; see `docs/plans/tickets/README.md` for the index, lanes and
+ticket anatomy). Epics A and C are ticketized; B/D/E/F stay at epic level here until
+their dependency lands.
 
 ## Open decisions
 
