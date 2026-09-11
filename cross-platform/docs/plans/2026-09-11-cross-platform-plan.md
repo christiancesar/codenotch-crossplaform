@@ -194,7 +194,10 @@ Workflow:
 
 *Note:* In this session the orchestrator is running on the local opencode
 (big-pickle) lane while the OpenRouter/Kimi/GLM routing is recorded as the
-target operating model.
+target operating model. A concrete local-agent registry example (same pool
+pattern as mobile/api, but scoped to this repo) lives in
+`agent-pool-example.md` and in the updated `opencode.json` +
+`.opencode/prompt/` files.
 
 Work items land in `docs/plans/tickets/` (one file per ticket; see
 `docs/plans/tickets/README.md` for the index, lanes and ticket anatomy).
