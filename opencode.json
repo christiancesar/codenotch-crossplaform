@@ -1,0 +1,24 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": [".opencode/skills"]
+  },
+  "references": {
+    "port-plan": {
+      "path": "cross-platform/docs/plans",
+      "description": "Cross-platform Tauri 2 port plan, tickets and decisions — read before touching cross-platform/ code"
+    },
+    "port-spec": {
+      "path": "cross-platform/docs/specs",
+      "description": "Linux port specification — behavior contract for the Tauri 2 port"
+    },
+    "linux-notes": {
+      "path": "cross-platform/docs/notes",
+      "description": "Linux desktop-environment notes (edge pinning, tray, notifications, Secret Service)"
+    },
+    "windows-ref": {
+      "path": "windows",
+      "description": "Reference Windows port — read-only source of truth; never edit files under windows/"
+    }
+  }
+}
