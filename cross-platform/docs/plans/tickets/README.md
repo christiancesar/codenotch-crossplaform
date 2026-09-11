@@ -44,10 +44,16 @@ Every ticket is self-contained:
 
 ## Flow
 
-1. Orchestrator writes/approves the ticket. 2. Dispatches exactly one ticket to a fresh
-`executor`. 3. Executor edits + self-checks + returns `--outcome`. 4. Orchestrator compiles
-gates + diff review; on disagreement, `reviewer` gives a verdict. 5. Orchestrator merges
-(git) and updates this index + the plan.
+1. Orchestrator writes/approves the ticket.
+2. Dispatches exactly one ticket to a fresh `executor` on the local opencode lane.
+3. Executor edits + self-checks + returns `--outcome`.
+4. Orchestrator (or the optional `reviewer` lane) compiles gates + diff review; on
+   disagreement, `reviewer` gives a verdict.
+5. Orchestrator merges (git) and updates this index + the plan.
+
+Target operating model (same pool as `mobile`/`api`): primary model routing via
+OpenRouter, fallback to local opencode (big-pickle), orchestrator driven by
+opencode-go with Kimi 2 / GLM for planning/review/merge decisions.
 
 ## Invariants from AGENTS.md that every executor re-reads
 

@@ -164,26 +164,42 @@ Each epic is cuttable without breaking the ones before it (a notch is visible
 on an X11 edge by the end of Epic A). Nothing in Epic 0 depends on a graphical
 session; CI stays headless for provider tests.
 
-## Orchestration model
+## Orchestration model and agent pool
 
-The repository operator works with a pool of executor agents on other projects
-(mobile, api). This effort uses the same model with **opencode as the only
-available lane while the Claude weekly cap is exhausted**. The orchestration
-session (this one) is the single writer: it owns this plan, the ticket list, and
-the merge of validated agent output. Executor agents receive:
+This port uses the same orchestrated pool as the `mobile` and `api` projects:
 
-- which ticket to do,
-- the exact files and repo conventions to read first (AGENTS.md, CONTRIBUTING.md,
-  the matched Windows sources in `windows/`),
-- a Definition-of-Done to self-check,
-- the instruction that edge behaviour must be verified on a real desktop, not
-  claimed.
+- **Model routing**: primary lane is **OpenRouter**; fallback to **local opencode
+  (big-pickle)** when routing, policy or cost requires it. For the cross-platform
+  Rust/Tauri surface, executor work is currently handled by the local opencode lane.
+- **Orchestrator**: **opencode (Go binary)** with a high-context model such as
+  **Kimi 2** or **GLM**. The orchestrator owns this plan, the ticket list, diff
+  review, and merge decisions.
+- **Executor lane**: opencode executor subagents receive one ticket at a time,
+  read the listed files first (AGENTS.md, CONTRIBUTING.md, the matched Windows
+  sources in `windows/`, plus the ticket's plan/notes), self-check via compile +
+  pinned tests + real-desktop probes, and report back.
+- **Reviewer lane**: optional opencode reviewer subagent gates scope, platform
+  gating, tests, and the AGENTS.md invariants before the orchestrator merges.
+- **Merge**: the orchestrator runs compile gates and commits only validated
+  output.
 
-Executor output is validated by the orchestrator (compile + the pinned tests +
-diff review) before it is accepted. Work items land in `docs/plans/tickets/`
-(one file per ticket; see `docs/plans/tickets/README.md` for the index, lanes and
-ticket anatomy). Epics A and C are ticketized; B/D/E/F stay at epic level here until
-their dependency lands.
+Workflow:
+
+1. Orchestrator dispatches one ticket to a fresh executor.
+2. Executor edits + self-checks + returns a report (per
+   `.opencode/agent/executor.md`).
+3. Orchestrator (or a reviewer) validates: `windows/` untouched, compile gates
+   green, diff review, real-desktop claims verified or honestly reported.
+4. Orchestrator merges and updates the ticket index.
+
+*Note:* In this session the orchestrator is running on the local opencode
+(big-pickle) lane while the OpenRouter/Kimi/GLM routing is recorded as the
+target operating model.
+
+Work items land in `docs/plans/tickets/` (one file per ticket; see
+`docs/plans/tickets/README.md` for the index, lanes and ticket anatomy).
+Epics A and C are ticketized; B/D/E/F stay at epic level here until their
+dependency lands.
 
 ## Open decisions
 
