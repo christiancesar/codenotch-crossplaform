@@ -244,9 +244,16 @@ dependency lands.
 - **Regra de execução ajustada**: sem worktree, na branch `cross-platform-port`, uma
   tarefa por vez, executor commita progresso frequentemente (proteção contra
   cancelamento/`git reset`), sem push.
-- **A.1 (X11 struts)**: despachado duas vezes e cancelado antes de produzir código;
-  ainda **não iniciado**. O próximo passo é conseguir uma execução completa do A.1
-  (seja via subagente estável ou execução manual coordenada) antes de seguir para
-  A.5/A.2/etc.
-- **Próxima ação**: re-dispatch do A.1 com monitoramento, ou execução manual do
-  ticket sob supervisão do orquestrador.
+- **A.1 (X11 struts) implementado**: o executor produziu o módulo
+  `window_layer::x11_struts` com `_NET_WM_STRUT_PARTIAL`, lifecycle atrelado à
+  visibilidade e testes unitários. Também fez adaptações cross-platform em
+  praticamente todos os módulos (activity, agy_cli, antigravity, autostart, codex,
+  config, cursor, diag, doctor, glyphs, hooks_install, main, server, trayicon,
+  usage, watcher). Tudo foi commitado em `d946b91`.
+- **Estado de compilação**: `cargo check --workspace` e `cargo test --workspace`
+  verdes (28 passed, 1 ignored).
+- **Pendências**: revisar o diff misturado, validar o comportamento de desktop real
+  do A.1 (strut reservando a borda no `:1`), e decidir se separamos o commit
+  `d946b91` por ticket ou seguimos com ele.
+- **Próxima ação**: revisão do `d946b91` e validação em desktop real do A.1 antes
+  de prosseguir para A.5/A.2/etc.
