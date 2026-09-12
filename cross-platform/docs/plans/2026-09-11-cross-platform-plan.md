@@ -229,3 +229,24 @@ dependency lands.
   shows the real window).
 - **No keyring / no tray** in odd environments — file-based stores and a
   notch-only UX; never require either.
+
+---
+
+## Checkpoint — 2026-09-11
+
+- **Epic 0 concluído e re-verificado**: `cargo check --workspace` + `cargo test
+  --workspace` verdes no host Linux (`rustc 1.98.1`).
+- **Tickets criados e commitados**: Epic A (A.1–A.5) + Epic C (C.1–C.6) + README de
+  índice em `cross-platform/docs/plans/tickets/`.
+- **Agent pool local criado e commitado**: registry em `opencode.json` com
+  OpenRouter → big-pickle → opencode-go/Kimi/GLM, prompts em
+  `.opencode/prompt/`, e documentação em `cross-platform/docs/plans/agent-pool-example.md`.
+- **Regra de execução ajustada**: sem worktree, na branch `cross-platform-port`, uma
+  tarefa por vez, executor commita progresso frequentemente (proteção contra
+  cancelamento/`git reset`), sem push.
+- **A.1 (X11 struts)**: despachado duas vezes e cancelado antes de produzir código;
+  ainda **não iniciado**. O próximo passo é conseguir uma execução completa do A.1
+  (seja via subagente estável ou execução manual coordenada) antes de seguir para
+  A.5/A.2/etc.
+- **Próxima ação**: re-dispatch do A.1 com monitoramento, ou execução manual do
+  ticket sob supervisão do orquestrador.
