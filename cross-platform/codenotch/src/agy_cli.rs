@@ -37,7 +37,9 @@ pub fn find_agy() -> Option<PathBuf> {
         }
     }
     if let Some(path_var) = std::env::var_os("PATH") {
-        let dirs = std::env::split_paths(&path_var).filter(|p| p.is_absolute()).collect::<Vec<_>>();
+        let dirs = std::env::split_paths(&path_var)
+            .filter(|p| p.is_absolute())
+            .collect::<Vec<_>>();
         return find_agy_in(&dirs);
     }
     None
@@ -116,7 +118,10 @@ fn parse_quota(text: &str) -> Result<Vec<LimitWindow>, String> {
         return Err("CLI did not return a quota report".into());
     }
     let mut out = Vec::new();
-    for line in clean.lines().filter(|line| line.contains("Limit Remaining")) {
+    for line in clean
+        .lines()
+        .filter(|line| line.contains("Limit Remaining"))
+    {
         let (left, reset) = line.rsplit_once('%').ok_or("Invalid CLI quota row")?;
         let (label, remaining_str) = left
             .trim()
@@ -222,7 +227,13 @@ fn quote_arg(arg: &str) -> String {
         if c == '\\' {
             backslashes += 1;
         } else {
-            for _ in 0..(if c == '"' {backslashes * 2 + 1} else {backslashes}) { res.push('\\'); }
+            for _ in 0..(if c == '"' {
+                backslashes * 2 + 1
+            } else {
+                backslashes
+            }) {
+                res.push('\\');
+            }
             backslashes = 0;
             res.push(c);
         }
@@ -247,22 +258,19 @@ fn run_cmd_conpty(
     use std::os::windows::io::FromRawHandle;
     use windows::core::{PCWSTR, PWSTR};
     use windows::Win32::Foundation::{CloseHandle, HANDLE, WAIT_OBJECT_0};
-    use windows::Win32::System::Console::{
-        ClosePseudoConsole, CreatePseudoConsole, COORD, HPCON,
-    };
+    use windows::Win32::System::Console::{ClosePseudoConsole, CreatePseudoConsole, COORD, HPCON};
     use windows::Win32::System::JobObjects::{
-        AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject,
-        TerminateJobObject, JobObjectExtendedLimitInformation,
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+        SetInformationJobObject, TerminateJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
     };
     use windows::Win32::System::Pipes::CreatePipe;
     use windows::Win32::System::Threading::{
         CreateProcessW, DeleteProcThreadAttributeList, GetExitCodeProcess,
         InitializeProcThreadAttributeList, ResumeThread, UpdateProcThreadAttribute,
-        WaitForSingleObject, CREATE_SUSPENDED,
-        EXTENDED_STARTUPINFO_PRESENT, LPPROC_THREAD_ATTRIBUTE_LIST,
-        PROCESS_INFORMATION, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE, STARTUPINFOEXW,
-        STARTF_USESTDHANDLES,
+        WaitForSingleObject, CREATE_SUSPENDED, EXTENDED_STARTUPINFO_PRESENT,
+        LPPROC_THREAD_ATTRIBUTE_LIST, PROCESS_INFORMATION, PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+        STARTF_USESTDHANDLES, STARTUPINFOEXW,
     };
 
     if !program.is_file() {
@@ -343,7 +351,9 @@ fn run_cmd_conpty(
         let mut buf = Vec::new();
         let mut chunk = [0u8; 4096];
         while let Ok(n) = file.read(&mut chunk) {
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
             let keep = n.min(65537usize.saturating_sub(buf.len()));
             buf.extend_from_slice(&chunk[..keep]);
         }
@@ -392,14 +402,26 @@ fn run_cmd_conpty(
     }
 
     let mut cmd_line_str = quote_arg(program.to_str().unwrap_or_default());
-    let program_u16: Vec<u16> = program.as_os_str().encode_wide().chain(std::iter::once(0)).collect();
+    let program_u16: Vec<u16> = program
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
     for arg in args {
         cmd_line_str.push(' ');
         cmd_line_str.push_str(&quote_arg(arg));
     }
-    let mut cmd_line_u16: Vec<u16> = cmd_line_str.encode_utf16().chain(std::iter::once(0)).collect();
+    let mut cmd_line_u16: Vec<u16> = cmd_line_str
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
 
-    let cwd_u16: Option<Vec<u16>> = cwd.map(|p| p.as_os_str().encode_wide().chain(std::iter::once(0)).collect());
+    let cwd_u16: Option<Vec<u16>> = cwd.map(|p| {
+        p.as_os_str()
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect()
+    });
 
     let mut si_ex = STARTUPINFOEXW::default();
     si_ex.StartupInfo.cb = std::mem::size_of::<STARTUPINFOEXW>() as u32;
@@ -418,7 +440,9 @@ fn run_cmd_conpty(
             false,
             EXTENDED_STARTUPINFO_PRESENT | CREATE_SUSPENDED,
             None,
-            cwd_u16.as_ref().map_or(PCWSTR::null(), |v| PCWSTR(v.as_ptr())),
+            cwd_u16
+                .as_ref()
+                .map_or(PCWSTR::null(), |v| PCWSTR(v.as_ptr())),
             &si_ex.StartupInfo,
             &mut proc_info,
         )
@@ -443,7 +467,10 @@ fn run_cmd_conpty(
         result != u32::MAX
     };
     let _process_guard = Job(proc_info.hProcess);
-    if !resumed { drop(job); return Err("Cannot resume CLI process".into()); }
+    if !resumed {
+        drop(job);
+        return Err("Cannot resume CLI process".into());
+    }
 
     let started = std::time::Instant::now();
     let mut exit_code = 0u32;
@@ -471,7 +498,6 @@ fn run_cmd_conpty(
     let raw_bytes = reader_thread
         .join()
         .map_err(|_| "CLI output reader thread panicked".to_string())?;
-
 
     if timed_out {
         return Err("Antigravity CLI quota request timed out".into());
@@ -503,8 +529,14 @@ fn run_cmd_conpty(
 pub fn read_quota() -> Result<Vec<LimitWindow>, String> {
     let agy = find_agy().ok_or("Antigravity CLI is not installed")?;
     let dir = crate::config::config_path().with_file_name("quota-work");
-    std::fs::create_dir_all(&dir).map_err(|e| format!("Cannot create CLI working directory: {e}"))?;
-    let output = run_cmd_conpty(&agy, &["--sandbox", "--print-timeout", "30s", "--print", "/usage"], Some(&dir), Duration::from_secs(70))?;
+    std::fs::create_dir_all(&dir)
+        .map_err(|e| format!("Cannot create CLI working directory: {e}"))?;
+    let output = run_cmd_conpty(
+        &agy,
+        &["--sandbox", "--print-timeout", "30s", "--print", "/usage"],
+        Some(&dir),
+        Duration::from_secs(70),
+    )?;
     parse_quota(&output)
 }
 
@@ -514,7 +546,10 @@ mod tests {
 
     #[test]
     fn quoted_paths_keep_backslashes() {
-        assert_eq!(quote_arg(r"C:\Program Files\agy.exe"), r#""C:\Program Files\agy.exe""#);
+        assert_eq!(
+            quote_arg(r"C:\Program Files\agy.exe"),
+            r#""C:\Program Files\agy.exe""#
+        );
         assert_eq!(quote_arg("path with space\\"), "\"path with space\\\\\"");
         assert_eq!(quote_arg("a\\\"b"), "\"a\\\\\\\"b\"");
     }
@@ -581,7 +616,8 @@ mod tests {
 
     #[test]
     fn test_missing_cli() {
-        let temp = std::env::temp_dir().join(format!("codenotch-empty-test-{}", std::process::id()));
+        let temp =
+            std::env::temp_dir().join(format!("codenotch-empty-test-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&temp);
         assert_eq!(find_agy_in(std::slice::from_ref(&temp)), None);
         let _ = std::fs::remove_dir_all(&temp);
@@ -589,22 +625,34 @@ mod tests {
         let non_existent = PathBuf::from(r"C:\non\existent\path\agy.exe");
         #[cfg(windows)]
         {
-            let res = run_cmd_conpty(&non_existent, &["--print", "/usage"], None, Duration::from_secs(5));
+            let res = run_cmd_conpty(
+                &non_existent,
+                &["--print", "/usage"],
+                None,
+                Duration::from_secs(5),
+            );
             assert!(res.is_err());
         }
     }
 
     #[test]
     fn test_atomic_write_preserves_old_on_failure() {
-        let dir = std::env::temp_dir().join(format!("codenotch-atomic-test-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("codenotch-atomic-test-{}", std::process::id()));
         let _ = std::fs::create_dir_all(&dir);
         let dest = dir.join("antigravity.json");
 
         assert!(atomic_write(&dest, b"initial quota data").is_ok());
-        assert_eq!(std::fs::read_to_string(&dest).unwrap(), "initial quota data");
+        assert_eq!(
+            std::fs::read_to_string(&dest).unwrap(),
+            "initial quota data"
+        );
 
         assert!(atomic_write(&dest, b"updated quota data").is_ok());
-        assert_eq!(std::fs::read_to_string(&dest).unwrap(), "updated quota data");
+        assert_eq!(
+            std::fs::read_to_string(&dest).unwrap(),
+            "updated quota data"
+        );
 
         let snap = UsageSnapshot {
             status: "ok".into(),
@@ -650,8 +698,13 @@ mod tests {
             return;
         }
 
-        let out = run_cmd_conpty(&cmd, &["/c", "echo hello from conpty"], None, Duration::from_secs(10))
-            .expect("harmless echo command");
+        let out = run_cmd_conpty(
+            &cmd,
+            &["/c", "echo hello from conpty"],
+            None,
+            Duration::from_secs(10),
+        )
+        .expect("harmless echo command");
         assert!(out.contains("hello from conpty"));
 
         // Large output test: generate thousands of lines, verify no deadlock and bounded output

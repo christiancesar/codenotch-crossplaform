@@ -26,7 +26,11 @@ fn is_ours(entry: &Value) -> bool {
             hs.iter().any(|h| {
                 h["command"]
                     .as_str()
-                    .map(|c| c.contains("codenotch-hook") || c.contains("eatbean-hook") || c.contains("pacman-hook"))
+                    .map(|c| {
+                        c.contains("codenotch-hook")
+                            || c.contains("eatbean-hook")
+                            || c.contains("pacman-hook")
+                    })
                     .unwrap_or(false)
             })
         })
@@ -49,7 +53,10 @@ fn backup_and_write(path: &PathBuf, root: &Value) -> Result<(), String> {
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        let _ = std::fs::copy(path, path.with_extension(format!("json.codenotch-bak-{ts}")));
+        let _ = std::fs::copy(
+            path,
+            path.with_extension(format!("json.codenotch-bak-{ts}")),
+        );
     }
     let txt = serde_json::to_string_pretty(root).map_err(|e| e.to_string())?;
     std::fs::write(path, txt).map_err(|e| e.to_string())
@@ -88,7 +95,10 @@ pub fn install() -> Result<String, String> {
     }
 
     for (event, need_matcher, internal) in WIRING {
-        let arr = root["hooks"][*event].as_array().cloned().unwrap_or_default();
+        let arr = root["hooks"][*event]
+            .as_array()
+            .cloned()
+            .unwrap_or_default();
         // Remove our own older entries first
         let mut arr: Vec<Value> = arr.into_iter().filter(|e| !is_ours(e)).collect();
         let cmd = format!("\"{}\" {}", hook_exe.display(), internal);
@@ -103,7 +113,11 @@ pub fn install() -> Result<String, String> {
     }
 
     backup_and_write(&path, &root)?;
-    Ok(format!("wrote {} ({} events)", path.display(), WIRING.len()))
+    Ok(format!(
+        "wrote {} ({} events)",
+        path.display(),
+        WIRING.len()
+    ))
 }
 
 pub fn uninstall() -> Result<String, String> {

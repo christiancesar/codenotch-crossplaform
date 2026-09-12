@@ -43,7 +43,10 @@ fn read_port() -> u16 {
         Err(_) => return DEFAULT_PORT,
     };
     #[cfg(not(windows))]
-    let path = match std::env::var("XDG_CONFIG_HOME").ok().filter(|s| !s.is_empty()) {
+    let path = match std::env::var("XDG_CONFIG_HOME")
+        .ok()
+        .filter(|s| !s.is_empty())
+    {
         Some(x) => format!("{x}/codenotch/config.json"),
         // XDG_CONFIG_HOME unset or empty: the XDG spec treats that as unset, so use the default
         None => match std::env::var("HOME") {
@@ -87,7 +90,9 @@ fn send(port: u16, event: &str, ppid: u32, body: &str) -> std::io::Result<()> {
 
 /// Launches the main app detached: no inherited handles, no window, never waits
 fn spawn_main() {
-    let Ok(me) = std::env::current_exe() else { return };
+    let Ok(me) = std::env::current_exe() else {
+        return;
+    };
     let Some(dir) = me.parent() else { return };
     // The main app binary carries no extension outside Windows
     #[cfg(windows)]
@@ -136,13 +141,8 @@ fn parent_pid() -> u32 {
         let mut pbi = std::mem::zeroed::<Pbi>();
         let mut ret = 0u32;
         // -1 = GetCurrentProcess()
-        if NtQueryInformationProcess(
-            -1,
-            0,
-            &mut pbi,
-            std::mem::size_of::<Pbi>() as u32,
-            &mut ret,
-        ) == 0
+        if NtQueryInformationProcess(-1, 0, &mut pbi, std::mem::size_of::<Pbi>() as u32, &mut ret)
+            == 0
         {
             return pbi.inherited_from_unique_process_id as u32;
         }

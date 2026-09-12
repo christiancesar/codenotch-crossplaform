@@ -6,22 +6,41 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 fn now_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 fn mtime_ms(p: &Path) -> Option<u64> {
-    std::fs::metadata(p).ok()?.modified().ok()?.duration_since(UNIX_EPOCH).ok().map(|d| d.as_millis() as u64)
+    std::fs::metadata(p)
+        .ok()?
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .map(|d| d.as_millis() as u64)
 }
 
 /// Files modified within the last `within_s` seconds (depth-limited), sorted newest first
 fn recent_files(root: &Path, depth: usize, within_s: u64, out: &mut Vec<(u64, PathBuf)>) {
-    let Ok(rd) = std::fs::read_dir(root) else { return };
+    let Ok(rd) = std::fs::read_dir(root) else {
+        return;
+    };
     let now = now_ms();
     for e in rd.flatten() {
         let p = e.path();
-        let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+        let name = p
+            .file_name()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_default();
         if p.is_dir() {
-            if depth > 0 && !name.starts_with("node_modules") && name != "Cache" && name != "Code Cache" && name != "GPUCache" {
+            if depth > 0
+                && !name.starts_with("node_modules")
+                && name != "Cache"
+                && name != "Code Cache"
+                && name != "GPUCache"
+            {
                 recent_files(&p, depth - 1, within_s, out);
             }
             continue;
@@ -55,11 +74,19 @@ fn short(v: &rusqlite::types::Value) -> String {
 /// Structure of one SQLite database plus, per table, the newest row by a time-like column (short values)
 fn dump_sqlite(path: &Path) -> String {
     use rusqlite::OpenFlags;
-    let mut o = format!("--- {} ({}, modified {}s ago)\n", path.display(), if path.is_file() { "present" } else { "missing" }, now_ms().saturating_sub(mtime_ms(path).unwrap_or(0)) / 1000);
+    let mut o = format!(
+        "--- {} ({}, modified {}s ago)\n",
+        path.display(),
+        if path.is_file() { "present" } else { "missing" },
+        now_ms().saturating_sub(mtime_ms(path).unwrap_or(0)) / 1000
+    );
     if !path.is_file() {
         return o;
     }
-    let conn = match rusqlite::Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX) {
+    let conn = match rusqlite::Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    ) {
         Ok(c) => c,
         Err(e) => {
             o += &format!("  cannot open: {e}\n");
@@ -73,16 +100,26 @@ fn dump_sqlite(path: &Path) -> String {
     for t in tables.iter().take(25) {
         let cols: Vec<String> = conn
             .prepare(&format!("PRAGMA table_info(\"{t}\")"))
-            .and_then(|mut s| s.query_map([], |r| r.get::<_, String>(1)).map(|rows| rows.flatten().collect()))
+            .and_then(|mut s| {
+                s.query_map([], |r| r.get::<_, String>(1))
+                    .map(|rows| rows.flatten().collect())
+            })
             .unwrap_or_default();
-        let count: i64 = conn.query_row(&format!("SELECT COUNT(*) FROM \"{t}\""), [], |r| r.get(0)).unwrap_or(-1);
+        let count: i64 = conn
+            .query_row(&format!("SELECT COUNT(*) FROM \"{t}\""), [], |r| r.get(0))
+            .unwrap_or(-1);
         o += &format!("  table {t} ({count} rows): {}\n", cols.join(", "));
         // Time-like columns: updated/created/_at/time/recency
         let timeish: Vec<&String> = cols
             .iter()
             .filter(|c| {
                 let l = c.to_lowercase();
-                l.contains("updated") || l.contains("created") || l.ends_with("_at") || l.contains("time") || l.contains("recency") || l.contains("modified")
+                l.contains("updated")
+                    || l.contains("created")
+                    || l.ends_with("_at")
+                    || l.contains("time")
+                    || l.contains("recency")
+                    || l.contains("modified")
             })
             .collect();
         if let Some(tc) = timeish.first() {
@@ -93,8 +130,13 @@ fn dump_sqlite(path: &Path) -> String {
                     if let Ok(Some(row)) = rows.next() {
                         let mut parts = Vec::new();
                         for i in 0..n {
-                            let v: rusqlite::types::Value = row.get(i).unwrap_or(rusqlite::types::Value::Null);
-                            parts.push(format!("{}={}", cols.get(i).cloned().unwrap_or_default(), short(&v)));
+                            let v: rusqlite::types::Value =
+                                row.get(i).unwrap_or(rusqlite::types::Value::Null);
+                            parts.push(format!(
+                                "{}={}",
+                                cols.get(i).cloned().unwrap_or_default(),
+                                short(&v)
+                            ));
                         }
                         o += &format!("    newest row (by {tc}): {}\n", parts.join(" | "));
                     }
@@ -107,7 +149,11 @@ fn dump_sqlite(path: &Path) -> String {
 
 /// JSON file: prints only scalar keys (short strings/numbers/booleans); long strings as lengths, nested values as their type
 fn dump_json_scalars(path: &Path) -> String {
-    let mut o = format!("--- {} (modified {}s ago)\n", path.display(), now_ms().saturating_sub(mtime_ms(path).unwrap_or(0)) / 1000);
+    let mut o = format!(
+        "--- {} (modified {}s ago)\n",
+        path.display(),
+        now_ms().saturating_sub(mtime_ms(path).unwrap_or(0)) / 1000
+    );
     let Ok(t) = std::fs::read_to_string(path) else {
         o += "  unreadable\n";
         return o;
@@ -119,12 +165,22 @@ fn dump_json_scalars(path: &Path) -> String {
     fn walk(v: &serde_json::Value, prefix: &str, depth: usize, o: &mut String) {
         if let Some(obj) = v.as_object() {
             for (k, x) in obj.iter().take(60) {
-                let key = if prefix.is_empty() { k.clone() } else { format!("{prefix}.{k}") };
+                let key = if prefix.is_empty() {
+                    k.clone()
+                } else {
+                    format!("{prefix}.{k}")
+                };
                 match x {
                     serde_json::Value::Object(_) if depth < 2 => walk(x, &key, depth + 1, o),
-                    serde_json::Value::Object(m) => o.push_str(&format!("  {key}: <object {} keys>\n", m.len())),
-                    serde_json::Value::Array(a) => o.push_str(&format!("  {key}: <array {}>\n", a.len())),
-                    serde_json::Value::String(s) if s.len() > 40 => o.push_str(&format!("  {key}: <string {} chars>\n", s.len())),
+                    serde_json::Value::Object(m) => {
+                        o.push_str(&format!("  {key}: <object {} keys>\n", m.len()))
+                    }
+                    serde_json::Value::Array(a) => {
+                        o.push_str(&format!("  {key}: <array {}>\n", a.len()))
+                    }
+                    serde_json::Value::String(s) if s.len() > 40 => {
+                        o.push_str(&format!("  {key}: <string {} chars>\n", s.len()))
+                    }
                     other => o.push_str(&format!("  {key}: {other}\n")),
                 }
             }
@@ -146,12 +202,31 @@ pub fn run() -> String {
         for e in rd.flatten() {
             let n = e.file_name().to_string_lossy().to_lowercase();
             if n.contains("claude") || n.contains("anthropic") {
-                recent_files(&e.path().join("LocalCache").join("Roaming").join("Claude"), 3, 120, &mut recent);
+                recent_files(
+                    &e.path().join("LocalCache").join("Roaming").join("Claude"),
+                    3,
+                    120,
+                    &mut recent,
+                );
             }
         }
     }
-    recent_files(&dirs::config_dir().unwrap_or_default().join("Claude"), 2, 120, &mut recent);
-    recent_files(&dirs::config_dir().unwrap_or_default().join("Cursor").join("User").join("globalStorage"), 1, 120, &mut recent);
+    recent_files(
+        &dirs::config_dir().unwrap_or_default().join("Claude"),
+        2,
+        120,
+        &mut recent,
+    );
+    recent_files(
+        &dirs::config_dir()
+            .unwrap_or_default()
+            .join("Cursor")
+            .join("User")
+            .join("globalStorage"),
+        1,
+        120,
+        &mut recent,
+    );
     recent.sort();
     for (age, p) in recent.iter().take(60) {
         o += &format!("  {age:>4}s ago  {}\n", p.display());
@@ -179,7 +254,10 @@ pub fn run() -> String {
         if let Some(last) = t.lines().rev().find(|l| !l.trim().is_empty()) {
             match serde_json::from_str::<serde_json::Value>(last) {
                 Ok(v) => {
-                    let keys: Vec<String> = v.as_object().map(|m| m.keys().cloned().collect()).unwrap_or_default();
+                    let keys: Vec<String> = v
+                        .as_object()
+                        .map(|m| m.keys().cloned().collect())
+                        .unwrap_or_default();
                     o += &format!("  keys: {}\n", keys.join(", "));
                 }
                 Err(_) => o += "  not JSON\n",

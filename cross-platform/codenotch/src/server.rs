@@ -11,17 +11,16 @@ pub fn start(app: AppHandle, port: u16) {
         let server = match tiny_http::Server::http(("127.0.0.1", port)) {
             Ok(s) => s,
             Err(e) => {
-                eprintln!("[codenotch] failed to bind port {port}: {e} (is another instance running?)");
+                eprintln!(
+                    "[codenotch] failed to bind port {port}: {e} (is another instance running?)"
+                );
                 return;
             }
         };
         for mut req in server.incoming_requests() {
             let url = req.url().to_string();
             let mut body = String::new();
-            let _ = req
-                .as_reader()
-                .take(256 * 1024)
-                .read_to_string(&mut body);
+            let _ = req.as_reader().take(256 * 1024).read_to_string(&mut body);
             if url.starts_with("/event") {
                 let ev = parse(&url, &body);
                 let state = app.state::<AppState>();
@@ -63,7 +62,11 @@ fn parse(url: &str, body: &str) -> HookEvent {
         e: query_param(url, "e"),
         session_id: {
             let id = s("session_id");
-            if id.is_empty() { "unknown".into() } else { id }
+            if id.is_empty() {
+                "unknown".into()
+            } else {
+                id
+            }
         },
         ppid: query_param(url, "ppid").parse().unwrap_or(0),
         cwd: s("cwd"),

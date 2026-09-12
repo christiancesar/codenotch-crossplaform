@@ -43,7 +43,8 @@ use tauri::{AppHandle, Emitter, Manager};
 const POLL_SECS: u64 = 300;
 const CLI_TTL: Duration = Duration::from_secs(300);
 const LOAD_CODE_ASSIST: &str = "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist";
-const QUOTA_SUMMARY: &str = "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary";
+const QUOTA_SUMMARY: &str =
+    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary";
 const LS_SERVICE: &str = "/exa.language_server_pb.LanguageServerService/RetrieveUserQuotaSummary";
 const CSRF_HEADER: &str = "x-codeium-csrf-token";
 
@@ -84,11 +85,15 @@ fn now_ms() -> u64 {
 /// just the first that exists: switching flavour leaves the old directory behind, so the first can
 /// be empty while the transcripts sit in the next (#84 hit this on macOS).
 pub(crate) fn state_roots() -> Vec<PathBuf> {
-    dirs::home_dir().map(|h| state_roots_in(&h)).unwrap_or_default()
+    dirs::home_dir()
+        .map(|h| state_roots_in(&h))
+        .unwrap_or_default()
 }
 
 fn state_roots_in(home: &Path) -> Vec<PathBuf> {
-    let Ok(rd) = std::fs::read_dir(home.join(".gemini")) else { return vec![] };
+    let Ok(rd) = std::fs::read_dir(home.join(".gemini")) else {
+        return vec![];
+    };
     let mut out: Vec<PathBuf> = rd
         .flatten()
         .filter(|e| e.file_name().to_string_lossy().starts_with("antigravity"))
@@ -163,13 +168,17 @@ struct Endpoint {
 
 fn run_hidden(program: &str, args: &[&str]) -> String {
     let mut cmd = std::process::Command::new(program);
-    cmd.args(args).stdin(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+    cmd.args(args)
+        .stdin(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null());
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         cmd.creation_flags(0x0800_0000);
     }
-    cmd.output().map(|o| String::from_utf8_lossy(&o.stdout).into_owned()).unwrap_or_default()
+    cmd.output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+        .unwrap_or_default()
 }
 
 /// The process table is the only source of truth: the token is on the command line and the port is written nowhere
@@ -198,10 +207,15 @@ fn discover() -> Option<Endpoint> {
 #[cfg(not(windows))]
 fn discover() -> Option<Endpoint> {
     let table = run_hidden("ps", &["-Ao", "pid,command"]);
-    let line = table.lines().find(|l| l.contains("language_server") && l.contains("--csrf_token"))?;
+    let line = table
+        .lines()
+        .find(|l| l.contains("language_server") && l.contains("--csrf_token"))?;
     let pid: u32 = line.trim().split_whitespace().next()?.parse().ok()?;
     let csrf = flag_value(line, "--csrf_token")?;
-    let out = run_hidden("lsof", &["-nP", "-a", "-p", &pid.to_string(), "-iTCP", "-sTCP:LISTEN"]);
+    let out = run_hidden(
+        "lsof",
+        &["-nP", "-a", "-p", &pid.to_string(), "-iTCP", "-sTCP:LISTEN"],
+    );
     let ports: Vec<u16> = out
         .lines()
         .filter_map(|l| l.split_whitespace().rev().find(|w| w.contains(':')))
@@ -247,7 +261,12 @@ fn local_agent() -> Option<ureq::Agent> {
         .danger_accept_invalid_hostnames(true)
         .build()
         .ok()?;
-    Some(ureq::AgentBuilder::new().tls_connector(Arc::new(tls)).timeout(Duration::from_secs(10)).build())
+    Some(
+        ureq::AgentBuilder::new()
+            .tls_connector(Arc::new(tls))
+            .timeout(Duration::from_secs(10))
+            .build(),
+    )
 }
 
 fn bridge_quota(ep: &Endpoint) -> Result<Vec<LimitWindow>, String> {
@@ -287,18 +306,29 @@ fn parse_iso(v: Option<&serde_json::Value>) -> Option<u64> {
 /// The server reports what remains and the notch shows what is used: flip it here so the view never learns about provider differences
 pub fn windows_from_bridge(v: &serde_json::Value) -> Vec<LimitWindow> {
     let mut out = Vec::new();
-    let Some(groups) = v.pointer("/response/groups").and_then(|g| g.as_array()) else { return out };
+    let Some(groups) = v.pointer("/response/groups").and_then(|g| g.as_array()) else {
+        return out;
+    };
     for g in groups {
         let gname = g.get("displayName").and_then(|x| x.as_str());
-        let Some(buckets) = g.get("buckets").and_then(|b| b.as_array()) else { continue };
+        let Some(buckets) = g.get("buckets").and_then(|b| b.as_array()) else {
+            continue;
+        };
         for b in buckets {
-            let Some(rem) = b.get("remainingFraction").and_then(|x| x.as_f64()) else { continue };
+            let Some(rem) = b.get("remainingFraction").and_then(|x| x.as_f64()) else {
+                continue;
+            };
             if !(0.0..=1.0).contains(&rem) {
                 continue;
             }
             let bname = b.get("displayName").and_then(|x| x.as_str());
             out.push(LimitWindow {
-                id: b.get("bucketId").and_then(|x| x.as_str()).or(gname).unwrap_or("quota").to_string(),
+                id: b
+                    .get("bucketId")
+                    .and_then(|x| x.as_str())
+                    .or(gname)
+                    .unwrap_or("quota")
+                    .to_string(),
                 label: gname.or(bname).unwrap_or("Usage").to_string(),
                 used: (1.0 - rem).clamp(0.0, 1.0),
                 resets_at: parse_iso(b.get("resetTime")),
@@ -321,11 +351,18 @@ struct Creds {
 #[cfg(windows)]
 fn read_credential_raw() -> Option<Vec<u8>> {
     use windows::core::PCWSTR;
-    use windows::Win32::Security::Credentials::{CredFree, CredReadW, CREDENTIALW, CRED_TYPE_GENERIC};
-    let target: Vec<u16> = "gemini:antigravity".encode_utf16().chain(std::iter::once(0)).collect();
+    use windows::Win32::Security::Credentials::{
+        CredFree, CredReadW, CREDENTIALW, CRED_TYPE_GENERIC,
+    };
+    let target: Vec<u16> = "gemini:antigravity"
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
     let mut pcred: *mut CREDENTIALW = std::ptr::null_mut();
     unsafe {
-        if CredReadW(PCWSTR(target.as_ptr()), CRED_TYPE_GENERIC, 0, &mut pcred).is_err() || pcred.is_null() {
+        if CredReadW(PCWSTR(target.as_ptr()), CRED_TYPE_GENERIC, 0, &mut pcred).is_err()
+            || pcred.is_null()
+        {
             return None;
         }
         let c = &*pcred;
@@ -351,7 +388,10 @@ fn read_credential_raw() -> Option<Vec<u8>> {
 fn decode_credential(raw: &[u8]) -> Option<Creds> {
     let mut text = String::from_utf8(raw.to_vec()).unwrap_or_else(|_| {
         // Some writers store the blob as UTF-16LE
-        let u16s: Vec<u16> = raw.chunks_exact(2).map(|c| u16::from_le_bytes([c[0], c[1]])).collect();
+        let u16s: Vec<u16> = raw
+            .chunks_exact(2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect();
         String::from_utf16_lossy(&u16s)
     });
     text = text.trim_matches('\0').trim().to_string();
@@ -361,12 +401,23 @@ fn decode_credential(raw: &[u8]) -> Option<Creds> {
     }
     let v: serde_json::Value = serde_json::from_str(&text).ok()?;
     let access = v.pointer("/token/access_token")?.as_str()?.to_string();
-    let expiry = v.pointer("/token/expiry").and_then(|x| x.as_str()).unwrap_or("");
+    let expiry = v
+        .pointer("/token/expiry")
+        .and_then(|x| x.as_str())
+        .unwrap_or("");
     let expired = chrono::DateTime::parse_from_rfc3339(expiry)
         .map(|d| (d.timestamp_millis().max(0) as u64) <= now_ms())
         .unwrap_or(false);
-    let auth_method = v.get("auth_method").and_then(|x| x.as_str()).unwrap_or("").to_string();
-    Some(Creds { access_token: access, expired, auth_method })
+    let auth_method = v
+        .get("auth_method")
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string();
+    Some(Creds {
+        access_token: access,
+        expired,
+        auth_method,
+    })
 }
 
 /// Dependency-free base64 (standard alphabet, tolerant of URL-safe characters and missing padding)
@@ -401,7 +452,9 @@ fn read_credentials() -> Option<Creds> {
 
 /// Tier name ("Personal"/"Pro"…); 401/403 → NeedsAuth
 fn load_tier(token: &str) -> Result<String, String> {
-    let agent = ureq::AgentBuilder::new().timeout(Duration::from_secs(15)).build();
+    let agent = ureq::AgentBuilder::new()
+        .timeout(Duration::from_secs(15))
+        .build();
     match agent
         .post(LOAD_CODE_ASSIST)
         .set("Authorization", &format!("Bearer {token}"))
@@ -413,16 +466,24 @@ fn load_tier(token: &str) -> Result<String, String> {
             let tier = v
                 .get("currentTier")
                 .or_else(|| {
-                    v.get("allowedTiers").and_then(|a| a.as_array()).and_then(|a| {
-                        a.iter().find(|t| t.get("isDefault").and_then(|x| x.as_bool()) == Some(true)).or(a.first())
-                    })
+                    v.get("allowedTiers")
+                        .and_then(|a| a.as_array())
+                        .and_then(|a| {
+                            a.iter()
+                                .find(|t| {
+                                    t.get("isDefault").and_then(|x| x.as_bool()) == Some(true)
+                                })
+                                .or(a.first())
+                        })
                 })
                 .and_then(|t| t.get("name"))
                 .and_then(|x| x.as_str())
                 .unwrap_or("Gemini");
             Ok(tier.to_string())
         }
-        Err(ureq::Error::Status(401, _)) | Err(ureq::Error::Status(403, _)) => Err("needsAuth".into()),
+        Err(ureq::Error::Status(401, _)) | Err(ureq::Error::Status(403, _)) => {
+            Err("needsAuth".into())
+        }
         Err(ureq::Error::Status(code, _)) => Err(format!("HTTP {code}")),
         Err(e) => Err(e.to_string()),
     }
@@ -430,7 +491,9 @@ fn load_tier(token: &str) -> Result<String, String> {
 
 /// Direct quota for licensed accounts; a personal account gets 403 → None (not an error)
 fn direct_quota(token: &str) -> Option<Vec<LimitWindow>> {
-    let agent = ureq::AgentBuilder::new().timeout(Duration::from_secs(15)).build();
+    let agent = ureq::AgentBuilder::new()
+        .timeout(Duration::from_secs(15))
+        .build();
     let r = agent
         .post(QUOTA_SUMMARY)
         .set("Authorization", &format!("Bearer {token}"))
@@ -464,7 +527,11 @@ fn direct_quota(token: &str) -> Option<Vec<LimitWindow>> {
                 .unwrap_or("Usage")
                 .to_string();
             Some(LimitWindow {
-                id: b.get("name").and_then(|x| x.as_str()).unwrap_or(&label).to_string(),
+                id: b
+                    .get("name")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or(&label)
+                    .to_string(),
                 label,
                 used: (used / limit).clamp(0.0, 1.0),
                 resets_at: parse_iso(b.get("resetTime")),
@@ -490,19 +557,35 @@ fn requests_in(roots: &[PathBuf], today: chrono::NaiveDate) -> (u64, Option<u64>
     use chrono::{Local, TimeZone};
     let mut count = 0u64;
     let mut latest: Option<u64> = None;
-    for e in roots.iter().filter_map(|r| std::fs::read_dir(r.join("brain")).ok()).flat_map(|rd| rd.flatten()) {
-        let p = e.path().join(".system_generated").join("logs").join("transcript.jsonl");
-        let Ok(text) = std::fs::read_to_string(&p) else { continue };
+    for e in roots
+        .iter()
+        .filter_map(|r| std::fs::read_dir(r.join("brain")).ok())
+        .flat_map(|rd| rd.flatten())
+    {
+        let p = e
+            .path()
+            .join(".system_generated")
+            .join("logs")
+            .join("transcript.jsonl");
+        let Ok(text) = std::fs::read_to_string(&p) else {
+            continue;
+        };
         for line in text.lines() {
             if !line.contains("\"MODEL\"") {
                 continue;
             }
-            let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else { continue };
+            let Ok(v) = serde_json::from_str::<serde_json::Value>(line) else {
+                continue;
+            };
             if v.get("source").and_then(|x| x.as_str()) != Some("MODEL") {
                 continue;
             }
-            let Some(ts) = v.get("created_at").and_then(|x| x.as_str()) else { continue };
-            let Ok(dt) = chrono::DateTime::parse_from_rfc3339(ts) else { continue };
+            let Some(ts) = v.get("created_at").and_then(|x| x.as_str()) else {
+                continue;
+            };
+            let Ok(dt) = chrono::DateTime::parse_from_rfc3339(ts) else {
+                continue;
+            };
             let ms = dt.timestamp_millis().max(0) as u64;
             latest = Some(latest.map_or(ms, |l| l.max(ms)));
             let local = Local.timestamp_millis_opt(ms as i64).single();
@@ -586,14 +669,20 @@ fn read_once(rt: &mut Runtime, prev: &UsageSnapshot) -> UsageSnapshot {
             }
             Err(e) if e == "needsAuth" => {
                 snap.status = "needsAuth".into();
-                snap.note = "Antigravity's Google session was rejected — sign in again in Antigravity".into();
+                snap.note =
+                    "Antigravity's Google session was rejected — sign in again in Antigravity"
+                        .into();
                 return snap;
             }
             Err(e) => crate::applog(&format!("antigravity: loadCodeAssist {e}")),
         },
         Some(c) => {
             // Expired ≠ signed out: Antigravity refreshes it on its next run; auth_method stands in for the tier
-            tier = Some(if c.auth_method == "consumer" { "Personal".into() } else { c.auth_method.clone() });
+            tier = Some(if c.auth_method == "consumer" {
+                "Personal".into()
+            } else {
+                c.auth_method.clone()
+            });
         }
         None => {}
     }
@@ -709,7 +798,13 @@ fn start_legacy(app: AppHandle) {
             let _ = app.emit("antigravity", &snap);
         }
         if !legacy_present() {
-            broadcast(&app, UsageSnapshot { status: "absent".into(), ..Default::default() });
+            broadcast(
+                &app,
+                UsageSnapshot {
+                    status: "absent".into(),
+                    ..Default::default()
+                },
+            );
             loop {
                 sleep_interruptible(600);
                 if legacy_present() {
@@ -717,7 +812,10 @@ fn start_legacy(app: AppHandle) {
                 }
             }
         }
-        let mut rt = Runtime { endpoint: None, ever_bridged: false };
+        let mut rt = Runtime {
+            endpoint: None,
+            ever_bridged: false,
+        };
         loop {
             let prev = {
                 let st = app.state::<AppState>();
@@ -770,7 +868,8 @@ mod tests {
     struct Home(PathBuf);
     impl Home {
         fn new(name: &str) -> Self {
-            let p = std::env::temp_dir().join(format!("codenotch-ag-{}-{name}", std::process::id()));
+            let p =
+                std::env::temp_dir().join(format!("codenotch-ag-{}-{name}", std::process::id()));
             let _ = std::fs::remove_dir_all(&p);
             std::fs::create_dir_all(p.join(".gemini")).unwrap();
             Home(p)
@@ -788,17 +887,27 @@ mod tests {
     }
 
     fn names(roots: &[PathBuf]) -> Vec<String> {
-        roots.iter().map(|p| p.file_name().unwrap().to_string_lossy().into_owned()).collect()
+        roots
+            .iter()
+            .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
+            .collect()
     }
 
     fn trajectory(root: &Path, id: &str, lines: &[String]) {
-        let logs = root.join("brain").join(id).join(".system_generated").join("logs");
+        let logs = root
+            .join("brain")
+            .join(id)
+            .join(".system_generated")
+            .join("logs");
         std::fs::create_dir_all(&logs).unwrap();
         std::fs::write(logs.join("transcript.jsonl"), lines.join("\n")).unwrap();
     }
 
     fn step(source: &str, at: chrono::DateTime<chrono::Utc>) -> String {
-        format!(r#"{{"source":"{source}","created_at":"{}"}}"#, at.to_rfc3339())
+        format!(
+            r#"{{"source":"{source}","created_at":"{}"}}"#,
+            at.to_rfc3339()
+        )
     }
 
     fn today() -> chrono::NaiveDate {
@@ -807,7 +916,8 @@ mod tests {
 
     #[test]
     fn no_gemini_directory_means_no_roots() {
-        let missing = std::env::temp_dir().join(format!("codenotch-ag-{}-missing", std::process::id()));
+        let missing =
+            std::env::temp_dir().join(format!("codenotch-ag-{}-missing", std::process::id()));
         assert!(state_roots_in(&missing).is_empty());
     }
 
@@ -829,13 +939,24 @@ mod tests {
     #[test]
     fn every_flavour_is_found_and_nothing_else() {
         let h = Home::new("all");
-        for f in ["antigravity-cli", "antigravity", "antigravity-ide", "antigravity-backup", "config"] {
+        for f in [
+            "antigravity-cli",
+            "antigravity",
+            "antigravity-ide",
+            "antigravity-backup",
+            "config",
+        ] {
             h.flavour(f);
         }
         std::fs::write(h.0.join(".gemini").join("antigravity-notes.txt"), "").unwrap();
         assert_eq!(
             names(&state_roots_in(&h.0)),
-            ["antigravity", "antigravity-backup", "antigravity-cli", "antigravity-ide"]
+            [
+                "antigravity",
+                "antigravity-backup",
+                "antigravity-cli",
+                "antigravity-ide"
+            ]
         );
     }
 
@@ -844,8 +965,16 @@ mod tests {
         let h = Home::new("sum");
         let now = chrono::Utc::now();
         let old = now - chrono::TimeDelta::days(3);
-        trajectory(&h.flavour("antigravity-ide"), "a", &[step("MODEL", now), step("USER", now), step("MODEL", old)]);
-        trajectory(&h.flavour("antigravity-cli"), "b", &[step("MODEL", now), step("MODEL", now)]);
+        trajectory(
+            &h.flavour("antigravity-ide"),
+            "a",
+            &[step("MODEL", now), step("USER", now), step("MODEL", old)],
+        );
+        trajectory(
+            &h.flavour("antigravity-cli"),
+            "b",
+            &[step("MODEL", now), step("MODEL", now)],
+        );
         let (count, latest) = requests_in(&state_roots_in(&h.0), today());
         assert_eq!(count, 3);
         assert_eq!(latest, Some(now.timestamp_millis() as u64));
@@ -857,7 +986,11 @@ mod tests {
         // antigravity-cli, so "the first that exists" read zero.
         let h = Home::new("trap");
         std::fs::create_dir_all(h.flavour("antigravity-ide").join("brain")).unwrap();
-        trajectory(&h.flavour("antigravity-cli"), "c", &[step("MODEL", chrono::Utc::now())]);
+        trajectory(
+            &h.flavour("antigravity-cli"),
+            "c",
+            &[step("MODEL", chrono::Utc::now())],
+        );
         assert_eq!(requests_in(&state_roots_in(&h.0), today()).0, 1);
     }
 }

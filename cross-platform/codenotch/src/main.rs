@@ -1,24 +1,26 @@
 #![cfg_attr(all(not(debug_assertions), windows), windows_subsystem = "windows")]
 
+mod activity;
+mod agy_cli;
+mod antigravity;
 mod autostart;
+mod codex;
 mod config;
+mod cursor;
+mod diag;
 mod doctor;
 mod focus;
+mod glyphs;
 mod hooks_install;
 mod i18n;
 mod server;
 mod state;
 mod tray;
-mod usage;
-mod codex;
-mod cursor;
-mod antigravity;
-mod agy_cli;
-mod glyphs;
 mod trayicon;
-mod activity;
-mod diag;
+mod usage;
 mod watcher;
+#[cfg(not(windows))]
+mod window_layer;
 
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
@@ -81,7 +83,8 @@ pub fn place_notch(app: &AppHandle) {
         // So the physical size is pinned straight from mon.scale_factor() before placing the
         // window; if it still reports a different scale afterwards, it is pinned once more.
         let ms = mon.scale_factor();
-        let target = tauri::PhysicalSize::new((NOTCH_W * ms).round() as u32, (NOTCH_H * ms).round() as u32);
+        let target =
+            tauri::PhysicalSize::new((NOTCH_W * ms).round() as u32, (NOTCH_H * ms).round() as u32);
         let _ = w.set_size(target);
         // Position from the window's measured physical size — deriving it from the scale factor
         // pushed the window past the right edge at 125 % / 150 % (the ring's right side was clipped).
@@ -100,7 +103,10 @@ pub fn place_notch(app: &AppHandle) {
         let y = (mon.position().y as f64 + mh as f64 * ratio - wh as f64 / 2.0).round() as i32;
         let y = y.clamp(mon.position().y, mon.position().y + (mh - wh).max(0));
         let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
-        if w.outer_size().map(|s| s.width != target.width).unwrap_or(false) {
+        if w.outer_size()
+            .map(|s| s.width != target.width)
+            .unwrap_or(false)
+        {
             let _ = w.set_size(target);
             let x = mon.position().x + mon.size().width as i32 - target.width as i32;
             let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
@@ -118,6 +124,9 @@ pub fn place_notch(app: &AppHandle) {
                 mon.size().height
             ),
         );
+        // Reserve the right edge on X11 now that geometry is known.
+        #[cfg(not(windows))]
+        window_layer::x11_struts::set_strut_for_notch(app);
     }
 }
 
@@ -158,9 +167,12 @@ fn drag_begin(app: AppHandle) {
             DRAGGING.store(false, std::sync::atomic::Ordering::SeqCst);
             return;
         };
-        let (Ok(start_cur), Ok(start_pos), Ok(size), Ok(Some(mon))) =
-            (app.cursor_position(), w.outer_position(), w.outer_size(), w.primary_monitor())
-        else {
+        let (Ok(start_cur), Ok(start_pos), Ok(size), Ok(Some(mon))) = (
+            app.cursor_position(),
+            w.outer_position(),
+            w.outer_size(),
+            w.primary_monitor(),
+        ) else {
             DRAGGING.store(false, std::sync::atomic::Ordering::SeqCst);
             return;
         };
@@ -227,8 +239,7 @@ fn noactivate(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("notch") {
         if let Ok(h) = w.hwnd() {
             unsafe {
-                let hwnd =
-                    windows::Win32::Foundation::HWND(h.0 as isize as *mut core::ffi::c_void);
+                let hwnd = windows::Win32::Foundation::HWND(h.0 as isize as *mut core::ffi::c_void);
                 let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
                 SetWindowLongPtrW(
                     hwnd,
@@ -294,7 +305,10 @@ pub fn reload_glyphs(app: &AppHandle) {
 
 #[tauri::command]
 fn open_data_dir() {
-    let dir = config::config_path().parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    let dir = config::config_path()
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_default();
     let _ = std::fs::create_dir_all(glyphs::user_dir());
     #[cfg(windows)]
     {
@@ -373,7 +387,9 @@ fn set_hot(rects: Vec<[f64; 4]>, expanded: bool) {
 /// that sets both is the only route. Clearing it again is safe — the notch is not otherwise layered
 /// (its transparency is DWM composition), so the window returns to the styles it had.
 fn set_click_through(app: &AppHandle, on: bool) {
-    let Some(w) = app.get_webview_window("notch") else { return };
+    let Some(w) = app.get_webview_window("notch") else {
+        return;
+    };
     let _ = w.set_ignore_cursor_events(on);
 }
 
@@ -383,7 +399,11 @@ static ZOOM: Mutex<f64> = Mutex::new(1.0);
 pub fn applog(line: &str) {
     use std::io::Write;
     let log = config::config_path().with_file_name("run.log");
-    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(log) {
+    if let Ok(mut f) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log)
+    {
         let _ = writeln!(f, "{line}");
     }
 }
@@ -395,7 +415,9 @@ pub fn applog(line: &str) {
 /// scale, set_zoom pulls the effective DPR back to that scale, restoring the 340 px width.
 #[tauri::command]
 fn report_dpr(app: AppHandle, dpr: f64, w: f64, h: f64) {
-    let Some(win) = app.get_webview_window("notch") else { return };
+    let Some(win) = app.get_webview_window("notch") else {
+        return;
+    };
     let want = win
         .primary_monitor()
         .ok()
@@ -488,13 +510,20 @@ fn start_pointer_watchdog(app: AppHandle) {
         let mut click_through: Option<bool> = None;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(WATCHDOG_MS));
-            let Some(w) = app.get_webview_window("notch") else { continue };
-            let (Ok(pos), Ok(cur)) = (w.outer_position(), app.cursor_position()) else { continue };
+            let Some(w) = app.get_webview_window("notch") else {
+                continue;
+            };
+            let (Ok(pos), Ok(cur)) = (w.outer_position(), app.cursor_position()) else {
+                continue;
+            };
             let rects = HOT.lock().unwrap().clone();
             // Cursor position relative to the window's top-left, in physical pixels; the hot rectangles are physical too, so no scale conversion
             let lx = cur.x - pos.x as f64;
             let ly = cur.y - pos.y as f64;
-            let size = w.outer_size().ok().map(|s| (s.width as f64, s.height as f64));
+            let size = w
+                .outer_size()
+                .ok()
+                .map(|s| (s.width as f64, s.height as f64));
             let inside = cursor_in_hot(&rects, lx, ly, size);
 
             if click_through != Some(!inside) {
@@ -502,7 +531,11 @@ fn start_pointer_watchdog(app: AppHandle) {
                 click_through = Some(!inside);
                 applog(&format!(
                     "click-through {} at cursor_rel=({lx:.0},{ly:.0}) rects={rects:?}",
-                    if inside { "off (cursor on the notch)" } else { "on (cursor elsewhere)" }
+                    if inside {
+                        "off (cursor on the notch)"
+                    } else {
+                        "on (cursor elsewhere)"
+                    }
                 ));
             }
 
@@ -535,7 +568,10 @@ fn start_pointer_watchdog(app: AppHandle) {
 /// Log channel for the page: JS writes key diagnostics into run.log (if invoke itself fails, the page reports on screen instead)
 #[tauri::command]
 fn log_js(msg: String) {
-    applog(&format!("js: {}", msg.chars().take(600).collect::<String>()));
+    applog(&format!(
+        "js: {}",
+        msg.chars().take(600).collect::<String>()
+    ));
 }
 
 #[tauri::command]
@@ -550,7 +586,9 @@ fn open_usage_page() {
     }
     #[cfg(not(windows))]
     {
-        let _ = std::process::Command::new("xdg-open").arg("https://claude.ai/settings/usage").spawn();
+        let _ = std::process::Command::new("xdg-open")
+            .arg("https://claude.ai/settings/usage")
+            .spawn();
     }
 }
 
@@ -711,7 +749,10 @@ struct TrayConfig {
 fn get_tray_config(app: AppHandle) -> TrayConfig {
     let st = app.state::<AppState>();
     let c = st.cfg.lock().unwrap();
-    TrayConfig { mode: c.tray_mode.clone(), slots: c.tray_slots.clone() }
+    TrayConfig {
+        mode: c.tray_mode.clone(),
+        slots: c.tray_slots.clone(),
+    }
 }
 
 #[tauri::command]
@@ -733,7 +774,11 @@ fn set_tray_config(app: AppHandle, cfg: TrayConfig) {
 /// from what the taskbar actually draws.
 #[tauri::command]
 fn get_tray_preview(app: AppHandle, cfg: TrayConfig) -> Option<String> {
-    let values: Vec<Option<u32>> = cfg.slots.iter().map(|s| reading_for_slot(&app, s)).collect();
+    let values: Vec<Option<u32>> = cfg
+        .slots
+        .iter()
+        .map(|s| reading_for_slot(&app, s))
+        .collect();
     let rgba = match cfg.mode.as_str() {
         "bars" if !values.is_empty() => trayicon::bars_rgba(&values),
         "numbers" if !values.is_empty() => trayicon::numbers_rgba(&values),
@@ -784,7 +829,10 @@ struct UiFlags {
 fn get_ui_flags(app: AppHandle) -> UiFlags {
     let st = app.state::<AppState>();
     let c = st.cfg.lock().unwrap();
-    UiFlags { notch_visible: c.notch_visible, tray_visible: c.tray_visible }
+    UiFlags {
+        notch_visible: c.notch_visible,
+        tray_visible: c.tray_visible,
+    }
 }
 
 /// Hiding both would leave the app running with nothing to click, so the tray icon is kept
@@ -798,7 +846,10 @@ fn set_ui_flags(app: AppHandle, notch_visible: bool, tray_visible: bool) -> UiFl
         c.notch_visible = notch_visible;
         c.tray_visible = if notch_visible { tray_visible } else { true };
         config::save(&c);
-        UiFlags { notch_visible: c.notch_visible, tray_visible: c.tray_visible }
+        UiFlags {
+            notch_visible: c.notch_visible,
+            tray_visible: c.tray_visible,
+        }
     };
     apply_visibility(&app);
     flags
@@ -816,6 +867,10 @@ pub fn apply_visibility(app: &AppHandle) {
             let _ = w.show();
             place_notch(app);
         } else {
+            // Remove the X11 edge reservation before the window disappears so the
+            // tiling area returns to normal immediately.
+            #[cfg(not(windows))]
+            window_layer::x11_struts::clear_strut_for_notch(app);
             let _ = w.hide();
         }
     }
@@ -904,7 +959,9 @@ fn paint_tray(app: &AppHandle, mode: &str, slots: &[config::TraySlot], values: &
         },
     };
     if let Err(e) = outcome {
-        applog(&format!("tray: set_icon FAILED mode={mode} values={values:?}: {e}"));
+        applog(&format!(
+            "tray: set_icon FAILED mode={mode} values={values:?}: {e}"
+        ));
     }
     // The tooltip lists every slot, including any the digit layout could not fit, so nothing is
     // silently dropped.
@@ -950,7 +1007,8 @@ fn start_tray_updater(app: AppHandle) {
                 let c = st.cfg.lock().unwrap();
                 (c.tray_mode.clone(), c.tray_slots.clone())
             };
-            let values: Vec<Option<u32>> = slots.iter().map(|s| reading_for_slot(&app, s)).collect();
+            let values: Vec<Option<u32>> =
+                slots.iter().map(|s| reading_for_slot(&app, s)).collect();
             let key = (mode.clone(), slots.clone(), values.clone());
             if last.as_ref() == Some(&key) {
                 continue;
@@ -1039,7 +1097,11 @@ fn main() {
                 return;
             }
             "doctor" => {
-                let out = if args.get(2).map(|s| s.as_str()) == Some("deep") { diag::run() } else { doctor::run() };
+                let out = if args.get(2).map(|s| s.as_str()) == Some("deep") {
+                    diag::run()
+                } else {
+                    doctor::run()
+                };
                 println!("{out}");
                 let log = config::config_path().with_file_name("doctor.log");
                 let _ = std::fs::write(log, &out);
@@ -1113,6 +1175,14 @@ fn main() {
             noactivate(&handle);
             if let Some(w) = handle.get_webview_window("notch") {
                 let _ = w.show();
+                // The first placement runs before GTK has realized the window, so the strut is
+                // re-applied once geometry is actually known (resize/move after realization).
+                let app_handle = handle.clone();
+                w.on_window_event(move |e| {
+                    if matches!(e, tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_)) {
+                        window_layer::x11_struts::set_strut_for_notch(&app_handle);
+                    }
+                });
             }
             tray::setup(&handle)?;
             // Closing a Tauri window destroys it by default, and a destroyed window cannot be shown
@@ -1233,8 +1303,18 @@ mod tests {
 
     #[test]
     fn the_pad_reaches_slightly_past_the_pill() {
-        assert!(cursor_in_hot(&[PILL], PILL[0] - HOT_PAD + 1.0, 300.0, WINDOW));
-        assert!(!cursor_in_hot(&[PILL], PILL[0] - HOT_PAD - 1.0, 300.0, WINDOW));
+        assert!(cursor_in_hot(
+            &[PILL],
+            PILL[0] - HOT_PAD + 1.0,
+            300.0,
+            WINDOW
+        ));
+        assert!(!cursor_in_hot(
+            &[PILL],
+            PILL[0] - HOT_PAD - 1.0,
+            300.0,
+            WINDOW
+        ));
     }
 
     #[test]

@@ -45,7 +45,8 @@ pub fn disable() -> Result<String, String> {
     match reg(&["delete", RUN_KEY, "/v", NAME, "/f"]) {
         Some((true, _)) => Ok("start at sign-in disabled".into()),
         Some((false, out)) => {
-            if out.to_lowercase().contains("unable to find") || out.contains("找不到") { // reg.exe answers in the OS language; "找不到" is the Chinese "unable to find"
+            if out.to_lowercase().contains("unable to find") || out.contains("找不到") {
+                // reg.exe answers in the OS language; "找不到" is the Chinese "unable to find"
                 Ok("start at sign-in was not enabled".into())
             } else {
                 Err(out)

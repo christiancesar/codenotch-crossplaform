@@ -57,9 +57,14 @@ fn sanitize_svg(s: &str) -> String {
     let mut res = String::with_capacity(out.len());
     let mut i = 0;
     loop {
-        let Some(rel) = lo[i..].find(" on") else { break };
+        let Some(rel) = lo[i..].find(" on") else {
+            break;
+        };
         let start = i + rel;
-        let name_len = lo[start + 3..].bytes().take_while(|b| b.is_ascii_alphanumeric()).count();
+        let name_len = lo[start + 3..]
+            .bytes()
+            .take_while(|b| b.is_ascii_alphanumeric())
+            .count();
         let eq = start + 3 + name_len;
         if name_len > 0 && lo.as_bytes().get(eq) == Some(&b'=') {
             if let Some(&q) = lo.as_bytes().get(eq + 1) {
@@ -100,12 +105,24 @@ fn b64(bytes: &[u8]) -> String {
     const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity((bytes.len() + 2) / 3 * 4);
     for chunk in bytes.chunks(3) {
-        let b = [chunk[0], *chunk.get(1).unwrap_or(&0), *chunk.get(2).unwrap_or(&0)];
+        let b = [
+            chunk[0],
+            *chunk.get(1).unwrap_or(&0),
+            *chunk.get(2).unwrap_or(&0),
+        ];
         let n = ((b[0] as u32) << 16) | ((b[1] as u32) << 8) | b[2] as u32;
         out.push(T[(n >> 18) as usize & 63] as char);
         out.push(T[(n >> 12) as usize & 63] as char);
-        out.push(if chunk.len() > 1 { T[(n >> 6) as usize & 63] as char } else { '=' });
-        out.push(if chunk.len() > 2 { T[n as usize & 63] as char } else { '=' });
+        out.push(if chunk.len() > 1 {
+            T[(n >> 6) as usize & 63] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            T[n as usize & 63] as char
+        } else {
+            '='
+        });
     }
     out
 }
@@ -115,7 +132,10 @@ fn from_file(p: &Path) -> Option<Glyph> {
     if bytes.is_empty() || bytes.len() > 512 * 1024 {
         return None;
     }
-    let ext = p.extension().map(|e| e.to_string_lossy().to_lowercase()).unwrap_or_default();
+    let ext = p
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase())
+        .unwrap_or_default();
     match ext.as_str() {
         "svg" => Some(Glyph {
             kind: "svg".into(),
@@ -136,7 +156,9 @@ fn from_file(p: &Path) -> Option<Glyph> {
 /// Candidate executables of the installed apps (Windows); MSIX store versions live under WindowsApps where a normal process cannot read them, and that is fine
 fn app_candidates(id: &str) -> Vec<PathBuf> {
     let mut v = Vec::new();
-    let Some(local) = dirs::data_local_dir() else { return v };
+    let Some(local) = dirs::data_local_dir() else {
+        return v;
+    };
     let programs = local.join("Programs");
     match id {
         "claude" => {
@@ -175,10 +197,12 @@ fn app_candidates(id: &str) -> Vec<PathBuf> {
 #[cfg(windows)]
 fn from_exe(p: &Path) -> Option<Glyph> {
     use windows::Win32::Graphics::Gdi::{
-        DeleteObject, GetDC, GetDIBits, GetObjectW, ReleaseDC, BITMAP, BITMAPINFO, BITMAPINFOHEADER, BI_RGB,
-        DIB_RGB_COLORS,
+        DeleteObject, GetDC, GetDIBits, GetObjectW, ReleaseDC, BITMAP, BITMAPINFO,
+        BITMAPINFOHEADER, BI_RGB, DIB_RGB_COLORS,
     };
-    use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, PrivateExtractIconsW, HICON, ICONINFO};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        DestroyIcon, GetIconInfo, PrivateExtractIconsW, HICON, ICONINFO,
+    };
 
     use std::os::windows::ffi::OsStrExt;
     let wide: Vec<u16> = p.as_os_str().encode_wide().collect();
@@ -191,7 +215,15 @@ fn from_exe(p: &Path) -> Option<Glyph> {
     unsafe {
         let mut icons = [HICON::default(); 1];
         let mut id = 0u32;
-        let n = PrivateExtractIconsW(&name, 0, SIZE, SIZE, Some(&mut icons[..]), Some(&mut id as *mut u32), 0);
+        let n = PrivateExtractIconsW(
+            &name,
+            0,
+            SIZE,
+            SIZE,
+            Some(&mut icons[..]),
+            Some(&mut id as *mut u32),
+            0,
+        );
         if n == 0 || icons[0].is_invalid() {
             return None;
         }
@@ -201,7 +233,11 @@ fn from_exe(p: &Path) -> Option<Glyph> {
         let mut result = None;
         if ok && !info.hbmColor.is_invalid() {
             let mut bm = BITMAP::default();
-            GetObjectW(info.hbmColor, std::mem::size_of::<BITMAP>() as i32, Some(&mut bm as *mut _ as *mut _));
+            GetObjectW(
+                info.hbmColor,
+                std::mem::size_of::<BITMAP>() as i32,
+                Some(&mut bm as *mut _ as *mut _),
+            );
             let (w, h) = (bm.bmWidth, bm.bmHeight);
             if w > 0 && h > 0 && w <= 512 && h <= 512 {
                 let hdc = GetDC(None);
@@ -216,7 +252,15 @@ fn from_exe(p: &Path) -> Option<Glyph> {
                     ..Default::default()
                 };
                 let mut buf = vec![0u8; (w * h * 4) as usize];
-                let lines = GetDIBits(hdc, info.hbmColor, 0, h as u32, Some(buf.as_mut_ptr() as *mut _), &mut bi, DIB_RGB_COLORS);
+                let lines = GetDIBits(
+                    hdc,
+                    info.hbmColor,
+                    0,
+                    h as u32,
+                    Some(buf.as_mut_ptr() as *mut _),
+                    &mut bi,
+                    DIB_RGB_COLORS,
+                );
                 let _ = ReleaseDC(None, hdc);
                 if lines > 0 {
                     // BGRA → RGBA; old-style icons with all-zero alpha are treated as opaque
@@ -305,7 +349,10 @@ pub fn collect() -> HashMap<String, Glyph> {
 /// For doctor
 pub fn probe() -> String {
     let m = collect();
-    let mut lines = vec![format!("glyph directory: {} (drop claude/codex/cursor/gemini .svg or .png files here)", user_dir().display())];
+    let mut lines = vec![format!(
+        "glyph directory: {} (drop claude/codex/cursor/gemini .svg or .png files here)",
+        user_dir().display()
+    )];
     for id in IDS {
         lines.push(match m.get(id) {
             Some(g) => format!("  {id}: {} ← {}", g.kind, g.source),
