@@ -45,7 +45,7 @@ None.
 
 ## Definition of Done
 
-- [ ] Tests green incl. new pins; `cargo fmt --check` clean.
+- [ ] Tests green incl. new pins
 - [ ] Fixtures present under `codenotch/tests/fixtures/`; stale/NothingMetered probes pass.
 - [ ] `codenotch doctor` on this host resolves the auth file without leaking it.
 

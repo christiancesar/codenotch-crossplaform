@@ -49,8 +49,7 @@ None (rusqlite already bundled).
 
 ## Definition of Done
 
-- [ ] Confirmed path lands in the code + notes; tests incl. the new pin green on Linux;
-      `cargo fmt --check` clean.
+- [ ] Confirmed path lands in the code + notes; tests incl. the new pin green on Linux.
 - [ ] `cargo test` scoped to `cursor` passes with both open modes exercised.
 
 ## Orchestrator acceptance

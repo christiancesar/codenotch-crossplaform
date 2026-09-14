@@ -4,30 +4,51 @@ One file per unit of work, dispatched by the orchestrator to the `executor` agen
 The orchestrator owns this list, dispatches, reviews (optionally via the `reviewer`
 agent), and merges. `windows/` stays read-only; the executor never runs `git add/commit`.
 
-## Status
+## Status (updated 2026-09-14 — see plan's "Reassessment" section)
 
 - Epic 0 (foundation) — **done**, gate re-verified 2026-09-11 on the Linux host:
   `cargo check --workspace` + `cargo test --workspace` green (`rustc 1.98.1`).
-- Epic A (edge pinning) — ticketized below; A.1 is the first dispatch (X11 edge visible at
-  the end of the epic). Live desktop available: `DISPLAY=:1`, a WM is running, no sway/
-  hyprland yet (A.2 = compile + probe only on this host; real compositor run is an operator
-  item).
-- Epic C (providers) — ticketized below. Host has live Claude + Codex + Cursor credentials;
-  no Antigravity install (C.4 is fixture-only). Headless-safe: the pinned suite runs on CI.
+- **A.1 done and live-verified**: X11 struts (`_NET_WM_STRUT_PARTIAL`) confirmed working
+  on stock GNOME/Mutter via `xprop _NET_WORKAREA` (reserved width reflected). Realization-race
+  bug fixed in `5c8d4e7`. Kept on by default.
+- **A.2–A.5 deferred** until Phase 1 (below) closes — not blocking, cuttable without
+  regressing anything already working.
+- **Epic C is mostly path-confirmation, not new adapters** — the state engine
+  (`state.rs`/`server.rs`) is already 100% cross-platform via hook events. `codenotch doctor`
+  on this host already shows a valid Claude credential and working session reads; C.1–C.4 are
+  now "confirm + add the recorded-body pin", not "port the provider".
+- **New: Phase-1 tickets (P1.1–P1.3)** cover Linux stubs that block actually *using* the app
+  (drag, no-activate, seen-clears-it, click-to-focus) — found by comparing every
+  `#[cfg(not(windows))]` branch against its Windows counterpart. These are the real gate before
+  any more Epic A/B/D/E work; a green `cargo check` was never proof the app was usable.
 - Epics B/D/E/F — written at epic level in
   `../2026-09-11-cross-platform-plan.md`; ticketized when their dependency epic lands.
+- CI: `.github/workflows/cross-platform-ci.yml` now runs `cargo check` + `cargo test` on
+  `ubuntu-latest` and `windows-latest` for every push/PR touching `cross-platform/`.
 
 ## Lanes / sequencing
 
 ```
 Epic 0 (done)
- ├── Epic A (A.1 → A.2 → A.5 → A.3 → A.4)   # A.5 first if fractional-pixel ships in A.1's window
- └── Epic C (C.1 → C.6 → C.2 → C.3 → C.4 → C.5)  # C.5 touches watcher, keep last in the lane
+ ├── Phase 1 (P1.1 → P1.2 → P1.3) — unblocks real desktop use, do this first
+ ├── Epic A (A.1 done) → A.5 → A.2 → A.3 → A.4   # deferred to Phase 3
+ └── Epic C (confirm C.1 → C.6 → C.2 → C.3 → C.4 → C.5)  # C.5 touches watcher, keep last in the lane
 ```
 
-Epics A and C are independent and may run in parallel lanes; the orchestrator keeps a
-single lane unless the files touched are provably disjoint. `cargo` locks the target dir — two executors
-building concurrently block each other, not corrupt.
+P1.1 and P1.2 touch disjoint files (`main.rs` vs `focus.rs`) and can run in parallel; P1.3
+depends on P1.2 landing first (it wires `ack_scan` in `main.rs` to the new focus detection).
+Epic C tickets are independent of Phase 1 and may run in parallel with it.
+
+## Orchestration model (revised 2026-09-14)
+
+The opencode multi-agent routing (OpenRouter → big-pickle → opencode-go/Kimi/GLM,
+separate executor/reviewer agents) described below and in `agent-pool-example.md` added more
+planning/config overhead than code for a diff this size (6 of the first 8 commits on this
+branch were plan/agent-config, not source). Tickets now dispatch directly to Claude Code
+subagents (the `Agent` tool, `general-purpose` type) running in the same sandbox as the real
+X11 desktop, so a ticket's "Verify" step can actually be run live instead of reported
+second-hand. The ticket anatomy (read first / scope / must not / definition of done / verify)
+is unchanged — only the dispatch target is simpler.
 
 ## Ticket anatomy
 

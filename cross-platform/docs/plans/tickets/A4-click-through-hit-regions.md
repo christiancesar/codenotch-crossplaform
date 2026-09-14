@@ -46,7 +46,7 @@ None expected. If X11 input-shape is needed and Tauri's API can't reach it, add
 
 ## Definition of Done
 
-- [ ] Compile + `cargo test` green; `cargo fmt --check` clean.
+- [ ] Compile + `cargo test` green
 - [ ] On `:1`: with the notch visible, clicking the transparent margin next to the pill
       activates the window beneath (e.g. opens/raises a terminal) while clicking the pill
       body does not leak through; hover over the body still expands/holds the notch.

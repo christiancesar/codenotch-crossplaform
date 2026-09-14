@@ -57,7 +57,7 @@ Document which route you took and why (a one-line `// why` comment if it was `gt
 
 ## Definition of Done
 
-- [ ] `cargo check --workspace` clean; the strut-array unit test passes; `cargo fmt --check` clean.
+- [ ] `cargo check --workspace` clean; the strut-array unit test passes
 - [ ] Strut present while the notch is visible, gone when hidden/exited.
 - [ ] Live probe on `:1`: launch the app, `xwininfo -root -tree | grep -i codenotch` → XID,
       `xprop -id <XID> _NET_WM_STRUT_PARTIAL` non-empty; a maximized client (any window)

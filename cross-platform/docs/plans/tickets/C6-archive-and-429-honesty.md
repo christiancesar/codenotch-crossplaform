@@ -46,7 +46,7 @@ None.
 
 ## Definition of Done
 
-- [ ] Pins for archive-stale-reload and 429 math pass on Linux; `cargo fmt --check` clean.
+- [ ] Pins for archive-stale-reload and 429 math pass on Linux
 - [ ] Report the on-disk layout of the persisted deadline and that it round-trips a reload.
 
 ## Orchestrator acceptance

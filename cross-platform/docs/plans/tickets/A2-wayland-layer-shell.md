@@ -54,8 +54,7 @@ honest behaviour here.
 
 ## Definition of Done
 
-- [ ] Compiles on this host (`cargo check --workspace`, `cargo test` green,
-      `cargo fmt --check`).
+- [ ] Compiles on this host (`cargo check --workspace`, `cargo test` green).
 - [ ] Probe degrades cleanly here: run the app under `:1` (X11) — it must take the X11/float
       path and not attempt layer-shell.
 - [ ] Pinned unit test for the probe decision; generate only what the crate offers.

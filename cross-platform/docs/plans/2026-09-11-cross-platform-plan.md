@@ -257,3 +257,75 @@ dependency lands.
   `d946b91` por ticket ou seguimos com ele.
 - **Próxima ação**: revisão do `d946b91` e validação em desktop real do A.1 antes
   de prosseguir para A.5/A.2/etc.
+
+---
+
+## Reassessment — 2026-09-14
+
+Revisão do `d946b91` feita comparando byte a byte (via `rustfmt`) cada arquivo
+contra `windows/`. Achados que mudam a priorização:
+
+1. **12 dos 16 módulos listados no commit (`activity`, `antigravity`, `autostart`,
+   `config`, `cursor`, `diag`, `doctor`, `glyphs`, `server`, `trayicon`, `usage`,
+   `watcher`) não tinham nenhuma mudança semântica — só reformatação.** Revertidos
+   para o texto exato de `windows/` em `46a7d33`. Código real de port ficou só em
+   `agy_cli.rs`, `codex.rs`, `hooks_install.rs`, `i18n.rs`, `main.rs` e
+   `window_layer/` (novo).
+2. **O app já roda no host Linux.** `codenotch doctor` confirma: credencial Claude
+   válida, sessões lidas de `~/.claude/projects` sem erro, Cursor com leitura real
+   (`Free · via Cursor`). O motor de estado (`state.rs`/`server.rs`, running →
+   attention → done → idle) já é 100% cross-platform via os hook events — Epic C é,
+   na prática, maioria confirmação de caminho, não escrita de adaptador novo.
+3. **O strut X11 (A.1) funciona no GNOME/Mutter padrão desta máquina** —
+   testado ao vivo (`xprop _NET_WORKAREA` reflete a largura reduzida, 1850 em vez
+   de 1920, no desktop onde o notch está). A nota em `window-managers.md` de que
+   "GNOME não tem docking de edge" está certa para a API de layer, mas o
+   `_NET_WM_STRUT`/`_NET_WM_STRUT_PARTIAL` legado ainda é respeitado para
+   workarea. Corrigido só o bug real: a primeira chamada rodava com
+   `outer_size()` ainda 0x0 (antes do GTK realizar a janela) — corrigido em
+   `5c8d4e7`; mantido ligado por padrão.
+4. **O que falta pra usar o app de verdade no Linux não estava ticketizado**:
+   vários caminhos `#[cfg(not(windows))]` são stubs que sempre retornam
+   `false`/`None`/vazio — `left_button_down` e `noactivate` (`main.rs`),
+   `ack_scan` (`main.rs`), `focus_terminal`/`focus_claude_desktop` (`focus.rs`).
+   Sem eles: arrastar o notch não funciona, ele pode roubar foco, e clicar numa
+   sessão não traz o terminal/app pra frente. `claude_io_bytes` (`activity.rs`)
+   também é stub, mas é só um heurístico supletivo de atividade via IO de rede —
+   o sinal primário (hook events → `state.rs`) já é cross-platform, então fica
+   deliberadamente adiado.
+5. **Sem CI de Rust.** `ci.yml`/`package.yml` só cobrem o app macOS. Nada garante
+   que uma mudança em `cross-platform/` quebra o build Windows. Adicionado
+   `.github/workflows/cross-platform-ci.yml` (matrix ubuntu-latest +
+   windows-latest, `cargo check` + `cargo test`).
+6. **A orquestração multi-agente (opencode/Kimi/GLM, executor/reviewer
+   separados) gerou mais overhead documental que código real** — dos 8 commits
+   antes desta revisão, 6 eram plano/config de agente. Para o tamanho real do
+   diff (dezenas a poucas centenas de linhas por ticket), a via direta —
+   Claude Code executando e testando no próprio desktop, sem round-trip por
+   outro CLI/modelo — chega no mesmo resultado com menos etapas. O modelo de
+   ticket (read first / scope / must not / definition of done / verify) continua
+   valendo como formato de trabalho, só não passa mais pelo roteamento externo.
+
+### Prioridades revisadas
+
+**Fase 1 — app usável no X11 (esta é a validação que importa, não `cargo check`)**
+- [x] Reverter reformatação sem função (`46a7d33`)
+- [x] Corrigir corrida de tamanho zero no strut (`5c8d4e7`)
+- [x] CI Linux+Windows (`cross-platform-ci.yml`)
+- [ ] P1.1 — `left_button_down` + `noactivate` reais no Linux (`main.rs`)
+- [ ] P1.2 — `focus_terminal`/`focus_claude_desktop` via X11 (`focus.rs`)
+- [ ] P1.3 — ligar `ack_scan` à detecção de foco de P1.2 (`main.rs`)
+- [ ] Checklist manual no desktop real: hover abre o card, click-through,
+  clique no anel refaz o fetch, menu do botão direito, tray, settings,
+  `install-hooks` seguido de um turno real do Claude abrindo o notch.
+
+**Fase 2 — o resto do Epic C (confirmação, não escrita) + autostart/notificações
+básicas (B.2, D.1).**
+
+**Fase 3 — opcional, cortável sem quebrar nada acima**: Wayland (testar
+`GDK_BACKEND=x11` sob XWayland antes de layer-shell nativo), multi-monitor,
+empacotamento `.deb`/AppImage, self-update, issue upstream.
+
+Ticket README (`docs/plans/tickets/README.md`) e os arquivos individuais
+foram atualizados para refletir isso; A.2–A.5 e a maior parte de B/D/E ficam
+formalmente adiados até a Fase 1 fechar.

@@ -48,7 +48,7 @@ None.
 
 ## Definition of Done
 
-- [ ] Tests green incl. the three pins; `cargo fmt --check` clean.
+- [ ] Tests green incl. the three pins
 - [ ] The no-install degraded case is pinned and passes on `cargo test`.
 - [ ] Report: which paths/bridge shapes are fixture-derived vs confirmed on a live binary
       (honesty rule — this ticket is fixture-derived).

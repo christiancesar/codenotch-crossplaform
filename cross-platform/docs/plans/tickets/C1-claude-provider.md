@@ -49,7 +49,7 @@ crate.
 
 ## Definition of Done
 
-- [ ] `cargo test --workspace` green incl. the new pinned test; `cargo fmt --check` clean.
+- [ ] `cargo test --workspace` green incl. the new pinned test
 - [ ] `./target/debug/codenotch doctor` on this host reports the real Claude credential
       path as valid/present.
 - [ ] Report: the confirmed path table + what was verified live vs fixture-only.

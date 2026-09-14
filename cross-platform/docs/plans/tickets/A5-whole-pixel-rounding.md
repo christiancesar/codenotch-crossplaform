@@ -46,7 +46,7 @@ differs on Linux), note it in the report; do not add a dep to this ticket.
 
 ## Definition of Done
 
-- [ ] `cargo check --workspace` + `cargo test` green; `cargo fmt --check` clean.
+- [ ] `cargo check --workspace` + `cargo test` green
 - [ ] On `:1`, the notch round-trips its position+size without fractional drift: launch,
       log the placed `(x,y)`/size, and confirm the reported readback equals the placement
       (assert via `applog` or a temporary debug line, removed before report).

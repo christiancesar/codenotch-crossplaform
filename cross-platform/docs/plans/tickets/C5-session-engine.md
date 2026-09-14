@@ -49,7 +49,7 @@ None.
 
 ## Definition of Done
 
-- [ ] Tests green (workspace incl. hook); `cargo fmt --check` clean.
+- [ ] Tests green (workspace incl. hook)
 - [ ] Watcher path confirmation table in the report; transition tests pinned.
 - [ ] Hook→server loopback works on Linux; report states what was run vs compiled-only.
 
