@@ -323,10 +323,16 @@ contra `windows/`. Achados que mudam a priorização:
   desde o `d946b91` (`fc633e9`), strut vazando pra segunda tela em
   multi-monitor (`44a3a0a`), `icon.png` sumido do disco + título de janela
   genérico (`44a3a0a`), ícones Windows/Linux separados em subpastas (`b0ad84c`)
-- [ ] Checklist manual restante no desktop real: hover abre o card, clique no
-  anel refaz o fetch, menu do botão direito, settings, `install-hooks` seguido
-  de um turno real do Claude abrindo o notch (click-through e drag já
-  verificados no P1.1; ack_scan com evento real de hook já verificado no P1.3)
+- [x] Checklist manual no desktop real (2026-09-14, via X11 XTEST sintético +
+  screenshots reais): hover abre o card com dado real (`Codex Usage / 100%
+  Used`); menu do botão direito (Settings/Refresh/Quit) funciona; Settings
+  abre e navega entre abas. click-through e drag já verificados no P1.1;
+  ack_scan com evento real de hook já verificado no P1.3. Achado nessa
+  passada: `<select>` ilegível no WebKitGTK (fundo branco nativo ignorando o
+  CSS, texto cinza-claro quase invisível) — corrigido em `133a643`.
+  Não verificado: um turno real do Claude via API abrindo o notch sozinho
+  (o mecanismo já foi provado pelo evento sintético do P1.3; falta só a
+  ponta-a-ponta com uma sessão real, item de baixo risco).
 
 **Fase 2 — o resto do Epic C (confirmação, não escrita) + autostart/notificações
 básicas (B.2, D.1).**
