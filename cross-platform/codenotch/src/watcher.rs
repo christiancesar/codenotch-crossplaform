@@ -32,19 +32,13 @@ const TAIL_BYTES: u64 = 256 * 1024;
 
 /// Run log: %APPDATA%\codenotch\watch.log (cleared at startup to keep troubleshooting simple)
 pub fn wlog(msg: &str) {
-    let Some(dir) = dirs::config_dir() else {
-        return;
-    };
+    let Some(dir) = dirs::config_dir() else { return };
     let p = dir.join("codenotch").join("watch.log");
     if let Some(parent) = p.parent() {
         let _ = std::fs::create_dir_all(parent);
     }
     use std::io::Write;
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&p)
-    {
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(&p) {
         let _ = writeln!(f, "[{}] {}", now_ms(), msg);
     }
 }
@@ -112,10 +106,7 @@ pub fn is_session_jsonl(p: &Path) -> bool {
     if p.extension().map(|e| e == "jsonl").unwrap_or(false) == false {
         return false;
     }
-    let name = p
-        .file_name()
-        .map(|s| s.to_string_lossy().to_string())
-        .unwrap_or_default();
+    let name = p.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
     if name == "audit.jsonl" {
         return false;
     }
@@ -155,10 +146,7 @@ pub fn start(app: AppHandle) {
                 wlog(&format!("watching: {}", r.display()));
                 false
             } else {
-                wlog(&format!(
-                    "not available yet (retrying every 60 s): {}",
-                    r.display()
-                ));
+                wlog(&format!("not available yet (retrying every 60 s): {}", r.display()));
                 true
             }
         });
@@ -223,7 +211,9 @@ pub fn start(app: AppHandle) {
             // Roots that do not exist yet are retried every 60 s (e.g. the CLI has never run)
             if !pending.is_empty() && last_retry.elapsed() > Duration::from_secs(60) {
                 last_retry = std::time::Instant::now();
-                pending.retain(|r| !(r.exists() && w.watch(r, RecursiveMode::Recursive).is_ok()));
+                pending.retain(|r| {
+                    !(r.exists() && w.watch(r, RecursiveMode::Recursive).is_ok())
+                });
             }
             let _ = watching; // keep the thread alive even if everything failed, and wait for the retry
         }
@@ -406,9 +396,7 @@ fn walk(dir: &Path, depth: usize, out: &mut Vec<PathBuf>) {
     if depth > 10 {
         return;
     }
-    let Ok(rd) = std::fs::read_dir(dir) else {
-        return;
-    };
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
     for e in rd.flatten() {
         let p = e.path();
         if p.is_dir() {

@@ -9,9 +9,7 @@ fn collect(dir: &Path, depth: usize, out: &mut Vec<(PathBuf, SystemTime)>) {
     if depth > 10 {
         return;
     }
-    let Ok(rd) = std::fs::read_dir(dir) else {
-        return;
-    };
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
     for e in rd.flatten() {
         let p = e.path();
         if p.is_dir() {
@@ -55,10 +53,7 @@ pub fn run() -> String {
             o += &format!("root: {} [missing]\n", root.display());
             continue;
         }
-        o += &format!(
-            "root: {} exists, scanning for the newest session…\n",
-            root.display()
-        );
+        o += &format!("root: {} exists, scanning for the newest session…\n", root.display());
         let mut files = Vec::new();
         collect(&root, 0, &mut files);
         files.sort_by_key(|(_, m)| std::cmp::Reverse(*m));
@@ -80,11 +75,7 @@ pub fn run() -> String {
         }
     }
 
-    o += &format!(
-        "\nusage sources:\n  {}\n  {}\n",
-        crate::usage::probe_credentials(),
-        crate::codex::probe()
-    );
+    o += &format!("\nusage sources:\n  {}\n  {}\n", crate::usage::probe_credentials(), crate::codex::probe());
     o += &format!("  {}\n", crate::cursor::probe());
     o += &format!("  {}\n", crate::antigravity::probe());
     o += &format!("\nprovider glyphs:\n{}\n", crate::glyphs::probe());

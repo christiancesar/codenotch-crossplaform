@@ -115,7 +115,7 @@ impl Default for Config {
             tray_providers: default_tray_providers(),
             tray_slots: Vec::new(), // filled in by load(), from tray_providers
             notch_providers: Vec::new(), // empty = show them all
-            notch_slots: Vec::new(), // filled in by load(), from notch_providers
+            notch_slots: Vec::new(),     // filled in by load(), from notch_providers
             notch_visible: true,
             tray_visible: true,
         }
@@ -158,10 +158,7 @@ pub fn load() -> Config {
         cfg.tray_slots = cfg
             .tray_providers
             .iter()
-            .map(|p| TraySlot {
-                provider: p.clone(),
-                window: String::new(),
-            })
+            .map(|p| TraySlot { provider: p.clone(), window: String::new() })
             .collect();
     }
 
@@ -171,10 +168,7 @@ pub fn load() -> Config {
         cfg.notch_slots = cfg
             .notch_providers
             .iter()
-            .map(|p| TraySlot {
-                provider: p.clone(),
-                window: String::new(),
-            })
+            .map(|p| TraySlot { provider: p.clone(), window: String::new() })
             .collect();
     }
 

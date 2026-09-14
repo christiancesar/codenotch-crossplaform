@@ -171,8 +171,7 @@ fn parse_response(v: &serde_json::Value) -> Vec<LimitWindow> {
                 id: kind.to_string(),
                 label: label_for(kind),
                 used: (pct / 100.0).clamp(0.0, 1.0),
-                resets_at: resets,
-                ..Default::default()
+                resets_at: resets, ..Default::default()
             });
         }
     }
@@ -182,17 +181,11 @@ fn parse_response(v: &serde_json::Value) -> Vec<LimitWindow> {
     // "Weekly (all models)" as twins). Three dedupe rules: id alias / same resets_at and percentage / same label.
     let aliases: [(&str, &str, &[&str]); 2] = [
         ("five_hour", "session", &["session", "five_hour"]),
-        (
-            "seven_day",
-            "seven_day",
-            &["seven_day", "weekly_all", "weekly"],
-        ),
+        ("seven_day", "seven_day", &["seven_day", "weekly_all", "weekly"]),
     ];
     for (field, id, alias) in aliases {
         let Some(w) = v.get(field) else { continue };
-        let Some(u) = w.get("utilization").and_then(|x| x.as_f64()) else {
-            continue;
-        };
+        let Some(u) = w.get("utilization").and_then(|x| x.as_f64()) else { continue };
         let used = (u / 100.0).clamp(0.0, 1.0);
         let resets_at = w.get("resets_at").and_then(parse_reset);
         let label = label_for(id);
@@ -206,13 +199,7 @@ fn parse_response(v: &serde_json::Value) -> Vec<LimitWindow> {
         if dup {
             continue;
         }
-        out.push(LimitWindow {
-            id: id.into(),
-            label,
-            used,
-            resets_at,
-            ..Default::default()
-        });
+        out.push(LimitWindow { id: id.into(), label, used, resets_at, ..Default::default() });
     }
     // session always comes first (upstream display order)
     out.sort_by_key(|w| if w.id == "session" { 0 } else { 1 });
@@ -255,8 +242,7 @@ fn fetch_once(token: &str) -> Result<Vec<LimitWindow>, FetchErr> {
 
 fn backoff_secs(consecutive: u32, retry_after_floor: u64) -> u64 {
     let exp = BACKOFF_BASE_SECS.saturating_mul(1u64 << consecutive.min(4));
-    exp.clamp(BACKOFF_BASE_SECS, BACKOFF_CAP_SECS)
-        .max(retry_after_floor)
+    exp.clamp(BACKOFF_BASE_SECS, BACKOFF_CAP_SECS).max(retry_after_floor)
 }
 
 fn set_and_broadcast(app: &AppHandle, mutate: impl FnOnce(&mut UsageSnapshot)) {
