@@ -17,6 +17,9 @@ pub fn resolve_auto() -> &'static str {
             if name.starts_with("ko") {
                 return "ko";
             }
+            if name.starts_with("pt") {
+                return "pt";
+            }
         }
     }
     // Outside Windows the locale comes from the environment: LC_ALL overrides everything, then
@@ -33,6 +36,9 @@ pub fn resolve_auto() -> &'static str {
             }
             if lower.starts_with("ko") {
                 return "ko";
+            }
+            if lower.starts_with("pt") {
+                return "pt";
             }
         }
     }
@@ -56,6 +62,7 @@ pub fn tr(lang: &str, key: &str) -> &'static str {
         ("zh", "open_data") => "打开数据文件夹（日志 / 图标）",
         ("ja", "open_data") => "データフォルダを開く（ログ / アイコン）",
         ("ko", "open_data") => "데이터 폴더 열기 (로그 / 아이콘)",
+        ("pt", "open_data") => "Abrir pasta de dados (logs / ícones)",
         (_, "open_data") => "Open data folder (logs / icons)",
         ("ja", "refresh") => "使用量を今すぐ更新",
         ("ko", "refresh") => "사용량 지금 새로고침",
@@ -73,6 +80,13 @@ pub fn tr(lang: &str, key: &str) -> &'static str {
         ("ko", "reset_pos") => "바 위치 초기화",
         ("ko", "quit") => "종료",
         ("ko", "hooks_missing") => "후크 미설치: 트레이 우클릭 → 후크 설치 (데스크톱판은 자동 폴백)",
+        ("pt", "install") => "Instalar ganchos do Claude Code",
+        ("pt", "uninstall") => "Desinstalar ganchos",
+        ("pt", "language") => "Idioma",
+        ("pt", "lang_auto") => "Seguir o sistema",
+        ("pt", "reset_pos") => "Redefinir posição da barra",
+        ("pt", "quit") => "Sair",
+        ("pt", "hooks_missing") => "Ganchos não instalados: clique com o botão direito na bandeja → Instalar ganchos do Claude Code (fallback automático do app desktop ativo)",
         (_, "install") => "Install Claude Code hooks",
         (_, "uninstall") => "Uninstall hooks",
         (_, "language") => "Language",
@@ -80,36 +94,44 @@ pub fn tr(lang: &str, key: &str) -> &'static str {
         (_, "reset_pos") => "Reset bar position",
         (_, "quit") => "Quit",
         (_, "hooks_missing") => "Hooks not installed: tray right-click → Install Claude Code hooks (desktop app auto-fallback active)",
+        ("pt", "autostart") => "Iniciar com o Windows (silencioso)",
         (_, "autostart") => "Start with Windows (silent)",
+        ("pt", "refresh") => "Atualizar uso agora",
         (_, "refresh") => "Refresh usage now",
         ("zh", "settings") => "设置…",
         ("ja", "settings") => "設定…",
         ("ko", "settings") => "설정…",
+        ("pt", "settings") => "Configurações…",
         (_, "settings") => "Settings…",
 
         ("zh", "tray_icon") => "托盘图标",
         ("ja", "tray_icon") => "トレイアイコン",
         ("ko", "tray_icon") => "트레이 아이콘",
+        ("pt", "tray_icon") => "Ícone da bandeja",
         (_, "tray_icon") => "Tray icon",
 
         ("zh", "tray_off") => "默认图标",
         ("ja", "tray_off") => "既定のアイコン",
         ("ko", "tray_off") => "기본 아이콘",
+        ("pt", "tray_off") => "Ícone padrão",
         (_, "tray_off") => "Plain icon",
 
         ("zh", "tray_numbers") => "数字（最多两项）",
         ("ja", "tray_numbers") => "数字（最大2件）",
         ("ko", "tray_numbers") => "숫자 (최대 2개)",
+        ("pt", "tray_numbers") => "Números (até 2)",
         (_, "tray_numbers") => "Numbers (up to 2)",
 
         ("zh", "tray_bars") => "条形图（多项）",
         ("ja", "tray_bars") => "バー（複数可）",
         ("ko", "tray_bars") => "막대 (여러 개)",
+        ("pt", "tray_bars") => "Barras (mais de 2)",
         (_, "tray_bars") => "Bars (more than 2)",
 
         ("zh", "tray_which") => "显示哪些",
         ("ja", "tray_which") => "対象",
         ("ko", "tray_which") => "표시 대상",
+        ("pt", "tray_which") => "Quais provedores",
         (_, "tray_which") => "Which providers",
 
         _ => "?",
