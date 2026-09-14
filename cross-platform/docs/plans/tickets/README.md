@@ -25,30 +25,50 @@ agent), and merges. `windows/` stays read-only; the executor never runs `git add
   `../2026-09-11-cross-platform-plan.md`; ticketized when their dependency epic lands.
 - CI: `.github/workflows/cross-platform-ci.yml` now runs `cargo check` + `cargo test` on
   `ubuntu-latest` and `windows-latest` for every push/PR touching `cross-platform/`.
+- **Phase 1 closed 2026-09-14** (P1.1–P1.3 done + live desktop checklist passed — see the
+  plan's Phase 1 section). Two new epics queued at the end of the roadmap, no dependency on
+  anything above: **Epic G** (pt-BR i18n, `G1-ptbr-i18n.md`) and **Epic H** (OpenCode as an
+  exploratory 5th provider, `H1-opencode-research.md` — research/decision ticket first, no
+  code yet).
 
 ## Lanes / sequencing
 
 ```
 Epic 0 (done)
- ├── Phase 1 (P1.1 → P1.2 → P1.3) — unblocks real desktop use, do this first
+ ├── Phase 1 (P1.1 → P1.2 → P1.3) — done
  ├── Epic A (A.1 done) → A.5 → A.2 → A.3 → A.4   # deferred to Phase 3
- └── Epic C (confirm C.1 → C.6 → C.2 → C.3 → C.4 → C.5)  # C.5 touches watcher, keep last in the lane
+ ├── Epic C (confirm C.1 → C.6 → C.2 → C.3 → C.4 → C.5)  # C.5 touches watcher, keep last in the lane
+ └── Phase 4, end of the queue, no dependency on the above: Epic G (i18n) ∥ Epic H (OpenCode)
 ```
 
-P1.1 and P1.2 touch disjoint files (`main.rs` vs `focus.rs`) and can run in parallel; P1.3
-depends on P1.2 landing first (it wires `ack_scan` in `main.rs` to the new focus detection).
-Epic C tickets are independent of Phase 1 and may run in parallel with it.
+Epic C tickets are independent of Phase 2/3 work and may run in parallel with it. Epic G and
+Epic H are independent of everything and of each other (disjoint files: `i18n.rs`/
+`settings.html` vs. a new `opencode.rs`) and can run in parallel whenever picked up.
 
-## Orchestration model (revised 2026-09-14)
+## Orchestration model (revised 2026-09-14, twice)
 
-The opencode multi-agent routing (OpenRouter → big-pickle → opencode-go/Kimi/GLM,
-separate executor/reviewer agents) described below and in `agent-pool-example.md` added more
+The opencode multi-agent routing originally described here (OpenRouter → big-pickle →
+opencode-go/Kimi/GLM, separate executor/reviewer *agent-definition files*) added more
 planning/config overhead than code for a diff this size (6 of the first 8 commits on this
-branch were plan/agent-config, not source). Tickets now dispatch directly to Claude Code
-subagents (the `Agent` tool, `general-purpose` type) running in the same sandbox as the real
-X11 desktop, so a ticket's "Verify" step can actually be run live instead of reported
-second-hand. The ticket anatomy (read first / scope / must not / definition of done / verify)
-is unchanged — only the dispatch target is simpler.
+branch were plan/agent-config, not source) — that framing is what got simplified first.
+
+What's actually in use now, proven across P1.1–P1.3: the orchestrator (Claude Code, in the
+same sandbox as the real X11 desktop) dispatches each ticket headlessly via
+`opencode run --agent codenotch-exec-opencode-go-kimi --auto "Read <ticket>.md and execute
+it exactly as written... do NOT git add/commit"`, one ticket per `opencode run` process,
+disjoint-file tickets launched in parallel in the background. The executor edits + self-checks
++ reports back in its own reply (no git writes); the orchestrator then reviews the real diff,
+re-runs `cargo check`/`cargo test` itself, confirms `windows/` untouched, and commits. Only
+if an opencode dispatch fails, is unavailable, or its output can't be trusted does the
+orchestrator fall back to a Claude Code subagent (the `Agent` tool) for that ticket instead.
+
+One real failure mode to guard against every time two opencode runs touch overlapping ground:
+a P1.1 dispatch once ran a broad `git checkout -- <file list>` "cleanup" that included a file
+P1.2 (running in parallel) had uncommitted changes in, destroying them (recovered by replaying
+the destroyed session's own edit history via `opencode export`; see the plan's commit history
+around `d1635d9`). Every dispatch prompt since explicitly forbids `git checkout`/`reset`/
+`stash` on anything outside the ticket's own scope — keep that instruction in every future
+dispatch, not just when it's remembered.
 
 ## Ticket anatomy
 
@@ -72,9 +92,12 @@ Every ticket is self-contained:
    disagreement, `reviewer` gives a verdict.
 5. Orchestrator merges (git) and updates this index + the plan.
 
-Target operating model (same pool as `mobile`/`api`): primary model routing via
-OpenRouter, fallback to local opencode (big-pickle), orchestrator driven by
-opencode-go with Kimi 2 / GLM for planning/review/merge decisions.
+Superseded — see "Orchestration model" above for what's actually running. The
+`mobile`/`api`-style multi-lane pool (OpenRouter primary, local big-pickle
+fallback, a separate opencode-go/Kimi/GLM orchestrator) is still documented
+in `agent-pool-example.md` as a reference pattern, but this branch's own
+orchestrator is Claude Code itself, dispatching straight to a single
+opencode executor agent per ticket.
 
 ## Invariants from AGENTS.md that every executor re-reads
 

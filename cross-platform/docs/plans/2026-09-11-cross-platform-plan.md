@@ -21,6 +21,8 @@ Requirements agreed with the maintainer-equivalent (this repo's operator):
    must keep building on Windows (verified later on a Windows host/CI).
 2. **Providers**: exactly the current 4 (Claude, Codex, Cursor, Antigravity).
    No Linux-only providers (Copilot/Ollama/LM Studio/DeepSeek) in this pass.
+   *(Exception added 2026-09-14, operator-authorized: OpenCode as an
+   exploratory 5th provider — see Epic H at the end of this plan.)*
 3. **Single Tauri config.** No `tauri.windows.conf.json`/`tauri.linux.conf.json`
    split: `tauri.conf.json` covers both. The only needed touch is adding
    `icons/icon.png` (256×256) to `bundle.icon` (Windows uses the `.ico`, Linux
@@ -344,3 +346,83 @@ empacotamento `.deb`/AppImage, self-update, issue upstream.
 Ticket README (`docs/plans/tickets/README.md`) e os arquivos individuais
 foram atualizados para refletir isso; A.2–A.5 e a maior parte de B/D/E ficam
 formalmente adiados até a Fase 1 fechar.
+
+**Fase 4 — pedida em 2026-09-14, no fim da fila** (não bloqueia nem depende de
+nada acima): Epic G (i18n pt-BR) e Epic H (OpenCode como 5º provedor,
+exploratório). Ver os épicos abaixo.
+
+---
+
+## Epic G — i18n: adicionar português do Brasil
+
+Hoje `i18n.rs` traduz só o menu de botão direito da bandeja (`settings.html`
+é explícito sobre isso: "the only part of Codenotch that is translated").
+Locales existentes: `zh`, `ja`, `ko` (mais `en` como default/fallback e
+`auto` que resolve pelo `$LANG`/`$LC_ALL` no Linux, registro do Windows no
+Windows). 16 chaves ao todo: `autostart`, `hooks_missing`, `install`,
+`lang_auto`, `language`, `open_data`, `quit`, `refresh`, `reset_pos`,
+`settings`, `tray_bars`, `tray_icon`, `tray_numbers`, `tray_off`,
+`tray_which`, `uninstall`.
+
+- G.1 — adicionar `pt` a `resolve_auto()` (prefixo `pt` em `$LANG`/`$LC_ALL`
+  no Linux; ramo `#[cfg(windows)]` correspondente também, já que `i18n.rs` é
+  cross-platform e o Windows tem seu próprio bloco de detecção) e as 16
+  entradas `("pt", chave) => "…"` em `t()`. Decisão a confirmar: `pt` genérico
+  (Portugal + Brasil) ou `pt-BR` explícito — o pedido foi por Brasil
+  especificamente, então o texto deve usar o vocabulário/ortografia do
+  Brasil mesmo se a chave de detecção ficar `pt` sem sufixo de região (o
+  `resolve_auto` de `ja`/`ko`/`zh` já usa prefixo solto, sem variante
+  regional, então seguir o mesmo padrão é o caminho de menor atrito).
+
+**Escopo**: só `i18n.rs`. Nenhum outro arquivo toca nisso. Ticket:
+`docs/plans/tickets/G1-ptbr-i18n.md`.
+
+## Epic H — OpenCode como 5º provedor (exploratório)
+
+Pedido em 2026-09-14: rastrear o OpenCode CLI (já instalado nesta máquina)
+do mesmo jeito que os outros — lendo o que a própria ferramenta já grava em
+disco, nunca um login/OAuth próprio do Codenotch, nunca cópia de sessão web.
+Isso expande a lista fechada do requisito 2 (só 4 provedores); autorizado
+pelo operador como exceção explícita.
+
+**O que já foi confirmado neste host** (sem nenhuma escrita, só leitura):
+
+- `~/.local/share/opencode/auth.json` e `account.json` — credenciais por
+  serviço (`google`, `github-copilot`, `deepseek`, `sakana-fugu`,
+  `opencode-go`), tipo `api` (chave) ou `oauth` (access/refresh/expires).
+  Isso são as chaves que o OpenCode usa para *chamar* os modelos, não uma
+  cota do OpenCode em si — o OpenCode é uma ferramenta BYOK/roteadora, não
+  uma assinatura com limite mensal como Claude/Codex/Cursor. Ou seja, **não
+  existe um "% usado" natural pra desenhar no anel** do jeito que os outros
+  4 têm.
+- `~/.local/share/opencode/opencode.db` — SQLite real (`sqlite3`, ~1 GB
+  neste host), com tabelas `session`, `message`, `project`, `event`,
+  `workspace`, `credential`, `todo`, entre outras. `session` tem
+  `time_created`/`time_updated`/`cost`/`tokens_input`/`tokens_output`/
+  `title`/`directory` por linha — dado rico o bastante pra alimentar uma
+  visão de **atividade de sessão** (equivalente ao que `watcher.rs` deriva
+  dos `.jsonl` do Claude Code), não uma cota. `event` grava
+  `session.created`/`session.updated`/`message.updated`/`message.part.updated`
+  em sequência — dá pra tail-ear por `seq` como um log de eventos.
+- Mesmo padrão técnico que o Cursor já usa no port: SQLite lido read-only
+  (`rusqlite`, `SQLITE_OPEN_READ_ONLY`) — nenhuma dependência nova.
+
+**Decisão em aberto (resolver no início do H.1, não adivinhar agora)**: o
+valor certo é (a) uma leitura tipo Cursor — uma cota/contagem no anel sem
+denominador (o modelo já suporta isso, `usedCount` sem `usedFraction`,
+renderiza sem porcentagem); (b) uma entrada no motor de sessão
+(`state.rs`/`watcher.rs`) mostrando sessões do OpenCode na lista, do jeito
+que sessões do Claude aparecem; ou (c) as duas. O pedido original ("do jeito
+que é feito no Claude") sugere que sessão (b) é o núcleo do pedido, e uma
+leitura de custo/tokens acumulados como (a) é o extra opcional.
+
+- H.1 — pesquisa + decisão: abrir `opencode.db` read-only, mapear o schema
+  completo das tabelas relevantes (`session`, `event`, `project`), decidir
+  (a)/(b)/(c) acima, escrever o ticket de implementação de verdade só depois
+  disso (este H.1 é deliberadamente um ticket de investigação, não de
+  código).
+- H.2 — implementação, escopo definido pelo resultado do H.1.
+
+**Escopo**: novo módulo `opencode.rs` (mirror de `cursor.rs`); nenhuma
+mudança em `windows/`; sem dependência nova. Ticket:
+`docs/plans/tickets/H1-opencode-research.md`.
