@@ -43,7 +43,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "icon": ["icons/windows/icon.ico", "icons/linux/icon.png"]
+    "targets": "all",
+    "icon": ["icons/windows/icon.ico", "icons/linux/icon.png"],
+    "category": "Utility",
+    "shortDescription": "Usage notch for Claude, Codex, Cursor and Antigravity"
   }
 }
