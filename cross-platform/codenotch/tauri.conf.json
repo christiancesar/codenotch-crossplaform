@@ -44,6 +44,6 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "icon": ["icons/icon.ico", "icons/icon.png"]
+    "icon": ["icons/windows/icon.ico", "icons/linux/icon.png"]
   }
 }
