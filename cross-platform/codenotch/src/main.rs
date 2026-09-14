@@ -153,8 +153,49 @@ fn left_button_down() -> bool {
     unsafe { (GetAsyncKeyState(VK_LBUTTON.0 as i32) as u16 & 0x8000) != 0 }
 }
 #[cfg(not(windows))]
+fn button1_pressed(mask: u16) -> bool {
+    use x11rb::protocol::xproto::KeyButMask;
+    KeyButMask::from(mask).contains(KeyButMask::BUTTON1)
+}
+
+#[cfg(not(windows))]
 fn left_button_down() -> bool {
-    false
+    use std::cell::RefCell;
+    use x11rb::connection::Connection;
+    use x11rb::protocol::xproto::ConnectionExt as XprotoConnectionExt;
+    use x11rb::rust_connection::RustConnection;
+
+    thread_local! {
+        static X11: RefCell<Option<(RustConnection, usize)>> = const { RefCell::new(None) };
+    }
+
+    X11.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        if slot.is_none() {
+            if let Ok(c) = RustConnection::connect(None) {
+                *slot = Some(c);
+            }
+        }
+        let (ref conn, screen_num) = match slot.as_ref() {
+            Some(c) => c,
+            None => return false,
+        };
+        let Some(screen) = conn.setup().roots.get(*screen_num) else {
+            return false;
+        };
+        let reply = match conn.query_pointer(screen.root) {
+            Ok(cookie) => cookie.reply().ok(),
+            Err(_) => None,
+        };
+        match reply {
+            Some(reply) => button1_pressed(reply.mask.into()),
+            None => {
+                // Connection may be stale; force a reconnect on the next poll.
+                *slot = None;
+                false
+            }
+        }
+    })
 }
 
 #[tauri::command]
@@ -251,7 +292,24 @@ fn noactivate(app: &AppHandle) {
     }
 }
 #[cfg(not(windows))]
-fn noactivate(_app: &AppHandle) {}
+fn noactivate(app: &AppHandle) {
+    use gtk::prelude::GtkWindowExt;
+    use gtk::prelude::WidgetExt;
+
+    let Some(window) = app.get_webview_window("notch") else {
+        crate::applog("noactivate: no notch window");
+        return;
+    };
+    let Ok(gtk_window) = window.gtk_window() else {
+        crate::applog("noactivate: gtk_window failed");
+        return;
+    };
+    if !gtk_window.is_realized() {
+        gtk_window.realize();
+    }
+    gtk_window.set_accept_focus(false);
+    crate::applog("noactivate: set_accept_focus(false) on notch");
+}
 
 // ---------------- commands ----------------
 
@@ -1172,6 +1230,7 @@ fn main() {
         .setup(move |app| {
             let handle = app.handle().clone();
             place_notch(&handle);
+            #[cfg(windows)]
             noactivate(&handle);
             if let Some(w) = handle.get_webview_window("notch") {
                 let _ = w.show();
@@ -1179,6 +1238,15 @@ fn main() {
                 // re-applied once geometry is actually known (resize/move after realization).
                 let app_handle = handle.clone();
                 w.on_window_event(move |e| {
+                    #[cfg(not(windows))]
+                    {
+                        // accept_focus needs the GDK window to exist and its WM hints to be set
+                        // after the window is mapped; applying it on the first event does both.
+                        static NOACTIVATE_ONCE: std::sync::Once = std::sync::Once::new();
+                        NOACTIVATE_ONCE.call_once(|| {
+                            noactivate(&app_handle);
+                        });
+                    }
                     if matches!(e, tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_)) {
                         window_layer::x11_struts::set_strut_for_notch(&app_handle);
                     }
@@ -1327,5 +1395,31 @@ mod tests {
     fn an_unreadable_window_size_falls_back_to_the_rectangles() {
         assert!(cursor_in_hot(&[PILL], 450.0, 300.0, None));
         assert!(!cursor_in_hot(&[PILL], 100.0, 300.0, None));
+    }
+
+    #[cfg(not(windows))]
+    mod linux_input {
+        use super::super::button1_pressed;
+
+        #[test]
+        fn button1_mask_is_detected() {
+            assert!(button1_pressed(1 << 8));
+        }
+
+        #[test]
+        fn other_buttons_are_not_button1() {
+            assert!(!button1_pressed(1 << 9)); // button 2
+            assert!(!button1_pressed(1 << 10)); // button 3
+        }
+
+        #[test]
+        fn combined_mask_still_detects_button1() {
+            assert!(button1_pressed((1 << 8) | (1 << 2))); // button 1 + control
+        }
+
+        #[test]
+        fn empty_mask_is_not_button1() {
+            assert!(!button1_pressed(0));
+        }
     }
 }
