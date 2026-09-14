@@ -348,3 +348,31 @@ pub fn start(app: AppHandle) {
         }
     });
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_response;
+
+    /// Real /api/oauth/usage body captured on the Linux host, with no secrets in the response.
+    /// If Anthropic changes the shape, this test fails first.
+    #[test]
+    fn claude_usage_fixture_parses_to_session_and_weekly_windows() {
+        let text = std::fs::read_to_string("tests/fixtures/claude-usage.json").unwrap();
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+        let windows = parse_response(&v);
+        assert_eq!(
+            windows.len(),
+            2,
+            "expected session + weekly_all, got {:?}",
+            windows
+        );
+        assert_eq!(windows[0].id, "session");
+        assert_eq!(windows[0].label, "Current session");
+        assert!((windows[0].used - 0.46).abs() < 0.001);
+        assert!(windows[0].resets_at.is_some());
+        assert_eq!(windows[1].id, "weekly_all");
+        assert_eq!(windows[1].label, "Weekly (all models)");
+        assert!((windows[1].used - 0.18).abs() < 0.001);
+        assert!(windows[1].resets_at.is_some());
+    }
+}
