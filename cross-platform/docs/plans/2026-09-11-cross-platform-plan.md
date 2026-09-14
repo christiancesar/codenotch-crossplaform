@@ -506,8 +506,20 @@ Dois workflows novos, propósitos diferentes:
 Pendente: `.rpm` não foi tentado (sem host Fedora disponível nesta sessão);
 `sudo dpkg -i` real ainda não confirmado (sem root não-interativo neste sandbox).
 
-**Cadeia executada 2026-09-14**: PR #1 mergeado em `development` (fast-forward),
-`development` → `release` → `main` (todos fast-forward, sem conflito), tag `v0.3.0`
-criada em `main` e enviada — disparou `release-publish.yml`
-([run](https://github.com/christiancesar/codenotch-crossplaform/actions)). Fica como
-rascunho (draft) na página de Releases do repositório até alguém clicar Publish.
+**Cadeia executada 2026-09-14 (1ª tentativa)**: PR #1 mergeado em `development`
+(fast-forward), `development` → `release` → `main` (todos fast-forward, sem conflito),
+tag `v0.3.0` criada em `main` e enviada — disparou `release-publish.yml`. **Mas a
+release não nasceu**: `tauri-action` não deriva o nome da tag do evento de push e, sem
+`tagName` explícito, silenciosamente pulou os uploads ("No releaseId or tagName
+provided, skipping all uploads") — os dois builds passaram e nenhuma release foi
+criada.
+
+**Correção executada 2026-09-14**: adicionado `tagName: ${{ github.ref_name }}` no
+`release-publish.yml` (`8742d5f`), propagado por `cross-platform-port` →
+`development`/`release`/`main` via merge commit (`eb1fb1e`, pais `42e101b`+`8742d5f`,
+fast-forward para as outras duas), tag `v0.3.0` recortada no novo `main` e re-enviada.
+Segunda execução ([run](https://github.com/christiancesar/codenotch-crossplaform/actions)):
+`completed/success` e a draft **v0.3.0** agora existe com os 4 assets
+(`Codenotch_0.3.0_amd64.AppImage`, `Codenotch_0.3.0_amd64.deb`,
+`Codenotch_0.3.0_x64-setup.exe`, `Codenotch_0.3.0_x64_en-US.msi`). Continua como
+rascunho na página de Releases até alguém clicar Publish.
