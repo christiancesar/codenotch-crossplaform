@@ -42,6 +42,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: cross-platform/codenotch
+          # tauri-action does not auto-derive the tag from the triggering push event —
+          # without this it silently skips all uploads ("No releaseId or tagName
+          # provided"), which is exactly what happened on the first v0.3.0 attempt: both
+          # OS builds succeeded but no release was created at all.
+          tagName: ${{ github.ref_name }}
           # Linux gets deb + AppImage explicitly; Windows uses tauri.conf.json's
           # bundle.targets: "all" default (nsis + msi), no args needed.
           args: ${{ runner.os == 'Linux' && '--bundles deb,appimage' || '' }}

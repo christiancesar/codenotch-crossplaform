@@ -505,3 +505,9 @@ Dois workflows novos, propósitos diferentes:
 
 Pendente: `.rpm` não foi tentado (sem host Fedora disponível nesta sessão);
 `sudo dpkg -i` real ainda não confirmado (sem root não-interativo neste sandbox).
+
+**Cadeia executada 2026-09-14**: PR #1 mergeado em `development` (fast-forward),
+`development` → `release` → `main` (todos fast-forward, sem conflito), tag `v0.3.0`
+criada em `main` e enviada — disparou `release-publish.yml`
+([run](https://github.com/christiancesar/codenotch-crossplaform/actions)). Fica como
+rascunho (draft) na página de Releases do repositório até alguém clicar Publish.
