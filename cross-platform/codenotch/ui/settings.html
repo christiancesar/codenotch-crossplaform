@@ -90,8 +90,16 @@
 
   select{
     background:#0a0a0a;border:1px solid #2e2e2e;border-radius:9px;color:#e8e8ea;font:inherit;
-    font-size:12px;padding:6px 8px;max-width:100%;cursor:pointer;
+    font-size:12px;padding:6px 26px 6px 8px;max-width:100%;cursor:pointer;
+    /* WebKitGTK (Linux) keeps the native GTK control chrome — a light background with
+       barely-visible text — unless appearance is explicitly suppressed; WebView2/AppKit
+       apply the background/color above even without this. The chevron is drawn manually
+       below since removing native appearance also removes the native arrow. */
+    appearance:none;-webkit-appearance:none;-moz-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a8a8ac' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 10px center;
   }
+  select:disabled{background-image:none}
   select:hover{border-color:#3f3f3f}
   select:focus-visible{outline:1px solid #8a8a8a;outline-offset:1px}
 
