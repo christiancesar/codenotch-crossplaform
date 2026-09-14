@@ -265,7 +265,7 @@ fn num(v: Option<&serde_json::Value>) -> Option<f64> {
 /// (primary/secondary) and the label is derived from the length — the primary window is not
 /// always five hours (a free plan has shown 30 days), and recognising only fixed lengths would
 /// drop a window that is genuinely in use.
-fn windows_from_usage(v: &serde_json::Value) -> Vec<LimitWindow> {
+pub(crate) fn windows_from_usage(v: &serde_json::Value) -> Vec<LimitWindow> {
     let now = now_ms();
     let mut out = Vec::new();
     for (id, key) in [
@@ -621,4 +621,65 @@ pub fn probe() -> String {
             .unwrap_or_else(|| "none".into()),
         age
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const WHAM: &str = include_str!("../tests/fixtures/codex-wham-usage.json");
+    const ROLLOUT: &str = include_str!("../tests/fixtures/codex-rollout.jsonl");
+
+    #[test]
+    fn wham_usage_fixture_parses() {
+        let v: serde_json::Value = serde_json::from_str(WHAM).unwrap();
+        let windows = windows_from_usage(&v);
+        assert_eq!(
+            windows.len(),
+            1,
+            "fixture should yield exactly the primary window"
+        );
+        assert_eq!(windows[0].id, "primary");
+        assert_eq!(windows[0].label, "Monthly limit");
+        assert!((windows[0].used - 1.0).abs() < 1e-9);
+        assert_eq!(windows[0].resets_at, Some(1789782254000));
+    }
+
+    #[test]
+    fn rollout_snapshot_fixture_parses_and_is_stale() {
+        let (windows, recorded, plan) =
+            snapshot_from_rollout(ROLLOUT).expect("fixture has a parseable snapshot");
+        assert_eq!(windows.len(), 1);
+        assert_eq!(windows[0].id, "primary");
+        assert_eq!(windows[0].label, "5h limit");
+        assert!((windows[0].used - 0.42).abs() < 1e-9);
+        assert_eq!(windows[0].resets_at, Some(1893456000000));
+        assert_eq!(plan, Some("free".into()));
+        let rec = recorded.expect("recorded timestamp");
+        assert!(rec > 0);
+        assert!(
+            now_ms().saturating_sub(rec) > CURRENT_FOR_MS,
+            "fixture timestamp must be older than 5 min, so the UI marks it stale"
+        );
+    }
+
+    #[test]
+    fn rollout_null_windows_means_nothing_metered() {
+        let null_only = r#"{"timestamp":"2026-02-23T20:45:18.178Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"limit_id":"codex","limit_name":null,"primary":null,"secondary":null,"credits":null,"plan_type":null}}}"#;
+        assert!(
+            snapshot_from_rollout(null_only).is_none(),
+            "a snapshot with no usable windows must not fabricate a zero ring"
+        );
+    }
+
+    #[test]
+    fn wham_empty_response_means_no_windows() {
+        let empty = serde_json::json!({
+            "rate_limit": { "primary_window": null, "secondary_window": null }
+        });
+        assert!(
+            windows_from_usage(&empty).is_empty(),
+            "an empty endpoint reply must not become a fabricated zero ring"
+        );
+    }
 }

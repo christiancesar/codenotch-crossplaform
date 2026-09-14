@@ -1,0 +1,2 @@
+{"timestamp":"2026-02-23T20:45:18.178Z","type":"event_msg","payload":{"type":"token_count","info":null,"rate_limits":{"limit_id":"codex","limit_name":null,"primary":null,"secondary":null,"credits":null,"plan_type":null}}}
+{"timestamp": "2020-01-01T00:00:00.000Z", "type": "event_msg", "payload": {"type": "token_count", "rate_limits": {"limit_id": "codex", "primary": {"used_percent": 42.0, "window_minutes": 300, "resets_at": 1893456000}, "secondary": null, "plan_type": "free"}}}
