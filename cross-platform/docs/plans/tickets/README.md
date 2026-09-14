@@ -23,6 +23,12 @@ agent), and merges. `windows/` stays read-only; the executor never runs `git add
   any more Epic A/B/D/E work; a green `cargo check` was never proof the app was usable.
 - Epics B/D/E/F — written at epic level in
   `../2026-09-11-cross-platform-plan.md`; ticketized when their dependency epic lands.
+- **Known issue for B.1 (tray)**: the two-row digit bitmap in `trayicon.rs` (32x32,
+  Windows-tuned — see its own doc comment on scaling assumptions) renders with too
+  little vertical gap on a Linux panel/AppIndicator, so two readings (e.g. Claude "26",
+  Codex "100") visually run together into one number ("26100"). Confirmed live via a
+  real desktop screenshot on 2026-09-14. Not a data bug — needs the row gap/contrast
+  tuned for Linux's rendering, deferred until B.1 is picked up.
 - CI: `.github/workflows/cross-platform-ci.yml` now runs `cargo check` + `cargo test` on
   `ubuntu-latest` and `windows-latest` for every push/PR touching `cross-platform/`.
 
