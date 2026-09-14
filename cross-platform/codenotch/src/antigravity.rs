@@ -764,7 +764,10 @@ fn legacy_probe() -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{requests_in, state_roots_in};
+    use super::{
+        legacy_present, present, read_credential_raw, read_once, requests_in, state_roots_in,
+        windows_from_bridge, Runtime, LS_SERVICE,
+    };
     use std::path::{Path, PathBuf};
 
     struct Home(PathBuf);
@@ -859,5 +862,23 @@ mod tests {
         std::fs::create_dir_all(h.flavour("antigravity-ide").join("brain")).unwrap();
         trajectory(&h.flavour("antigravity-cli"), "c", &[step("MODEL", chrono::Utc::now())]);
         assert_eq!(requests_in(&state_roots_in(&h.0), today()).0, 1);
+    }
+
+    /// Synthetic bridge response, same shape as a real local-bridge reply (no live install on
+    /// this host at ticket time, see C4-antigravity-provider.md's own host facts).
+    #[test]
+    fn bridge_fixture_parses_to_two_windows() {
+        let text = include_str!("../fixtures/antigravity/agy-bridge.json");
+        let v: serde_json::Value = serde_json::from_str(text).unwrap();
+        let windows = windows_from_bridge(&v);
+        assert_eq!(windows.len(), 2, "expected two buckets, got {:?}", windows);
+        assert_eq!(windows[0].id, "gemini-weekly");
+        assert_eq!(windows[0].label, "Gemini · Weekly");
+        assert!((windows[0].used - 0.06).abs() < 0.001);
+        assert!(windows[0].resets_at.is_some());
+        assert_eq!(windows[1].id, "claude-gpt-five-hour");
+        assert_eq!(windows[1].label, "Claude/GPT · 5h");
+        assert!((windows[1].used - 0.22).abs() < 0.001);
+        assert!(windows[1].resets_at.is_some());
     }
 }
