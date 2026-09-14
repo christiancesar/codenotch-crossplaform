@@ -123,6 +123,14 @@ pub fn set_strut_for_notch(app: &tauri::AppHandle) {
     let Ok(size) = window.outer_size() else {
         return;
     };
+    // The very first placement call runs before GTK has realized the window, so
+    // outer_size() answers 0x0. Applying a strut with that geometry would reserve
+    // a zero-height strip and momentarily desync the workarea from where the pill
+    // actually ends up; wait for the resize/move that follows realization instead.
+    if size.width == 0 || size.height == 0 {
+        crate::applog("x11 strut: skipping — window not realized yet (size 0x0)");
+        return;
+    }
 
     let strut = build_strut(
         monitor.position().x,
