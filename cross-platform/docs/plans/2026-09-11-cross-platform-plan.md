@@ -469,3 +469,39 @@ usuário testar o backend fora deste fluxo.
 cross-platform/target/release/bundle/deb/Codenotch_0.3.0_amd64.deb` (ou usar o
 `.AppImage` direto, que já não precisa de root) num terminal com senha disponível,
 confirmar que abre normal depois de instalado, e então Epic E.3 fecha por completo.
+
+---
+
+## Estrutura de branches e release — 2026-09-14
+
+Adotado GitFlow: `development` e `release` criadas a partir do `main` (ainda só a
+versão Windows, sem o port). `cross-platform-port` segue como branch de trabalho;
+[PR #1](https://github.com/christiancesar/codenotch-crossplaform/pull/1) aberto pra
+`development` com todo o histórico deste plano. Fluxo acordado:
+
+```
+cross-platform-port → (PR, merge manual) → development → release (estabiliza)
+                                                              │
+                                              merge em main + development
+                                                              │
+                                                    tag v* em main
+                                                              │
+                                            .github/workflows/release-publish.yml
+                                              builda Windows+Linux, publica
+                                              GitHub Release como DRAFT
+```
+
+Dois workflows novos, propósitos diferentes:
+- `cross-platform-package.yml` — builda `.deb`/`AppImage`/`.msi` a cada push em
+  `cross-platform-port`/`development`, sobe como artifact da própria run (exige
+  login GitHub, expira em 90 dias). É o "disponibilizar no repositório" pedido:
+  já roda sem esperar a cadeia até `main`.
+- `release-publish.yml` — dispara só por tag `v*` em `main` (nunca por push direto
+  em `release`, é assim que o GitFlow separa "preparar" de "publicar"). Builda os
+  dois SOs via `tauri-apps/tauri-action` e publica como **rascunho** (draft) — não
+  fica público sozinho, alguém revisa e clica Publish no GitHub antes de expor pra
+  download. Decisão deliberada: publicar release pública é ação visível e
+  semi-irreversível, não deveria disparar sozinha sem revisão.
+
+Pendente: `.rpm` não foi tentado (sem host Fedora disponível nesta sessão);
+`sudo dpkg -i` real ainda não confirmado (sem root não-interativo neste sandbox).

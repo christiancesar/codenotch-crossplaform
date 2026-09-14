@@ -26,10 +26,25 @@ agent), and merges. `windows/` stays read-only; the executor never runs `git add
 - CI: `.github/workflows/cross-platform-ci.yml` now runs `cargo check` + `cargo test` on
   `ubuntu-latest` and `windows-latest` for every push/PR touching `cross-platform/`.
 - **Phase 1 closed 2026-09-14** (P1.1–P1.3 done + live desktop checklist passed — see the
-  plan's Phase 1 section). Two new epics queued at the end of the roadmap, no dependency on
-  anything above: **Epic G** (pt-BR i18n, `G1-ptbr-i18n.md`) and **Epic H** (OpenCode as an
-  exploratory 5th provider, `H1-opencode-research.md` — research/decision ticket first, no
-  code yet).
+  plan's Phase 1 section).
+- **C.1–C.4 done** (confirmed + pinned tests). **C.5/C.6 dispatched but stalled** on the
+  opencode-go/Kimi backend (zero output after 30 min, twice) — not redispatched, low priority
+  behind the packaging/release push (see plan's "Pivô de prioridade").
+- **G.1 done** (pt-BR tray menu). Full-Settings translation and **Epic H (OpenCode) are
+  paused** at the user's explicit request — ticket `H1-opencode-research.md` stays valid for
+  whenever this is picked back up, no code written yet.
+- **B.2 (XDG autostart) ticketed** (`B2-xdg-autostart.md`) but not dispatched — queued behind
+  the installable-release push, not a blocker for it.
+- **E.3 (Linux packaging) done for `.deb`/`AppImage`**: `cargo tauri build --bundles
+  deb,appimage` produces a clean build, AppImage live-verified running standalone. `.rpm` not
+  attempted (no Fedora host). Real `sudo dpkg -i` install still unconfirmed (no root in this
+  sandbox) — see the plan's "Estrutura de branches e release" section.
+- **Branches + CI/release pipeline set up 2026-09-14**: `development` and `release` created
+  from `main` (GitFlow); [PR #1](https://github.com/christiancesar/codenotch-crossplaform/pull/1)
+  opened `cross-platform-port` → `development`. `cross-platform-package.yml` builds installers
+  as run artifacts on every push (available now); `release-publish.yml` builds + publishes a
+  **draft** public GitHub Release, triggered only by a `v*` tag pushed to `main` (after
+  `release` merges into both `main` and `development` — never a raw push to `release`).
 
 ## Lanes / sequencing
 
@@ -37,8 +52,10 @@ agent), and merges. `windows/` stays read-only; the executor never runs `git add
 Epic 0 (done)
  ├── Phase 1 (P1.1 → P1.2 → P1.3) — done
  ├── Epic A (A.1 done) → A.5 → A.2 → A.3 → A.4   # deferred to Phase 3
- ├── Epic C (confirm C.1 → C.6 → C.2 → C.3 → C.4 → C.5)  # C.5 touches watcher, keep last in the lane
- └── Phase 4, end of the queue, no dependency on the above: Epic G (i18n) ∥ Epic H (OpenCode)
+ ├── Epic C: C.1 → C.2 → C.3 → C.4 done; C.5/C.6 stalled on the backend, low priority for now
+ ├── Epic E.3 (packaging) — done for deb/AppImage, active priority now
+ ├── B.2 (autostart) — ticketed, not dispatched, queued behind E.3
+ └── Paused at user's request: full-Settings i18n, Epic H (OpenCode)
 ```
 
 Epic C tickets are independent of Phase 2/3 work and may run in parallel with it. Epic G and
