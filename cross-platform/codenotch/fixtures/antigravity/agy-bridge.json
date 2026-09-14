@@ -1,0 +1,28 @@
+{
+  "response": {
+    "groups": [
+      {
+        "displayName": "Gemini · Weekly",
+        "buckets": [
+          {
+            "bucketId": "gemini-weekly",
+            "displayName": "Weekly Limit Remaining",
+            "remainingFraction": 0.94,
+            "resetTime": "2026-09-12T01:47:23Z"
+          }
+        ]
+      },
+      {
+        "displayName": "Claude/GPT · 5h",
+        "buckets": [
+          {
+            "bucketId": "claude-gpt-five-hour",
+            "displayName": "Five Hour Limit Remaining",
+            "remainingFraction": 0.78,
+            "resetTime": "2026-09-10T06:12:31Z"
+          }
+        ]
+      }
+    ]
+  }
+}

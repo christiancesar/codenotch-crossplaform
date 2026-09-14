@@ -1,0 +1,90 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": [".opencode/skills"]
+  },
+  "references": {
+    "port-plan": {
+      "path": "cross-platform/docs/plans",
+      "description": "Cross-platform Tauri 2 port plan, tickets and decisions — read before touching cross-platform/ code"
+    },
+    "port-spec": {
+      "path": "cross-platform/docs/specs",
+      "description": "Linux port specification — behavior contract for the Tauri 2 port"
+    },
+    "linux-notes": {
+      "path": "cross-platform/docs/notes",
+      "description": "Linux desktop-environment notes (edge pinning, tray, notifications, Secret Service)"
+    },
+    "windows-ref": {
+      "path": "windows",
+      "description": "Reference Windows port — read-only source of truth; never edit files under windows/"
+    }
+  },
+  "agent": {
+    "codenotch-exec-openrouter": {
+      "description": "Executor T1 — OpenRouter primary para implementação Rust/Tauri do Codenotch",
+      "mode": "primary",
+      "model": "openrouter/auto",
+      "prompt": "{file:./.opencode/prompt/codenotch-exec.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "codenotch-exec-big-pickle": {
+      "description": "Executor T1 fallback — modelo local big-pickle quando OpenRouter não roteia",
+      "mode": "primary",
+      "model": "opencode/big-pickle",
+      "prompt": "{file:./.opencode/prompt/codenotch-exec.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "codenotch-exec-opencode-go-kimi": {
+      "description": "Executor T2 — opencode-go com Kimi 2.7 para tarefas complexas do porte",
+      "mode": "primary",
+      "model": "opencode-go/kimi-k2.7-code",
+      "prompt": "{file:./.opencode/prompt/codenotch-exec.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "codenotch-exec-opencode-go-glm": {
+      "description": "Executor T2 alt — opencode-go com GLM para tarefas complexas do porte",
+      "mode": "primary",
+      "model": "opencode-go/glm-4.5",
+      "prompt": "{file:./.opencode/prompt/codenotch-exec.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "webfetch": "allow"
+      }
+    },
+    "codenotch-review": {
+      "description": "Revisor — lê e reporta, nunca edita",
+      "mode": "primary",
+      "model": "opencode/ling-3.0-tiny-free",
+      "prompt": "{file:./.opencode/prompt/codenotch-review.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow"
+      }
+    },
+    "codenotch-orchestrator": {
+      "description": "Orquestrador local — planeja, despacha e mergeia o porte",
+      "mode": "primary",
+      "model": "opencode-go/kimi-k2.7-code",
+      "prompt": "{file:./.opencode/prompt/codenotch-orchestrator.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow"
+      }
+    }
+  }
+}

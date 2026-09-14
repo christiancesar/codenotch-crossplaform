@@ -1,0 +1,53 @@
+name: Release (Windows + Linux)
+
+# Follows the project's GitFlow: `release` stabilizes a version, merges into `main`
+# (production) AND back into `development`, then a `v*` tag pushed on `main` is what
+# actually cuts a public GitHub Release — never a raw push to `release` itself. This
+# builds cross-platform/codenotch for both OSes and publishes the installers as a
+# draft release for review before anyone can download them.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Linux Tauri build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cross-platform
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: cross-platform/codenotch
+          # Linux gets deb + AppImage explicitly; Windows uses tauri.conf.json's
+          # bundle.targets: "all" default (nsis + msi), no args needed.
+          args: ${{ runner.os == 'Linux' && '--bundles deb,appimage' || '' }}
+          releaseName: "Codenotch ${{ github.ref_name }}"
+          releaseBody: |
+            Cross-platform build for Windows and Linux. See the plan and tickets under
+            cross-platform/docs/plans/ for what changed.
+          releaseDraft: true
+          prerelease: false

@@ -1,0 +1,45 @@
+name: Cross-platform CI
+
+# Codenotch's cross-platform/ workspace must keep compiling on both Windows and
+# Linux (see cross-platform/docs/plans/2026-09-11-cross-platform-plan.md,
+# requirement 1: "compiler parity first"). windows/ is a separate, unrelated
+# Tauri app and is not built here.
+on:
+  push:
+    branches: [cross-platform-port]
+    paths: ["cross-platform/**", ".github/workflows/cross-platform-ci.yml"]
+  pull_request:
+    paths: ["cross-platform/**", ".github/workflows/cross-platform-ci.yml"]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: cross-platform
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Linux Tauri build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cross-platform
+
+      - name: cargo check
+        run: cargo check --workspace
+
+      - name: cargo test
+        run: cargo test --workspace
