@@ -312,12 +312,21 @@ contra `windows/`. Achados que mudam a priorização:
 - [x] Reverter reformatação sem função (`46a7d33`)
 - [x] Corrigir corrida de tamanho zero no strut (`5c8d4e7`)
 - [x] CI Linux+Windows (`cross-platform-ci.yml`)
-- [ ] P1.1 — `left_button_down` + `noactivate` reais no Linux (`main.rs`)
-- [ ] P1.2 — `focus_terminal`/`focus_claude_desktop` via X11 (`focus.rs`)
-- [ ] P1.3 — ligar `ack_scan` à detecção de foco de P1.2 (`main.rs`)
-- [ ] Checklist manual no desktop real: hover abre o card, click-through,
-  clique no anel refaz o fetch, menu do botão direito, tray, settings,
-  `install-hooks` seguido de um turno real do Claude abrindo o notch.
+- [x] P1.1 — `left_button_down` + `noactivate` reais no Linux (`39b8cf8`, drag e
+  no-activate verificados ao vivo)
+- [x] P1.2 — `focus_terminal`/`focus_claude_desktop` via X11 (`d1635d9`, EWMH
+  confirmado num gnome-terminal real; reconstrução documentada no commit após
+  um `git checkout` concorrente ter apagado o trabalho não commitado)
+- [x] P1.3 — ligar `ack_scan` à detecção de foco de P1.2 (`fc633e9`, evento de
+  hook sintético limpou a sessão `done` ao focar o terminal certo)
+- [x] Achados extras corrigidos no mesmo desktop real: CI do Windows quebrada
+  desde o `d946b91` (`fc633e9`), strut vazando pra segunda tela em
+  multi-monitor (`44a3a0a`), `icon.png` sumido do disco + título de janela
+  genérico (`44a3a0a`), ícones Windows/Linux separados em subpastas (`b0ad84c`)
+- [ ] Checklist manual restante no desktop real: hover abre o card, clique no
+  anel refaz o fetch, menu do botão direito, settings, `install-hooks` seguido
+  de um turno real do Claude abrindo o notch (click-through e drag já
+  verificados no P1.1; ack_scan com evento real de hook já verificado no P1.3)
 
 **Fase 2 — o resto do Epic C (confirmação, não escrita) + autostart/notificações
 básicas (B.2, D.1).**
