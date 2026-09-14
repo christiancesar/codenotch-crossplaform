@@ -114,9 +114,12 @@ fn sanitize_terminal_output(input: &str) -> String {
 /// Returns an error on invalid or unrecognized format; never returns dummy 0% quotas.
 fn parse_quota(text: &str) -> Result<Vec<LimitWindow>, String> {
     let clean = sanitize_terminal_output(text);
-    if !clean.lines().any(|line| line.trim() == "Quota:") {
-        return Err("CLI did not return a quota report".into());
-    }
+    // A ConPTY-attached agy on Windows prints a "Quota:" header before the table; the same
+    // command over a plain (non-PTY) pipe — confirmed live on Linux — prints only the
+    // tab-separated rows themselves, no header. The header carries no information the row
+    // parsing below doesn't already re-derive, and every row is still individually validated
+    // (percentage range, RFC3339 reset time) with an empty-result error at the end, so treating
+    // it as optional widens acceptance without weakening validation.
     let mut out = Vec::new();
     for line in clean
         .lines()
@@ -515,14 +518,75 @@ fn run_cmd_conpty(
     Ok(sanitize_terminal_output(&text))
 }
 
+/// Plain piped subprocess with a timeout. Unlike Windows, `agy` on Linux produces its normal
+/// output over a redirected (non-PTY) stdout pipe — verified live against a real `agy --sandbox
+/// --print-timeout 30s --print /usage` — so there is no ConPTY-equivalent complexity needed here;
+/// the only thing to still get right is the hard timeout and killing the whole process on it.
 #[cfg(not(windows))]
 fn run_cmd_conpty(
-    _program: &Path,
-    _args: &[&str],
-    _cwd: Option<&Path>,
-    _timeout: Duration,
+    program: &Path,
+    args: &[&str],
+    cwd: Option<&Path>,
+    timeout: Duration,
 ) -> Result<String, String> {
-    Err("Antigravity CLI runner requires Windows".into())
+    use std::io::Read;
+    use std::process::Stdio;
+
+    if !program.is_file() {
+        return Err(format!("Program not found: {}", program.display()));
+    }
+
+    let mut cmd = std::process::Command::new(program);
+    cmd.args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+    if let Some(dir) = cwd {
+        cmd.current_dir(dir);
+    }
+    let mut child = cmd
+        .spawn()
+        .map_err(|e| format!("Cannot start Antigravity CLI: {e}"))?;
+
+    // Drain stdout on its own thread so a child that never exits cannot block this call past
+    // `timeout` — waiting on the pipe directly would hang here even after the process is killed
+    // if the OS hasn't yet torn down the write end.
+    let out = child.stdout.take().expect("piped stdout");
+    let reader = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        let _ = out.take(65536 + 1).read_to_end(&mut buf);
+        buf
+    });
+
+    let deadline = std::time::Instant::now() + timeout;
+    let status = loop {
+        match child.try_wait() {
+            Ok(Some(status)) => break Ok(status),
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    break Err(format!("Antigravity CLI timed out after {timeout:?}"));
+                }
+                std::thread::sleep(Duration::from_millis(50));
+            }
+            Err(e) => break Err(format!("Cannot wait on Antigravity CLI: {e}")),
+        }
+    }?;
+
+    let raw_bytes = reader.join().unwrap_or_default();
+    if !status.success() {
+        return Err(format!(
+            "Antigravity CLI failed with exit code {}",
+            status.code().unwrap_or(-1)
+        ));
+    }
+    if raw_bytes.len() > 65536 {
+        return Err("CLI quota output is too large".into());
+    }
+
+    let text = String::from_utf8_lossy(&raw_bytes);
+    Ok(sanitize_terminal_output(&text))
 }
 
 /// Executes official `agy --print /usage` via native ConPTY.
