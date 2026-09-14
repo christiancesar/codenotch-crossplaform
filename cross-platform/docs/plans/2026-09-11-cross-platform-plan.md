@@ -135,10 +135,22 @@ threshold notifies exactly once until rollover.
 
 ### Epic E — Polish, packaging, updates (was M7)
 
-- E.1 Multi-monitor (X11 randr; Wayland per-compositor best effort).
+- E.1 Multi-monitor (X11 randr; Wayland per-compositor best effort). Partially done: the
+  strut leak onto a second monitor was found and fixed live (`44a3a0a`) — the notch itself
+  already behaves correctly with 2 monitors; `randr`-based "follow the active screen" is
+  still open.
 - E.2 Reduced-motion; app icon; README screenshots.
-- E.3 Packaging deb/rpm/AppImage — decide the bundle-config strategy here
-  (`--bundles` per OS vs platform merge files).
+- **E.3 Packaging — mostly done (`2dbc0ba`), no bundle-config split needed.** The blocker
+  wasn't the Rust code, it was `tauri.conf.json`'s `bundle.targets` being hardcoded to
+  `["nsis"]` (Windows-only). Changed to `"all"` (Tauri resolves the right targets per host
+  OS from one config, no `--bundles` flag or platform merge file needed) and installed
+  `cargo-tauri` (wasn't present). First `cargo tauri build --bundles deb,appimage` attempt
+  succeeded outright. Live-verified: the AppImage runs standalone with no install and no
+  root (`--appimage-extract-and-run`, real window opened correctly titled "Codenotch"); the
+  `.deb`'s contents were inspected and are correct (binary, icon, `.desktop` file, resolved
+  runtime `Depends`). **Not yet verified: an actual `sudo dpkg -i` install** — this sandbox
+  has no non-interactive root, so that step needs a real run on a host with a password
+  prompt. `.rpm` was not attempted (no Fedora/RHEL host available).
 - E.4 **Updates**: signed-feed self-update vs distro-managed vs link-out;
   visible disclosure.
 
@@ -426,3 +438,34 @@ leitura de custo/tokens acumulados como (a) é o extra opcional.
 **Escopo**: novo módulo `opencode.rs` (mirror de `cursor.rs`); nenhuma
 mudança em `windows/`; sem dependência nova. Ticket:
 `docs/plans/tickets/H1-opencode-research.md`.
+
+---
+
+## Pivô de prioridade — 2026-09-14
+
+**Objetivo agora: só lançar uma versão instalável e estável para Linux.** Epic H
+(OpenCode) fica pausado, sem dispatch novo (a tentativa de H.1 rodou duas vezes sem
+produzir nada, aparentemente instabilidade do backend opencode-go/Kimi, não do escopo
+do ticket em si — fica pra retomar depois, ticket já escrito e válido). Tradução
+completa da Settings (além do menu da bandeja, já feito no G.1) também fica de fora
+por enquanto, a pedido explícito.
+
+**Isso resultou direto em Epic E.3 (empacotamento) andar rápido** — ver a entrada
+atualizada acima: `.deb` e `AppImage` já buildam limpo, AppImage já rodou de verdade
+no desktop. Falta só confirmar `sudo dpkg -i` num host com root disponível.
+
+**B.2 (autostart XDG)** — ticket já escrito (`docs/plans/tickets/B2-xdg-autostart.md`),
+mas não disparado ainda: não bloqueia "instalável", fica pra depois do E.3 fechar de
+vez (a instalação real do `.deb` confirmada).
+
+**C.5 (motor de sessão) e C.6 (arquivo/429)** — dispatchados, mas ambos travaram no
+banner inicial do opencode sem produzir nada (mesmo sintoma do H.1), não é falha do
+prompt. Não são bloqueio pra "instalável" (são confirmação/robustez de dados, não
+empacotamento), então ficam de baixo prioridade por ora — não recomendo insistir
+disparando de novo até esse padrão de trava do backend se resolver sozinho, ou o
+usuário testar o backend fora deste fluxo.
+
+**Próximo passo real**: pedir pro usuário rodar `sudo dpkg -i
+cross-platform/target/release/bundle/deb/Codenotch_0.3.0_amd64.deb` (ou usar o
+`.AppImage` direto, que já não precisa de root) num terminal com senha disponível,
+confirmar que abre normal depois de instalado, e então Epic E.3 fecha por completo.
