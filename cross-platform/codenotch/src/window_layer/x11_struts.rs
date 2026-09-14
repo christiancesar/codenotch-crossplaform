@@ -132,6 +132,31 @@ pub fn set_strut_for_notch(app: &tauri::AppHandle) {
         return;
     }
 
+    // _NET_WM_STRUT[_PARTIAL]'s "right" value reserves N pixels from the right edge
+    // of the X11 root window — which spans every monitor combined, not just this
+    // one. On a multi-monitor setup where the notch's monitor is not the physically
+    // rightmost, "reserve 70px from the right" carves that strip out of whichever
+    // monitor actually sits at the root's right edge instead — an empty notch-sized
+    // gap on a screen the notch was never near. There is no single-edge way to
+    // express "reserve the right edge of monitor N" when another monitor extends
+    // further right, so skip the strut entirely rather than reserve the wrong
+    // screen's space; the notch still floats always-on-top there.
+    let root_w = match root_screen_width() {
+        Some(w) => w,
+        None => {
+            crate::applog("x11 strut: skipping — could not read root screen width");
+            return;
+        }
+    };
+    let monitor_right = monitor.position().x + monitor.size().width as i32;
+    if monitor_right < root_w as i32 {
+        crate::applog(&format!(
+            "x11 strut: skipping — notch's monitor ends at x={monitor_right}, root screen is {root_w}px wide (another display extends further right)"
+        ));
+        clear_strut_for_notch(app);
+        return;
+    }
+
     let strut = build_strut(
         monitor.position().x,
         monitor.position().y,
@@ -202,6 +227,17 @@ fn xid_of(window: &tauri::WebviewWindow) -> Option<u64> {
     let xid = x11_window.xid();
     crate::applog(&format!("x11 strut: gdk xid={xid}"));
     Some(xid)
+}
+
+/// Width in pixels of the X11 root window — the combined width of every monitor,
+/// which is the coordinate space `_NET_WM_STRUT[_PARTIAL]`'s "right" value is
+/// measured against (not any single monitor's width).
+fn root_screen_width() -> Option<u32> {
+    let (conn, screen_num) = RustConnection::connect(None).ok()?;
+    conn.setup()
+        .roots
+        .get(screen_num)
+        .map(|screen| screen.width_in_pixels as u32)
 }
 
 fn apply_strut(xid: u64, strut: &StrutArray) -> Result<(), Box<dyn std::error::Error>> {
