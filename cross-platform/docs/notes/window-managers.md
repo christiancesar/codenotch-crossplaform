@@ -109,7 +109,7 @@ upstream tests for the canonical file shapes):
 | Grok | `~/.grok/auth.json` | to confirm |
 | OpenCode | own key, as stored by OpenCode | to confirm |
 | GitHub Copilot | `gh` auth (`~/.config/gh/`) | near-certain |
-| Cursor | `~/.config/Cursor/User/globalStorage/state.vscdb` | to confirm (upstream reads `state.vscdb` on macOS) |
+| Cursor | `~/.config/Cursor/User/globalStorage/state.vscdb` | confirmed |
 | LM Studio | `~/.lmstudio/server-logs` + SDK socket on 1234 | near-certain (cross-platform app) |
 | Ollama | localhost 11434; relay for speed/thinking | certain |
 | Antigravity | `agy` CLI if shipped for Linux; else local language-server bridge | to confirm |

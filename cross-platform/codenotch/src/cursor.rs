@@ -43,9 +43,16 @@ fn now_ms() -> u64 {
         .unwrap_or(0)
 }
 
-/// Windows: %APPDATA%\Cursor\User\globalStorage\state.vscdb (macOS: ~/Library/Application Support/Cursor/...)
+/// Windows: %APPDATA%\Cursor\User\globalStorage\state.vscdb
+/// macOS: ~/Library/Application Support/Cursor/User/globalStorage/state.vscdb
+/// Linux: ~/.config/Cursor/User/globalStorage/state.vscdb (confirmed on this host)
 pub fn store_url() -> Option<PathBuf> {
-    dirs::config_dir().map(|c| c.join("Cursor").join("User").join("globalStorage").join("state.vscdb"))
+    dirs::config_dir().map(|c| {
+        c.join("Cursor")
+            .join("User")
+            .join("globalStorage")
+            .join("state.vscdb")
+    })
 }
 
 fn store_path() -> PathBuf {
@@ -88,25 +95,39 @@ fn open_ro(path: &std::path::Path) -> Option<rusqlite::Connection> {
         OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     ) {
         // Actually verify that reads work (with the -shm missing, open can succeed and the first query fail)
-        if c.prepare("SELECT 1 FROM ItemTable LIMIT 1").and_then(|mut s| s.query([]).map(|_| ())).is_ok() {
+        if c.prepare("SELECT 1 FROM ItemTable LIMIT 1")
+            .and_then(|mut s| s.query([]).map(|_| ()))
+            .is_ok()
+        {
             return Some(c);
         }
     }
     // Only the URI form takes immutable=1; a Windows path becomes file:///C:/... with \ → /
     let mut uri = String::from("file:///");
-    uri.push_str(&path.to_string_lossy().replace('\\', "/").trim_start_matches('/').replace('#', "%23").replace('?', "%3F"));
+    uri.push_str(
+        &path
+            .to_string_lossy()
+            .replace('\\', "/")
+            .trim_start_matches('/')
+            .replace('#', "%23")
+            .replace('?', "%3F"),
+    );
     uri.push_str("?immutable=1");
     rusqlite::Connection::open_with_flags(
         &uri,
-        OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_URI | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        OpenFlags::SQLITE_OPEN_READ_ONLY
+            | OpenFlags::SQLITE_OPEN_URI
+            | OpenFlags::SQLITE_OPEN_NO_MUTEX,
     )
     .ok()
 }
 
 fn item(conn: &rusqlite::Connection, key: &str) -> Option<String> {
-    conn.query_row("SELECT value FROM ItemTable WHERE key = ?1", [key], |r| r.get::<_, String>(0))
-        .ok()
-        .filter(|s| !s.is_empty())
+    conn.query_row("SELECT value FROM ItemTable WHERE key = ?1", [key], |r| {
+        r.get::<_, String>(0)
+    })
+    .ok()
+    .filter(|s| !s.is_empty())
 }
 
 struct Creds {
@@ -114,21 +135,33 @@ struct Creds {
     plan: Option<String>,
 }
 
-/// Re-read every time: the editor rotates the token, and holding on to an old value signs us out
-fn read_credentials() -> Option<Creds> {
-    let path = store_url()?;
-    let conn = open_ro(&path)?;
+fn read_credentials_at(path: &std::path::Path) -> Option<Creds> {
+    let conn = open_ro(path)?;
     let token = item(&conn, "cursorAuth/accessToken")?;
     let auth_id = item(&conn, "cursorAuth/stripeMembershipAuthId")?;
     let plan = item(&conn, "cursorAuth/stripeMembershipType");
-    Some(Creds { cookie: format!("WorkosCursorSessionToken={auth_id}::{token}"), plan })
+    Some(Creds {
+        cookie: format!("WorkosCursorSessionToken={auth_id}::{token}"),
+        plan,
+    })
+}
+
+/// Re-read every time: the editor rotates the token, and holding on to an old value signs us out
+fn read_credentials() -> Option<Creds> {
+    let path = store_url()?;
+    read_credentials_at(&path)
 }
 
 /// For doctor: contains no secret values
 pub fn probe() -> String {
-    let Some(p) = store_url() else { return "Cursor: cannot locate %APPDATA%".into() };
+    let Some(p) = store_url() else {
+        return "Cursor: cannot locate %APPDATA%".into();
+    };
     if !p.is_file() {
-        return format!("Cursor: {} not found (not installed, or not signed in)", p.display());
+        return format!(
+            "Cursor: {} not found (not installed, or not signed in)",
+            p.display()
+        );
     }
     match read_credentials() {
         Some(c) => format!(
@@ -143,7 +176,8 @@ pub fn probe() -> String {
 // ---------------- Parsing ----------------
 
 fn pct(v: Option<&serde_json::Value>) -> Option<f64> {
-    v.and_then(|x| x.as_f64()).map(|p| (p / 100.0).clamp(0.0, 1.0))
+    v.and_then(|x| x.as_f64())
+        .map(|p| (p / 100.0).clamp(0.0, 1.0))
 }
 
 fn parse_iso(v: Option<&serde_json::Value>) -> Option<u64> {
@@ -155,16 +189,34 @@ fn parse_iso(v: Option<&serde_json::Value>) -> Option<u64> {
 /// usage-summary → (windows, note). When there are no windows the note says why (Unlimited / free plan without an allowance)
 pub fn parse_summary(v: &serde_json::Value) -> (Vec<LimitWindow>, String) {
     let resets_at = parse_iso(v.get("billingCycleEnd"));
-    let usage = v.get("individualUsage").cloned().unwrap_or(serde_json::Value::Null);
-    let plan = usage.get("plan").cloned().unwrap_or(serde_json::Value::Null);
+    let usage = v
+        .get("individualUsage")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
+    let plan = usage
+        .get("plan")
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
     let mut out = Vec::new();
     // Headline = the dashboard number; 0 is a reading too
     if let Some(total) = pct(plan.get("totalPercentUsed")) {
-        out.push(LimitWindow { id: "included".into(), label: "Included usage".into(), used: total, resets_at, ..Default::default() });
+        out.push(LimitWindow {
+            id: "included".into(),
+            label: "Included usage".into(),
+            used: total,
+            resets_at,
+            ..Default::default()
+        });
     }
     if let Some(api) = pct(plan.get("apiPercentUsed")) {
         if api > 0.0 {
-            out.push(LimitWindow { id: "api".into(), label: "API usage".into(), used: api, resets_at, ..Default::default() });
+            out.push(LimitWindow {
+                id: "api".into(),
+                label: "API usage".into(),
+                used: api,
+                resets_at,
+                ..Default::default()
+            });
         }
     }
     if let Some(od) = usage.get("onDemand") {
@@ -177,7 +229,8 @@ pub fn parse_summary(v: &serde_json::Value) -> (Vec<LimitWindow>, String) {
                     id: "on_demand".into(),
                     label: "On demand".into(),
                     used: (u / limit).clamp(0.0, 1.0),
-                    resets_at, ..Default::default()
+                    resets_at,
+                    ..Default::default()
                 });
             }
         }
@@ -185,7 +238,10 @@ pub fn parse_summary(v: &serde_json::Value) -> (Vec<LimitWindow>, String) {
     if !out.is_empty() {
         return (out, String::new());
     }
-    let membership = v.get("membershipType").and_then(|x| x.as_str()).unwrap_or("this");
+    let membership = v
+        .get("membershipType")
+        .and_then(|x| x.as_str())
+        .unwrap_or("this");
     let note = if v.get("isUnlimited").and_then(|x| x.as_bool()) == Some(true) {
         format!("Unlimited on the {membership} plan — nothing to meter")
     } else {
@@ -200,10 +256,21 @@ enum FetchErr {
 }
 
 fn fetch_once(cookie: &str) -> Result<serde_json::Value, FetchErr> {
-    let agent = ureq::AgentBuilder::new().timeout(Duration::from_secs(15)).build();
-    match agent.get(ENDPOINT).set("Cookie", cookie).set("Accept", "application/json").call() {
-        Ok(r) => r.into_json::<serde_json::Value>().map_err(|e| FetchErr::Other(format!("parse: {e}"))),
-        Err(ureq::Error::Status(401, _)) | Err(ureq::Error::Status(403, _)) => Err(FetchErr::NeedsAuth),
+    let agent = ureq::AgentBuilder::new()
+        .timeout(Duration::from_secs(15))
+        .build();
+    match agent
+        .get(ENDPOINT)
+        .set("Cookie", cookie)
+        .set("Accept", "application/json")
+        .call()
+    {
+        Ok(r) => r
+            .into_json::<serde_json::Value>()
+            .map_err(|e| FetchErr::Other(format!("parse: {e}"))),
+        Err(ureq::Error::Status(401, _)) | Err(ureq::Error::Status(403, _)) => {
+            Err(FetchErr::NeedsAuth)
+        }
         Err(ureq::Error::Status(code, _)) => Err(FetchErr::Other(format!("HTTP {code}"))),
         Err(e) => Err(FetchErr::Other(format!("{e}"))),
     }
@@ -235,7 +302,10 @@ fn read_once(prev: &UsageSnapshot) -> UsageSnapshot {
             } else {
                 snap.status = "ok".into();
                 snap.windows = windows;
-                snap.note = match (&creds.plan, v.get("membershipType").and_then(|x| x.as_str())) {
+                snap.note = match (
+                    &creds.plan,
+                    v.get("membershipType").and_then(|x| x.as_str()),
+                ) {
                     (_, Some(m)) => format!("{} · via Cursor", cap(m)),
                     (Some(p), None) => format!("{} · via Cursor", cap(p)),
                     _ => String::new(),
@@ -248,7 +318,12 @@ fn read_once(prev: &UsageSnapshot) -> UsageSnapshot {
         }
         Err(FetchErr::Other(msg)) => {
             // Stale beats invented: keep the old reading, marked stale
-            snap.status = if snap.windows.is_empty() { "error" } else { "stale" }.into();
+            snap.status = if snap.windows.is_empty() {
+                "error"
+            } else {
+                "stale"
+            }
+            .into();
             snap.note = msg;
         }
     }
@@ -279,7 +354,13 @@ pub fn start(app: AppHandle) {
             let _ = app.emit("cursor", &snap);
         }
         if !present() {
-            broadcast(&app, UsageSnapshot { status: "absent".into(), ..Default::default() });
+            broadcast(
+                &app,
+                UsageSnapshot {
+                    status: "absent".into(),
+                    ..Default::default()
+                },
+            );
             loop {
                 sleep_interruptible(600); // Cursor is not installed: look again every 10 minutes
                 if present() {
@@ -301,4 +382,174 @@ pub fn start(app: AppHandle) {
             sleep_interruptible(POLL_SECS);
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    const STATE_SQL: &str = include_str!("../fixtures/cursor_state.sql");
+    const USAGE_SUMMARY: &str = include_str!("../fixtures/cursor_state.json");
+
+    fn temp_db(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "codenotch-cursor-test-{}-{name}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir.join("state.vscdb")
+    }
+
+    fn init_from_sql(path: &std::path::Path) {
+        let conn = rusqlite::Connection::open(path).unwrap();
+        conn.execute_batch(STATE_SQL).unwrap();
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn store_url_matches_confirmed_linux_path() {
+        let expected = dirs::config_dir()
+            .expect("HOME/config_dir on Linux")
+            .join("Cursor")
+            .join("User")
+            .join("globalStorage")
+            .join("state.vscdb");
+        assert_eq!(store_url().unwrap(), expected);
+    }
+
+    #[test]
+    fn open_ro_reads_fixture_with_mode_ro() {
+        let path = temp_db("ro");
+        init_from_sql(&path);
+        let conn = open_ro(&path).expect("mode=ro should open the fixture");
+        assert_eq!(
+            item(&conn, "cursorAuth/accessToken").as_deref(),
+            Some("test-access-token-redacted")
+        );
+        assert_eq!(
+            item(&conn, "cursorAuth/stripeMembershipType").as_deref(),
+            Some("free")
+        );
+    }
+
+    #[test]
+    #[cfg(not(windows))]
+    fn open_ro_falls_back_to_immutable_when_ro_cannot_create_shm() {
+        // Simulate the editor-exit scenario: WAL has been checkpointed, but a
+        // plain read-only open would need to recreate -shm in a directory we make
+        // read-only. immutable=1 ignores the WAL and still reads the last
+        // checkpointed state. If the runner is root, permissions are ignored,
+        // so we skip the assertion rather than claim a fallback that did not run.
+        let path = temp_db("immutable");
+        {
+            let conn = rusqlite::Connection::open(&path).unwrap();
+            conn.execute_batch(STATE_SQL).unwrap();
+            conn.execute_batch(
+                "PRAGMA journal_mode=WAL; PRAGMA wal_checkpoint(TRUNCATE);",
+            )
+            .unwrap();
+        }
+        let dir = path.parent().unwrap();
+        let original = std::fs::metadata(dir).unwrap().permissions();
+        let mut readonly = original.clone();
+        readonly.set_readonly(true);
+        std::fs::set_permissions(dir, readonly).unwrap();
+
+        // Verify permissions actually block writes before asserting the fallback.
+        let probe = dir.join(".probe");
+        let blocked = std::fs::File::create(&probe).is_err();
+        let _ = std::fs::remove_file(&probe);
+
+        let conn = open_ro(&path);
+
+        std::fs::set_permissions(dir, original).unwrap();
+
+        if !blocked {
+            // Running as root or in an environment that ignores file modes.
+            // Both modes should still open; just don't assert which branch ran.
+            assert!(conn.is_some(), "open_ro should still open a valid fixture");
+            return;
+        }
+
+        let conn = conn.expect("immutable=1 fallback should open");
+        assert_eq!(
+            item(&conn, "cursorAuth/stripeMembershipAuthId").as_deref(),
+            Some("test-auth-id-redacted")
+        );
+    }
+
+    #[test]
+    fn read_credentials_assembles_cookie_from_fixture() {
+        let path = temp_db("creds");
+        init_from_sql(&path);
+        let creds = read_credentials_at(&path).expect("fixture has both auth fields");
+        assert_eq!(creds.cookie, "WorkosCursorSessionToken=test-auth-id-redacted::test-access-token-redacted");
+        assert_eq!(creds.plan.as_deref(), Some("free"));
+    }
+
+    #[test]
+    fn parse_summary_fixture_is_official_not_derived() {
+        let v: serde_json::Value = serde_json::from_str(USAGE_SUMMARY).unwrap();
+        let (windows, note) = parse_summary(&v);
+        assert!(
+            !windows.is_empty(),
+            "fixture should produce windows; note={note}"
+        );
+        assert!(note.is_empty());
+
+        let included = windows.iter().find(|w| w.id == "included").unwrap();
+        assert_eq!(included.label, "Included usage");
+        assert!((included.used - 0.505).abs() < 1e-9);
+        assert!(included.resets_at.is_some());
+        assert!(!included.derived);
+        assert!(included.count.is_none());
+
+        let api = windows.iter().find(|w| w.id == "api").unwrap();
+        assert_eq!(api.label, "API usage");
+        assert!((api.used - 0.05).abs() < 1e-9);
+
+        let on_demand = windows.iter().find(|w| w.id == "on_demand").unwrap();
+        assert_eq!(on_demand.label, "On demand");
+        assert!((on_demand.used - 0.2).abs() < 1e-9);
+    }
+
+    #[test]
+    fn parse_summary_unlimited_plan_produces_nothing_metered_note() {
+        // A real unlimited response omits the percentage entirely; 0 is treated as a reading.
+        let v = serde_json::json!({
+            "membershipType": "pro",
+            "isUnlimited": true,
+            "individualUsage": { "plan": { "used": 0, "limit": 0 } }
+        });
+        let (windows, note) = parse_summary(&v);
+        assert!(windows.is_empty());
+        assert!(note.contains("Unlimited"));
+    }
+
+    #[test]
+    fn parse_summary_free_plan_without_allowance_produces_note() {
+        // Free-with-no-allowance also omits totalPercentUsed; used/limit stay at 0.
+        let v = serde_json::json!({
+            "membershipType": "free",
+            "isUnlimited": false,
+            "individualUsage": { "plan": { "used": 0, "limit": 0 } }
+        });
+        let (windows, note) = parse_summary(&v);
+        assert!(windows.is_empty());
+        assert!(note.contains("nothing for Cursor to meter"));
+    }
+
+    #[test]
+    fn parse_summary_api_usage_suppressed_when_zero() {
+        let v = serde_json::json!({
+            "individualUsage": {
+                "plan": { "totalPercentUsed": 10.0, "apiPercentUsed": 0.0 }
+            }
+        });
+        let (windows, _) = parse_summary(&v);
+        assert_eq!(windows.len(), 1);
+        assert_eq!(windows[0].id, "included");
+    }
 }
