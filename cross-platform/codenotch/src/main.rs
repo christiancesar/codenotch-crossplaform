@@ -739,6 +739,7 @@ fn snapshot_of(app: &AppHandle, id: &str) -> usage::UsageSnapshot {
         "codex" => st.codex.lock().unwrap().clone(),
         "cursor" => st.cursor.lock().unwrap().clone(),
         "gemini" => st.antigravity.lock().unwrap().clone(),
+        "opencode" => st.opencode.lock().unwrap().clone(),
         _ => st.usage.lock().unwrap().clone(),
     }
 }
@@ -1002,12 +1003,13 @@ pub fn provider_label(id: &str) -> &'static str {
         "codex" => "Codex",
         "cursor" => "Cursor",
         "gemini" => "Antigravity",
+        "opencode" => "OpenCode",
         _ => "Claude",
     }
 }
 
 /// Every provider the tray menu can offer, in the order the notch shows them.
-pub const TRAY_PROVIDER_IDS: [&str; 4] = ["claude", "codex", "cursor", "gemini"];
+pub const TRAY_PROVIDER_IDS: [&str; 5] = ["claude", "codex", "cursor", "gemini", "opencode"];
 
 /// Draws the icon and writes the tooltip. Shared by the polling thread and by the settings window,
 /// so a change made in settings shows up at once rather than on the next poll.
