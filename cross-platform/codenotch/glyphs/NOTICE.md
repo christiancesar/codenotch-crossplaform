@@ -11,13 +11,14 @@ The SVG files in this directory come from the npm package `@lobehub/icons-static
 | cursor.svg | icons/cursor.svg | Cursor cell |
 | gemini.svg | icons/antigravity.svg | Antigravity cell |
 | gemini-alt.svg | icons/gemini.svg | alternative: the Gemini spark |
+| opencode.svg | icons/opencode.svg | OpenCode cell |
 
 MIT License — Copyright (c) LobeHub. See that repository's LICENSE.
 
-**Trademarks**: these marks are trademarks of Anthropic, OpenAI, Anysphere (Cursor) and Google
-respectively, and are used here only to identify the product whose usage is displayed. Whether
-they stay in a distributed build is the repository owner's call under each brand's guidelines;
-they can be swapped for generated glyphs without touching any code.
+**Trademarks**: these marks are trademarks of Anthropic, OpenAI, Anysphere (Cursor), Google and
+the OpenCode project respectively, and are used here only to identify the product whose usage is
+displayed. Whether they stay in a distributed build is the repository owner's call under each
+brand's guidelines; they can be swapped for generated glyphs without touching any code.
 
 **Overrides**: a file of the same name (`.svg` or `.png`) in `%APPDATA%\codenotch\glyphs\` takes
 precedence over the built-in mark; it is picked up after "Refresh usage now" in the tray menu.

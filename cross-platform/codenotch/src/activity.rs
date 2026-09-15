@@ -29,6 +29,11 @@ use tauri::{AppHandle, Emitter, Manager};
 
 const INTERVAL: Duration = Duration::from_secs(2);
 const ANTIGRAVITY_STALE_MS: u64 = 45_000;
+/// Coarse liveness (H1-opencode-research.md Q3): `session.time_updated` within this window means
+/// busy. Real-session testing (both the free and the "go" plan) showed `time_updated` advancing on
+/// every step, so this needs no companion signal — only escalate to the `event` table if this
+/// window proves too laggy in practice.
+const OPENCODE_FRESH_MS: u64 = 90_000;
 
 #[derive(Clone, Serialize, Debug, PartialEq)]
 pub struct Activity {
@@ -118,6 +123,7 @@ struct Ctx {
     rollout_checked_at: u64,
     rollout_sig: u64,
     rollout_last: Vec<Activity>,
+    opencode: DbCache,
 }
 
 impl Ctx {
@@ -131,6 +137,7 @@ impl Ctx {
             rollout_checked_at: 0,
             rollout_sig: 0,
             rollout_last: Vec::new(),
+            opencode: DbCache::new(crate::opencode::db_path().unwrap_or_default()),
         }
     }
 }
@@ -180,6 +187,51 @@ fn cursor_activity(ctx: &mut Ctx) -> Vec<Activity> {
                     v.get("subtitle").and_then(|x| x.as_str()).unwrap_or("Working").to_string()
                 },
                 since,
+            });
+        }
+        out.sort_by(|a, b| b.since.cmp(&a.since));
+        Some(out)
+    })
+}
+
+// ---------------- OpenCode ----------------
+
+/// Coarse recency signal (H1-opencode-research.md Q3): no companion process, just how fresh
+/// `session.time_updated` is. `time_compacting` non-null is treated as busy too (a real, if rare,
+/// state); `time_archived` sessions are excluded outright — an archived session is never "now".
+fn opencode_activity(ctx: &mut Ctx) -> Vec<Activity> {
+    ctx.opencode.refresh(|conn| {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, title, time_updated, time_compacting FROM session \
+                 WHERE time_archived IS NULL ORDER BY time_updated DESC LIMIT 20",
+            )
+            .ok()?;
+        let rows = stmt
+            .query_map([], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, i64>(2)?,
+                    r.get::<_, Option<i64>>(3)?,
+                ))
+            })
+            .ok()?;
+        let now = now_ms();
+        let mut out = Vec::new();
+        for (_id, title, time_updated, time_compacting) in rows.flatten() {
+            let compacting = time_compacting.is_some();
+            let fresh = now.saturating_sub(time_updated.max(0) as u64) <= OPENCODE_FRESH_MS;
+            if !compacting && !fresh {
+                continue; // idle past sessions are not things happening now
+            }
+            let name = if title.trim().is_empty() { "OpenCode".to_string() } else { title };
+            out.push(Activity {
+                provider: "opencode".into(),
+                state: "busy".into(), // OpenCode's session row carries no "waiting on you" signal today
+                name,
+                detail: if compacting { "Compacting".into() } else { "Working".into() },
+                since: time_updated.max(0) as u64,
             });
         }
         out.sort_by(|a, b| b.since.cmp(&a.since));
@@ -520,10 +572,16 @@ pub struct Presence {
     cursor: bool,
     codex: bool,
     gemini: bool,
+    opencode: bool,
 }
 
 fn presence() -> Presence {
-    Presence { cursor: crate::cursor::present(), codex: crate::codex::present(), gemini: crate::antigravity::present() }
+    Presence {
+        cursor: crate::cursor::present(),
+        codex: crate::codex::present(),
+        gemini: crate::antigravity::present(),
+        opencode: crate::opencode::present(),
+    }
 }
 
 fn read_all(p: Presence, ctx: &mut Ctx) -> Vec<Activity> {
@@ -537,6 +595,9 @@ fn read_all(p: Presence, ctx: &mut Ctx) -> Vec<Activity> {
     }
     if p.gemini {
         all.extend(antigravity_activity());
+    }
+    if p.opencode {
+        all.extend(opencode_activity(ctx));
     }
     all
 }
