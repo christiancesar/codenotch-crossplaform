@@ -13,6 +13,7 @@ mod focus;
 mod glyphs;
 mod hooks_install;
 mod i18n;
+mod opencode;
 mod server;
 mod state;
 mod tray;
@@ -39,6 +40,8 @@ pub struct AppState {
     pub codex: Mutex<usage::UsageSnapshot>,
     pub cursor: Mutex<usage::UsageSnapshot>,
     pub antigravity: Mutex<usage::UsageSnapshot>,
+    /// OpenCode's derived token tally (no vendor quota — see opencode.rs)
+    pub opencode: Mutex<usage::UsageSnapshot>,
     /// Provider glyph cache, collected at launch and again on a tray refresh
     pub glyphs: Mutex<std::collections::HashMap<String, glyphs::Glyph>>,
     /// Working state of the non-Claude providers (Cursor reports it; Codex and Antigravity are inferred from recent writes)
@@ -336,11 +339,17 @@ fn refresh_usage(app: AppHandle) {
     codex::request_refresh();
     cursor::request_refresh();
     antigravity::request_refresh();
+    opencode::request_refresh();
 }
 
 #[tauri::command]
 fn get_antigravity(state: tauri::State<AppState>) -> usage::UsageSnapshot {
     state.antigravity.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn get_opencode(state: tauri::State<AppState>) -> usage::UsageSnapshot {
+    state.opencode.lock().unwrap().clone()
 }
 
 #[tauri::command]
@@ -1209,6 +1218,7 @@ fn main() {
             codex: Mutex::new(codex::load_persisted()),
             cursor: Mutex::new(cursor::load_persisted()),
             antigravity: Mutex::new(antigravity::load_persisted()),
+            opencode: Mutex::new(opencode::load_persisted()),
             glyphs: Mutex::new(Default::default()),
             activity: Mutex::new(Vec::new()),
         })
@@ -1218,6 +1228,7 @@ fn main() {
             get_codex,
             get_cursor,
             get_antigravity,
+            get_opencode,
             get_glyphs,
             get_activity,
             open_data_dir,
@@ -1297,6 +1308,7 @@ fn main() {
             codex::start(handle.clone());
             cursor::start(handle.clone());
             antigravity::start(handle.clone());
+            opencode::start(handle.clone());
             activity::start(handle.clone());
             // Collecting glyphs may read icon resources out of a few executables; do it off the main thread and push when done
             let gh = handle.clone();

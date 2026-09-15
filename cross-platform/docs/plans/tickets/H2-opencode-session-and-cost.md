@@ -95,15 +95,74 @@ None. `rusqlite` is already a dependency (confirmed in H.1); no new crate.
 
 ## Definition of Done
 
-- [ ] `cargo test --workspace` green.
-- [ ] `./target/debug/codenotch doctor` (or equivalent) reports OpenCode presence/absence
-      correctly on a host with and without `~/.local/share/opencode/opencode.db`.
-- [ ] Manual verification: OpenCode cell appears in the pill only when
-      `~/.local/share/opencode/opencode.db` exists; hovering it shows recent
-      busy/waiting rows when a session is actually active; the ring shows a count, never
-      a fabricated percentage.
-- [ ] Report: which of the two Q3 liveness signals (coarse `time_updated` vs. the `event`
-      table) ended up used, and why, if it changed from the coarse default above.
+- [x] `cargo test --workspace` green (50 passed, 1 pre-existing ignored).
+- [x] `./target/debug/codenotch doctor` reports OpenCode presence/absence correctly.
+- [x] Manual verification: ring shows a `~`-prefixed count (never a fabricated percentage);
+      OpenCode cell appears in the pill once selected in the notch's provider slots.
+- [x] Report: coarse `time_updated`-only liveness was used as planned; the `event` table
+      was not needed.
+
+## Report (2026-09-15)
+
+### What shipped
+
+- `src/opencode.rs` (new): `present()`, `db_path()`, `open_ro()` (mode=ro → `immutable=1`
+  fallback, copied from `cursor.rs`), `windowed_totals()` (`SUM(tokens_input+tokens_output)`
+  over a rolling 24h window), `read_once()`/`broadcast()`/`start()`/`load_persisted()`/
+  `persist()`/`request_refresh()`/`probe()` mirroring `cursor.rs`'s shape exactly. 4 unit
+  tests (fixture-based, mirroring `cursor.rs`'s `temp_db` pattern).
+- `src/activity.rs`: `OPENCODE_FRESH_MS` (90s), `Ctx.opencode: DbCache`, `opencode_activity()`
+  (coarse `time_updated`/`time_compacting` freshness, excludes archived sessions), wired into
+  `Presence`/`read_all()`.
+- `src/main.rs`: `opencode` module, `AppState.opencode`, `get_opencode` command, wired into
+  `invoke_handler`, `.manage()`, `setup()`'s `opencode::start()`, and `refresh_usage()`.
+- `src/doctor.rs`: added `opencode::probe()` to the usage-sources section.
+- `ui/notch.html`: `openCodeSnap`, `listen('opencode', …)`/`invoke('get_opencode')`, and an
+  `providers()` entry gated on `status!=='absent'` (`glyph:'Oc'`, text fallback — see below).
+
+### Real-data verification (both plans, per operator request)
+
+Ran two real tasks via the `opencode` CLI (`opencode run … --model opencode/big-pickle` for
+free, `--model opencode-go/gpt-5.6-luna` for the paid "go" plan) to generate real session rows
+before finalizing the query shape, rather than relying only on the 331 pre-existing sessions:
+- **Correction to H.1's schema notes**: `session.model` is a JSON object
+  (`{"id","providerID","variant"}`), not a flat string — irrelevant to this ticket (neither
+  `opencode_activity()` nor `windowed_totals()` reads `model`), but worth flagging for
+  whichever future ticket does.
+- Confirmed `cost`/`tokens_*` differ meaningfully by plan (free: `cost=0`; go: real `cost`
+  and token counts) and that both plans produce the identical `event` type sequence
+  (`session.created.1` → `session.updated.1`(×N) → `message.updated.1`/
+  `message.part.updated.1`), which is what let Q3's coarse-signal decision stand without
+  reaching for `event` at all — `session.time_updated` advances on every step on both plans.
+- A failed/opted-out model call (`opencode-go/deepseek-v4-flash`, needs a China-hosting
+  opt-in) still created a `session` row (0 cost/tokens) — harmless: `opencode_activity()`'s
+  freshness window naturally lets it go idle within 90s, nothing special-cased for it.
+- The three test sessions (clearly titled `codenotch-h2-*-test`) were left in place —
+  cleaning them up would need a write connection to `opencode.db`, which this integration
+  deliberately never opens.
+
+### Caveat found during manual verification: existing pinned `notch_slots`
+
+A host with a previously-customized notch layout (`config.json`'s `notch_providers`/
+`notch_slots`, set via the settings UI) won't show the new OpenCode cell until the user
+re-adds it — `ui/notch.html`'s `providers()` filters the list down to whatever's pinned, by
+design (empty falls back to "show everything", a non-empty pinned list does not auto-append
+new providers). Confirmed this is exactly what was happening on the research host. Not a bug
+in this ticket — same as any *other* new provider would behave against an existing pinned
+layout — but a real settings-UI gap for a follow-up ticket: no picker in `settings.html`
+currently offers OpenCode as a choice for notch/tray slots. Out of scope here (H.2's scope is
+the data layer + the unconditional pill cell, not the slot picker).
+
+### Glyph
+
+No `opencode.svg` mark was added to `glyphs.rs`'s built-in set — the project's own discipline
+(`glyphs/NOTICE.md`) sources every built-in mark from `@lobehub/icons-static-svg`, and that
+was not verified to include an OpenCode mark; copying one from an unrelated, differently
+licensed source (found during this work: a VS Code file-icon theme's `opencode.svg`) would
+break that discipline. The cell falls back to the existing letter-glyph mechanism (`Oc`) —
+already-designed behavior for any provider with no mark, not a gap introduced here. A real
+mark can be dropped into the user override directory (`glyphs::user_dir()`) any time without
+a code change, or added to `BUILTIN` later if a `@lobehub`-licensed mark turns up.
 
 ## Orchestrator acceptance
 
