@@ -19,8 +19,6 @@ mod tray;
 mod trayicon;
 mod usage;
 mod watcher;
-#[cfg(not(windows))]
-mod window_layer;
 
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
@@ -30,6 +28,9 @@ pub const NOTCH_W: f64 = 340.0;
 /// Hand-bumped build tag, written to run.log at startup so a log can always be matched to the exe that wrote it.
 pub const BUILD: &str = "r31";
 pub const NOTCH_H: f64 = 460.0; // 300 clipped the card once it held three window blocks plus the session list
+// Collapsed-tab size on Linux (18x120) is a pure CSS `.collapsed` shrink of #pill in ui/notch.html
+// now — the OS window itself is always NOTCH_W x NOTCH_H, so there is no Rust-side constant for it;
+// keep the two values in sync by hand if either changes.
 
 pub struct AppState {
     pub store: Mutex<state::Store>,
@@ -70,7 +71,9 @@ pub fn broadcast(app: &AppHandle) {
     let _ = app.emit("state", &snap);
 }
 
-/// Pins the notch to the right edge of the primary monitor; the other edges are a later milestone.
+/// Pins the notch to the right edge of the primary monitor, at its one fixed size (NOTCH_W x
+/// NOTCH_H) — the window is never resized after this; the collapsed/expanded visual is a pure CSS
+/// transition inside it (see ui/notch.html's `.collapsed`). The other edges are a later milestone.
 pub fn place_notch(app: &AppHandle) {
     let Some(w) = app.get_webview_window("notch") else {
         return;
@@ -83,15 +86,20 @@ pub fn place_notch(app: &AppHandle) {
         // So the physical size is pinned straight from mon.scale_factor() before placing the
         // window; if it still reports a different scale afterwards, it is pinned once more.
         let ms = mon.scale_factor();
-        let target =
-            tauri::PhysicalSize::new((NOTCH_W * ms).round() as u32, (NOTCH_H * ms).round() as u32);
+        let target = tauri::PhysicalSize::new(
+            (NOTCH_W * ms).round() as u32,
+            (NOTCH_H * ms).round() as u32,
+        );
         let _ = w.set_size(target);
         // Position from the window's measured physical size — deriving it from the scale factor
         // pushed the window past the right edge at 125 % / 150 % (the ring's right side was clipped).
         let (ww, wh) = w
             .outer_size()
             .map(|s| (s.width as i32, s.height as i32))
-            .unwrap_or(((NOTCH_W * scale) as i32, (NOTCH_H * scale) as i32));
+            .unwrap_or((
+                (NOTCH_W * scale) as i32,
+                (NOTCH_H * scale) as i32,
+            ));
         let x = mon.position().x + mon.size().width as i32 - ww;
         // Vertical position comes from the configured ratio (the pill can be dragged; it persists), clamped to the monitor
         let ratio = {
@@ -100,8 +108,10 @@ pub fn place_notch(app: &AppHandle) {
             c.notch_y.clamp(0.0, 1.0)
         };
         let mh = mon.size().height as i32;
-        let y = (mon.position().y as f64 + mh as f64 * ratio - wh as f64 / 2.0).round() as i32;
-        let y = y.clamp(mon.position().y, mon.position().y + (mh - wh).max(0));
+        let half_max = (wh as f64 / 2.0).min(mh as f64 / 2.0);
+        let center_y = (mon.position().y as f64 + mh as f64 * ratio)
+            .clamp(mon.position().y as f64 + half_max, mon.position().y as f64 + mh as f64 - half_max);
+        let y = (center_y - wh as f64 / 2.0).round() as i32;
         let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
         if w.outer_size()
             .map(|s| s.width != target.width)
@@ -124,9 +134,6 @@ pub fn place_notch(app: &AppHandle) {
                 mon.size().height
             ),
         );
-        // Reserve the right edge on X11 now that geometry is known.
-        #[cfg(not(windows))]
-        window_layer::x11_struts::set_strut_for_notch(app);
     }
 }
 
@@ -195,6 +202,77 @@ fn left_button_down() -> bool {
                 false
             }
         }
+    })
+}
+
+/// Root-window `_NET_ACTIVE_WINDOW`/`_NET_CURRENT_DESKTOP`, polled by the pointer watchdog while
+/// expanded so a focus or virtual-desktop change — which the cursor's own position may not reflect
+/// for a while, or ever (e.g. a keyboard-driven desktop switch) — can force an immediate collapse.
+/// `None` means "could not tell" (WM doesn't set one of these EWMH hints, or the query failed): the
+/// watchdog then just falls back to its existing cursor-position debounce for that tick.
+#[cfg(not(windows))]
+fn active_window_and_desktop() -> Option<(u32, u32)> {
+    use std::cell::RefCell;
+    use x11rb::connection::Connection;
+    use x11rb::protocol::xproto::ConnectionExt as XprotoConnectionExt;
+    use x11rb::rust_connection::RustConnection;
+
+    thread_local! {
+        static X11: RefCell<Option<(RustConnection, usize)>> = const { RefCell::new(None) };
+    }
+
+    X11.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        if slot.is_none() {
+            if let Ok(c) = RustConnection::connect(None) {
+                *slot = Some(c);
+            }
+        }
+        let (ref conn, screen_num) = match slot.as_ref() {
+            Some(c) => c,
+            None => return None,
+        };
+        let Some(screen) = conn.setup().roots.get(*screen_num) else {
+            return None;
+        };
+        let root = screen.root;
+        let result = (|| -> Option<(u32, u32)> {
+            let window_atom = conn.intern_atom(false, b"WINDOW").ok()?.reply().ok()?.atom;
+            let cardinal_atom = conn.intern_atom(false, b"CARDINAL").ok()?.reply().ok()?.atom;
+            let active_atom = conn
+                .intern_atom(false, b"_NET_ACTIVE_WINDOW")
+                .ok()?
+                .reply()
+                .ok()?
+                .atom;
+            let desktop_atom = conn
+                .intern_atom(false, b"_NET_CURRENT_DESKTOP")
+                .ok()?
+                .reply()
+                .ok()?
+                .atom;
+            let active = conn
+                .get_property(false, root, active_atom, window_atom, 0, 1)
+                .ok()?
+                .reply()
+                .ok()?
+                .value32()?
+                .next()?;
+            let desktop = conn
+                .get_property(false, root, desktop_atom, cardinal_atom, 0, 1)
+                .ok()?
+                .reply()
+                .ok()?
+                .value32()?
+                .next()?;
+            Some((active, desktop))
+        })();
+        if result.is_none() {
+            // Connection may be stale, or this WM doesn't set one of these properties; force a
+            // reconnect on the next poll rather than keep querying a dead connection.
+            *slot = None;
+        }
+        result
     })
 }
 
@@ -566,6 +644,11 @@ fn start_pointer_watchdog(app: AppHandle) {
         let mut miss = 0u8;
         // Last value pushed: this changes only when the cursor crosses an edge
         let mut click_through: Option<bool> = None;
+        // Captured the moment EXPANDED flips true; re-checked every tick while expanded so a focus
+        // or virtual-desktop change forces an immediate collapse even if the cursor never leaves
+        // the notch (see active_window_and_desktop).
+        #[cfg(not(windows))]
+        let mut focus_baseline: Option<(u32, u32)> = None;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(WATCHDOG_MS));
             let Some(w) = app.get_webview_window("notch") else {
@@ -574,14 +657,15 @@ fn start_pointer_watchdog(app: AppHandle) {
             let (Ok(pos), Ok(cur)) = (w.outer_position(), app.cursor_position()) else {
                 continue;
             };
-            let rects = HOT.lock().unwrap().clone();
-            // Cursor position relative to the window's top-left, in physical pixels; the hot rectangles are physical too, so no scale conversion
             let lx = cur.x - pos.x as f64;
             let ly = cur.y - pos.y as f64;
             let size = w
                 .outer_size()
                 .ok()
                 .map(|s| (s.width as f64, s.height as f64));
+
+            let rects = HOT.lock().unwrap().clone();
+            // Cursor position relative to the window's top-left, in physical pixels; the hot rectangles are physical too, so no scale conversion
             let inside = cursor_in_hot(&rects, lx, ly, size);
 
             if click_through != Some(!inside) {
@@ -607,8 +691,31 @@ fn start_pointer_watchdog(app: AppHandle) {
 
             if !EXPANDED.load(std::sync::atomic::Ordering::Relaxed) {
                 miss = 0;
+                #[cfg(not(windows))]
+                {
+                    focus_baseline = None;
+                }
                 continue;
             }
+
+            #[cfg(not(windows))]
+            if focus_baseline.is_none() {
+                focus_baseline = active_window_and_desktop();
+            }
+            #[cfg(not(windows))]
+            if let Some(base) = focus_baseline {
+                if let Some(now) = active_window_and_desktop() {
+                    if now != base {
+                        miss = 0;
+                        focus_baseline = None;
+                        EXPANDED.store(false, std::sync::atomic::Ordering::Relaxed);
+                        let _ = app.emit("pointer_left", ());
+                        applog("watchdog: forced collapse — active window/desktop changed");
+                        continue;
+                    }
+                }
+            }
+
             if inside {
                 miss = 0;
             } else {
@@ -679,6 +786,13 @@ fn set_lang(app: AppHandle, lang: String) {
 }
 
 // ---------------- notch size ----------------
+
+/// Whether the page should start collapsed to the minimal nub (Linux) or show the pill right
+/// away (Windows, unchanged behavior).
+#[tauri::command]
+fn nub_capable() -> bool {
+    cfg!(not(windows))
+}
 
 #[tauri::command]
 fn get_scale(app: AppHandle) -> f64 {
@@ -925,10 +1039,9 @@ pub fn apply_visibility(app: &AppHandle) {
             let _ = w.show();
             place_notch(app);
         } else {
-            // Remove the X11 edge reservation before the window disappears so the
-            // tiling area returns to normal immediately.
+            // Always reopen collapsed, never mid-expand from whatever state it was hidden in.
             #[cfg(not(windows))]
-            window_layer::x11_struts::clear_strut_for_notch(app);
+            EXPANDED.store(false, std::sync::atomic::Ordering::Relaxed);
             let _ = w.hide();
         }
     }
@@ -1226,6 +1339,7 @@ fn main() {
             refresh_usage,
             open_usage_page,
             set_hot,
+            nub_capable,
             report_dpr,
             log_js,
             focus_session,
@@ -1257,10 +1371,8 @@ fn main() {
             noactivate(&handle);
             if let Some(w) = handle.get_webview_window("notch") {
                 let _ = w.show();
-                // The first placement runs before GTK has realized the window, so the strut is
-                // re-applied once geometry is actually known (resize/move after realization).
                 let app_handle = handle.clone();
-                w.on_window_event(move |e| {
+                w.on_window_event(move |_e| {
                     #[cfg(not(windows))]
                     {
                         // accept_focus needs the GDK window to exist and its WM hints to be set
@@ -1269,10 +1381,6 @@ fn main() {
                         NOACTIVATE_ONCE.call_once(|| {
                             noactivate(&app_handle);
                         });
-                    }
-                    #[cfg(not(windows))]
-                    if matches!(e, tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Moved(_)) {
-                        window_layer::x11_struts::set_strut_for_notch(&app_handle);
                     }
                 });
             }

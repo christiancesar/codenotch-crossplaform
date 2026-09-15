@@ -501,8 +501,6 @@ version = "0.3.0"
 dependencies = [
  "chrono",
  "dirs 5.0.1",
- "gdk",
- "gdkx11",
  "gtk",
  "native-tls",
  "notify",
