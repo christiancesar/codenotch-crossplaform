@@ -240,14 +240,22 @@ function renderRing(){
     const cell=pill.querySelector(`.cell[data-p="${p.id}"]`); if(!cell) continue;
     const svg=cell.querySelector('svg.ring'), pct=cell.querySelector('.pct'), glyph=cell.querySelector('.glyph'), wrap=cell.querySelector('.ringwrap');
     const h=headlineOf(p.snap,p.id);
-    let inner=`<circle cx="28" cy="28" r="22" fill="#2a2a2a"/><circle cx="28" cy="28" r="25" fill="none" stroke="${TRACK}" stroke-width="5"/>`;
-    if(h && h.count==null) inner+=svgArc(25,Math.min(h.used,1),tone(h.used),5);
-    { // thin inner arc: spinning = working, amber pulse = waiting on you (one animation for all four, different sources)
-      const ws=workState(p.id);
-      if(ws==='running') inner+=`<g class="arc-spin">${svgArc(19,0.28,RUNGREEN,2.5)}</g>`;
-      else if(ws==='attention') inner+=`<g class="arc-pulse"><circle cx="28" cy="28" r="19" fill="none" stroke="${AMBER}" stroke-width="2.5"/></g>`;
+    let base=`<circle cx="28" cy="28" r="22" fill="#2a2a2a"/><circle cx="28" cy="28" r="25" fill="none" stroke="${TRACK}" stroke-width="5"/>`;
+    if(h && h.count==null) base+=svgArc(25,Math.min(h.used,1),tone(h.used),5);
+    let ringBase=svg.querySelector('.ring-base');
+    if(!ringBase){ svg.insertAdjacentHTML('afterbegin','<g class="ring-base"></g>'); ringBase=svg.querySelector('.ring-base'); }
+    ringBase.innerHTML=base;
+    // Thin inner arc: spinning = working, amber pulse = waiting on you. This node is only replaced
+    // when the work state itself changes — every render used to nuke it via svg.innerHTML, which
+    // restarts the CSS keyframe animation on the fresh element each time (activity polls every 2s,
+    // shorter than the 1.2s spin cycle, so the ring visibly stuttered/reset instead of spinning).
+    const ws=workState(p.id);
+    if(cell.dataset.ws!==ws){
+      cell.dataset.ws=ws||'';
+      const old=svg.querySelector('.arc-overlay'); if(old) old.remove();
+      if(ws==='running') svg.insertAdjacentHTML('beforeend',`<g class="arc-overlay arc-spin">${svgArc(19,0.28,RUNGREEN,2.5)}</g>`);
+      else if(ws==='attention') svg.insertAdjacentHTML('beforeend',`<g class="arc-overlay arc-pulse"><circle cx="28" cy="28" r="19" fill="none" stroke="${AMBER}" stroke-width="2.5"/></g>`);
     }
-    svg.innerHTML=inner;
     if(p.snap.status==='needsAuth'||p.snap.status==='none') pct.textContent='—';
     else if(h && h.count!=null) pct.textContent='~'+h.count;
     else if(h) pct.textContent=(h.derived?'~':'')+Math.round(h.used*100)+'%';
