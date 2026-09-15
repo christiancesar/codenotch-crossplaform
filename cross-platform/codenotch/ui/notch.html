@@ -9,7 +9,10 @@
   body{font-family:"Segoe UI",system-ui,sans-serif;color:#fff}
   #root{position:relative;width:100%;height:100%}
 
-  /* The pill on the right edge */
+  /* The pill on the right edge: one integrated element for both the idle tab and the expanded
+     ring column. Idle state (Linux only, see nub_capable) is a CSS `.collapsed` shrink of the
+     same box, not a swap to a different element — the OS window never changes size, so this is a
+     plain transition, always anchored at the same right/vertical-centre point. */
   #pill{
     position:absolute;right:0;top:50%;transform:translateY(-50%);
     width:70px;padding:18px 0;background:#000;
@@ -18,7 +21,22 @@
     border:1px solid #2e2e2e;border-right:none;
     box-shadow:none;
     display:flex;flex-direction:column;align-items:center;gap:14px;cursor:pointer;
+    overflow:hidden;
+    /* max-height, not height: a fixed pixel height needs JS to measure the cell stack (scrollHeight)
+       every time it changes, and that measurement races late-arriving provider data (Antigravity's
+       status can land a few seconds after the others) — the cell exists in the DOM before the
+       measurement re-runs, so it stays clipped until some *later* event happens to re-measure.
+       max-height needs no measurement at all: 1000px is comfortably past anything the cell stack
+       can reach (the notch window itself caps out at NOTCH_H=460 regardless), so content always
+       lays out and shows in full the instant it exists; only .collapsed's small max-height actually
+       clips anything, on purpose. */
+    max-height:1000px;
+    transition:width .18s ease,max-height .18s ease,padding .18s ease,border-radius .18s ease,gap .18s ease;
   }
+  #pill.no-anim{transition:none}
+  #pill.collapsed{width:18px;max-height:120px;padding:0;border-radius:12px 0 0 12px;gap:0}
+  #pill.collapsed .cell{opacity:0;pointer-events:none}
+  #pill.collapsed::before,#pill.collapsed::after{content:none}
   /* Fillets: the concave arcs between the pill's top/bottom and the screen edge (the inverse rounded
      corner in the upstream design frame). An R×R black square hugs the edge and a radial gradient
      punches out the circle of radius R centred on its outer corner; what remains is the arc. A 1 px
@@ -35,7 +53,7 @@
     bottom:calc(-1 * var(--fillet));
     background:radial-gradient(circle at 0 100%, transparent calc(var(--fillet) - 1.5px), #2e2e2e calc(var(--fillet) - 0.5px), #000 calc(var(--fillet) + 0.5px));
   }
-  .cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:6px;transition:opacity .12s ease}
   .ringwrap{position:relative;width:56px;height:56px}
   .ringwrap > svg.ring{position:absolute;inset:0;overflow:visible} /* pins only the ring itself; an inline logo svg must not match this or it ends up in the top-left corner */
   .glyph{
@@ -109,7 +127,7 @@
 <body>
 <div id="root">
   <div id="card"></div>
-  <div id="pill"></div><!-- one .cell per provider, stacked vertically (upstream: data-driven, the same layout for 1–5 cells) -->
+  <div id="pill"></div><!-- one .cell per provider, stacked vertically (upstream: data-driven, the same layout for 1–5 cells); .collapsed shrinks it to the idle tab on Linux -->
   <div id="notice"></div>
 </div>
 <script>
@@ -325,9 +343,37 @@ function esc(s){const d=document.createElement('div');d.textContent=s||'';return
 /* Hover: stays expanded while either the pill or the card is under the cursor; collapses after a 250 ms grace period (upstream motion rule) */
 const card=document.getElementById('card'), pill=document.getElementById('pill');
 let hideTimer=null;
-function showCard(){clearTimeout(hideTimer);card.classList.add('show');renderCard();armWatchdog();} // show first, then render: placeCard needs offsetHeight
-function hideCard(){card.classList.remove('show');reportHot();}
+function showCard(){ // show first, then render: placeCard needs offsetHeight
+  clearTimeout(hideTimer);
+  if(nubCapable) pill.classList.remove('collapsed');
+  applyPillScale();
+  card.classList.add('show');renderCard();armWatchdog();
+}
+function hideCard(){
+  card.classList.remove('show');
+  if(nubCapable) pill.classList.add('collapsed');
+  applyPillScale();
+  reportHot();
+}
 function scheduleHide(){clearTimeout(hideTimer);hideTimer=setTimeout(hideCard,250);}
+
+/* Idle state on Linux (see nub_capable): a `.collapsed` CSS shrink of the same #pill element, not a
+   different one and not an OS window resize — the window is always the full 340x460 size, and the
+   untouched area around whichever shape is currently visible is click-through (Rust's pointer
+   watchdog, driven by the real rect this page reports via reportHot/set_hot). Hover-in is plain
+   page-level mousemove hit-testing (see pointerInHot below) same as it already is on Windows, since
+   #pill always has a real, correctly-sized rect to test against — no Rust-pushed "expand" signal
+   needed. */
+let nubCapable=false;
+const designW=340; // the WebView viewport itself never resizes now — only #pill's own CSS box does
+invoke('nub_capable').then(v=>{
+  nubCapable=!!v;
+  pill.classList.add('no-anim');
+  if(nubCapable) pill.classList.add('collapsed');
+  applyPillScale(); reportHot();
+  requestAnimationFrame(()=>pill.classList.remove('no-anim')); // first layout only: no shrink pop on launch
+  fitZoom(); reportDpr();
+}).catch(()=>{ applyPillScale(); reportHot(); fitZoom(); reportDpr(); });
 // ===== Diagnostics + geometry =====
 function jslog(m){invoke('log_js',{msg:String(m)}).catch(()=>{});}
 function callq(cmd,args){ // invoke with visible failure: any command error is reported on screen (a silent .catch used to swallow them)
@@ -350,7 +396,7 @@ function reportHot(){
    The hover card is deliberately left at full size: it holds the slider, and a slider that shrank
    as it was dragged would slide out from under the cursor. */
 function clampPct(v){const n=Math.round(Number(v));return isFinite(n)?Math.max(40,Math.min(100,n)):100;}
-function applyPillScale(){ if(pill) pill.style.zoom=String(scalePct/100); }
+function applyPillScale(){ if(pill) pill.style.zoom=pill.classList.contains('collapsed')?'1':String(scalePct/100); }
 function applyScale(v){
   scalePct=clampPct(v);
   const lab=document.getElementById('scale-val'); if(lab) lab.textContent=scalePct+'%';
@@ -383,10 +429,10 @@ function loadScale(){
 function armWatchdog(){
   requestAnimationFrame(reportHot); // wait one frame so renderCard's new content is laid out before measuring
 }
-// Viewport fit (pure front-end fallback, independent of Rust): the window is 340 × primary scale physical px,
-// so if this page's CSS viewport is not 340 wide the WebView's DPR disagrees with the monitor; CSS zoom pulls the layout back to the design size.
+// Viewport fit (pure front-end fallback, independent of Rust): the window is designW × primary scale physical px,
+// so if this page's CSS viewport is not that wide the WebView's DPR disagrees with the monitor; CSS zoom pulls the layout back to the design size.
 function fitZoom(){
-  const z=innerWidth/340;
+  const z=innerWidth/designW;
   document.documentElement.style.zoom=(Math.abs(z-1)>0.02)?String(z):'';
   return z;
 }
@@ -395,9 +441,15 @@ function reportDpr(){
   jslog(`dpr=${window.devicePixelRatio} inner=${innerWidth}x${innerHeight} cssZoom=${z.toFixed(3)}`);
   callq('report_dpr',{dpr:window.devicePixelRatio||1,w:innerWidth,h:innerHeight}).catch(()=>{});
 }
-reportDpr();
 window.addEventListener('resize',()=>{clearTimeout(window._dprT);window._dprT=setTimeout(()=>{reportDpr();reportHot();},120);});
 matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener('change',reportDpr);
+// Settle the hot rect once the collapse/expand shrink-grow transition finishes (mid-transition
+// getBoundingClientRect() values are only ever a soft input to the watchdog's HOT_PAD slack).
+pill.addEventListener('transitionend',e=>{
+  if(e.propertyName!=='max-height')return;
+  reportHot();
+  if(card.classList.contains('show'))placeCard();
+});
 
 /* Collapse test: no trust in element-level mouseenter/mouseleave/e.target at all —
    pure geometry: is the cursor (clientX/Y) inside pill rect ∪ card rect ∪ their bounding box?
@@ -431,7 +483,10 @@ document.addEventListener('mousemove',e=>{
 document.addEventListener('mouseout',e=>{ // relatedTarget null = the cursor left the page
   if(!e.relatedTarget && card.classList.contains('show')){ if(hideLogged++<5) jslog('mouseout left the page -> collapse'); scheduleHide(); }
 });
-listen('pointer_left',()=>{if(scaleDragging)return;clearTimeout(hideTimer);hideCard();}).catch(()=>{});
+listen('pointer_left',()=>{ // Rust's cursor-outside-hot debounce and its focus/workspace-change forced collapse both land here
+  if(scaleDragging)return;
+  clearTimeout(hideTimer);hideCard();
+}).catch(()=>{});
 // The size can also be changed from the settings window, which is a different window entirely.
 // Ignore it while this page's own slider is being dragged, or the two would fight each other.
 listen('scale',e=>{
@@ -448,7 +503,8 @@ listen('state',()=>{if(card.classList.contains('show'))armWatchdog();}).catch(()
 /* The pill can be dragged up and down the right edge. Press and move more than 4 px = drag (handed to Rust,
    which follows the system cursor; the card is collapsed first); release without moving = click (opens the provider's usage page). */
 let press=null, dragging=false;
-pill.addEventListener('mousedown',e=>{ if(e.button!==0)return; press={x:e.clientX,y:e.clientY,id:cellAt(e.clientX,e.clientY)||hoverId}; });
+function onPressStart(e){ if(e.button!==0)return; press={x:e.clientX,y:e.clientY,id:cellAt(e.clientX,e.clientY)||hoverId}; }
+pill.addEventListener('mousedown',onPressStart);
 document.addEventListener('mousemove',e=>{
   if(!press||dragging)return;
   if(Math.abs(e.clientY-press.y)>4||Math.abs(e.clientX-press.x)>4){

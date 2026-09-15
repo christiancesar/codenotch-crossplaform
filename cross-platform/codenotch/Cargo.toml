@@ -25,11 +25,8 @@ chrono = { version = "0.4", default-features = false, features = ["std", "clock"
 rusqlite = { version = "0.32", features = ["bundled"] }
 
 [target.'cfg(not(windows))'.dependencies]
-x11rb = "0.13" # _NET_WM_STRUT_PARTIAL on X11
-# Tauri does not expose the X11 XID; reach through the GTK window it gives us.
-gtk = "0.18"
-gdk = "0.18"
-gdkx11 = "0.18"
+x11rb = "0.13" # pointer/button queries for edge-drag (see left_button_down) and focus tracking
+gtk = "0.18" # noactivate() reaches through Tauri's window to set_accept_focus(false)
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.58", features = [
