@@ -141,17 +141,23 @@ before finalizing the query shape, rather than relying only on the 331 pre-exist
   cleaning them up would need a write connection to `opencode.db`, which this integration
   deliberately never opens.
 
-### Caveat found during manual verification: existing pinned `notch_slots`
+### Caveat found during manual verification: existing pinned `notch_slots` — closed
 
 A host with a previously-customized notch layout (`config.json`'s `notch_providers`/
 `notch_slots`, set via the settings UI) won't show the new OpenCode cell until the user
 re-adds it — `ui/notch.html`'s `providers()` filters the list down to whatever's pinned, by
 design (empty falls back to "show everything", a non-empty pinned list does not auto-append
 new providers). Confirmed this is exactly what was happening on the research host. Not a bug
-in this ticket — same as any *other* new provider would behave against an existing pinned
-layout — but a real settings-UI gap for a follow-up ticket: no picker in `settings.html`
-currently offers OpenCode as a choice for notch/tray slots. Out of scope here (H.2's scope is
-the data layer + the unconditional pill cell, not the slot picker).
+in this ticket's data layer — same as any *other* new provider would behave against an
+existing pinned layout — but the settings UI itself had a real gap: three places
+(`snapshot_of()`, `provider_label()`, `TRAY_PROVIDER_IDS` in `main.rs`; `ORDER`/
+`FALLBACK_LABEL` in `settings.html`) still only knew the original 4 providers, so OpenCode
+could never even be *offered* as a choice for the tray or notch slot pickers. Closed in a
+follow-up commit on this same branch (delegated to an `opencode` CLI agent given an exact,
+file/line-scoped brief; reviewed and re-verified: `cargo build`/`cargo test` clean). Worth
+flagging for the *next* new provider too: `snapshot_of()`'s and `provider_label()`'s `_ =>`
+defaults silently attribute an unrecognized id to Claude — a real footgun if either function
+gains a new caller before its provider list is updated to match.
 
 ### Glyph
 
