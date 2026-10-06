@@ -5,12 +5,13 @@
 //!      `~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl`. Stale by the line's own timestamp.
 //! No sign-in and no session history at all means absent.
 
+mod activity;
 mod api;
 mod credentials;
 mod parse;
 mod rollout;
 
-use super::{FetchError, ProviderId, Reading, UsageProvider};
+use super::{Activity, FetchError, ProviderId, Reading, UsageProvider};
 use crate::platform::{Executables, Platform};
 use crate::support::text::cap;
 use crate::support::time::now_ms;
@@ -19,7 +20,15 @@ use std::path::PathBuf;
 /// A rollout line younger than this counts as current
 const CURRENT_FOR_MS: u64 = 5 * 60 * 1000;
 
-pub struct Codex;
+pub struct Codex {
+    activity: std::sync::Mutex<activity::Probe>,
+}
+
+impl Default for Codex {
+    fn default() -> Self {
+        Codex { activity: std::sync::Mutex::new(activity::Probe::new()) }
+    }
+}
 
 fn codex_home() -> Option<PathBuf> {
     dirs::home_dir().map(|h| h.join(".codex"))
@@ -64,6 +73,14 @@ enum Live {
 impl UsageProvider for Codex {
     fn id(&self) -> ProviderId {
         ProviderId::Codex
+    }
+
+    fn is_present(&self) -> bool {
+        present()
+    }
+
+    fn activity(&self) -> Vec<Activity> {
+        self.activity.lock().unwrap().read(now_ms())
     }
 
     fn fetch(&self) -> Result<Reading, FetchError> {

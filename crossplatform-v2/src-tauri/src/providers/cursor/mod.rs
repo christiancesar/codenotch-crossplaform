@@ -2,18 +2,37 @@
 //! sent as a cookie to `cursor.com/api/usage-summary`. Read only; the token never reaches logs,
 //! events or the UI, and is re-read every time because the editor rotates it.
 
+mod activity;
 mod api;
 mod credentials;
 mod parse;
 
-use super::{FetchError, ProviderId, Reading, UsageProvider};
+use super::{Activity, FetchError, ProviderId, Reading, UsageProvider};
+use crate::support::sqlite::LiveQuery;
+use std::sync::Mutex;
 use crate::support::text::cap;
 
-pub struct Cursor;
+pub struct Cursor {
+    activity: Mutex<LiveQuery<Vec<Activity>>>,
+}
+
+impl Default for Cursor {
+    fn default() -> Self {
+        Cursor { activity: Mutex::new(LiveQuery::new(credentials::store_path().unwrap_or_default())) }
+    }
+}
 
 impl UsageProvider for Cursor {
     fn id(&self) -> ProviderId {
         ProviderId::Cursor
+    }
+
+    fn is_present(&self) -> bool {
+        credentials::store_path().is_some_and(|p| p.is_file())
+    }
+
+    fn activity(&self) -> Vec<Activity> {
+        self.activity.lock().unwrap().get(activity::query)
     }
 
     fn fetch(&self) -> Result<Reading, FetchError> {

@@ -1,17 +1,26 @@
 //! Claude, official: GET https://api.anthropic.com/api/oauth/usage with Claude Code's own OAuth
 //! token. The app runs no OAuth flow of its own; it borrows the CLI's credential, read only.
 
+mod activity;
 mod api;
 mod credentials;
 mod parse;
 
-use super::{FetchError, ProviderId, Reading, UsageProvider};
+use super::{Activity, FetchError, ProviderId, Reading, UsageProvider};
 
-pub struct Claude;
+#[derive(Default)]
+pub struct Claude {
+    net: std::sync::Mutex<activity::NetProbe>,
+}
 
 impl UsageProvider for Claude {
     fn id(&self) -> ProviderId {
         ProviderId::Claude
+    }
+
+    /// Only cloud sessions of the desktop app; local sessions come from hooks and transcripts
+    fn activity(&self) -> Vec<Activity> {
+        self.net.lock().unwrap().read(crate::support::time::now_ms())
     }
 
     fn fetch(&self) -> Result<Reading, FetchError> {

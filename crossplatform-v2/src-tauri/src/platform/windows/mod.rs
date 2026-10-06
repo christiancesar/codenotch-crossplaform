@@ -26,6 +26,17 @@ impl Processes for Platform {
             let _ = SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
         }
     }
+    fn io_counters(&self, pid: u32) -> Option<(u64, u64)> {
+        use ::windows::Win32::Foundation::CloseHandle;
+        use ::windows::Win32::System::Threading::{GetProcessIoCounters, OpenProcess, IO_COUNTERS, PROCESS_QUERY_LIMITED_INFORMATION};
+        unsafe {
+            let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
+            let mut io = IO_COUNTERS::default();
+            let ok = GetProcessIoCounters(h, &mut io).is_ok();
+            let _ = CloseHandle(h);
+            ok.then_some((io.OtherTransferCount, io.ReadTransferCount))
+        }
+    }
 }
 
 impl Pty for Platform {

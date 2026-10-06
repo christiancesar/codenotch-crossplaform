@@ -2,6 +2,7 @@
 //! persistence and change notification live in the scheduler, written once for all of them.
 //! Nothing here knows Tauri: `app/` wires the scheduler's callback to events.
 
+pub mod activity;
 pub mod antigravity;
 pub mod claude;
 pub mod codex;
@@ -11,7 +12,7 @@ pub mod opencode;
 pub mod scheduler;
 mod stored;
 
-pub use model::{FetchError, LimitWindow, ProviderId, ProviderStatus, Reading, UsageSnapshot};
+pub use model::{Activity, ActivityState, FetchError, LimitWindow, ProviderId, ProviderStatus, Reading, UsageSnapshot};
 
 use crate::storage::versioned::{self, Loaded};
 use std::path::Path;
@@ -25,6 +26,14 @@ pub trait UsageProvider: Send + Sync {
     /// Seconds until the next read.
     fn poll_secs(&self, _session_active: bool) -> u64 {
         300
+    }
+    /// Whether the tool is installed at all. Checked about once a minute, so it may touch disk.
+    fn is_present(&self) -> bool {
+        true
+    }
+    /// What the tool is doing right now; polled every 2 s, so it must be cheap.
+    fn activity(&self) -> Vec<Activity> {
+        Vec::new()
     }
     /// Whether a scheduled or requested read should run now. A provider whose read is
     /// expensive (it starts a process) answers false while its last reading is fresh enough.
@@ -42,6 +51,17 @@ pub trait UsageProvider: Send + Sync {
         }
         snap
     }
+}
+
+/// Every provider, in the order the notch shows them.
+pub fn all() -> Vec<std::sync::Arc<dyn UsageProvider>> {
+    vec![
+        std::sync::Arc::new(claude::Claude::default()),
+        std::sync::Arc::new(codex::Codex::default()),
+        std::sync::Arc::new(cursor::Cursor::default()),
+        std::sync::Arc::new(antigravity::Antigravity::default()),
+        std::sync::Arc::new(opencode::OpenCode::default()),
+    ]
 }
 
 pub fn load_snapshot(dir: &Path, id: ProviderId) -> UsageSnapshot {

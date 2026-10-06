@@ -113,6 +113,25 @@ pub struct UsageSnapshot {
     pub backoff_until: u64,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum ActivityState {
+    Busy,
+    /// Waiting on you: an approval, a plan, a question
+    Waiting,
+}
+
+/// "Is it working?" for a tool other than Claude Code's own sessions (those come from hooks).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+pub struct Activity {
+    pub provider: ProviderId,
+    pub state: ActivityState,
+    pub name: String,
+    pub detail: String,
+    /// Epoch ms
+    pub since: u64,
+}
+
 /// What one successful read returns.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Reading {

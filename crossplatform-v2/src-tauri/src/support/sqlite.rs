@@ -29,9 +29,78 @@ fn immutable_uri(path: &Path) -> String {
     format!("file:///{}?immutable=1", p.trim_start_matches('/').replace('#', "%23").replace('?', "%3F"))
 }
 
+/// A plain read-only connection that sees the WAL (immutable would show the world as of the last
+/// checkpoint, wrong for live state).
+pub fn open_live(path: &Path) -> Option<Connection> {
+    path.is_file().then(|| Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX).ok()).flatten()
+}
+
+fn mtime_ms(p: &Path) -> u64 {
+    std::fs::metadata(p)
+        .and_then(|m| m.modified())
+        .ok()
+        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+/// A kept-open connection whose query runs again only when the database or its -wal changed.
+/// Cursor's state.vscdb is over 2 GB; reopening it every 2 s for a scan made typing lag.
+pub struct LiveQuery<T: Clone + Default> {
+    path: std::path::PathBuf,
+    conn: Option<Connection>,
+    sig: Option<(u64, u64)>,
+    last: T,
+}
+
+impl<T: Clone + Default> LiveQuery<T> {
+    pub fn new(path: std::path::PathBuf) -> Self {
+        LiveQuery { path, conn: None, sig: None, last: T::default() }
+    }
+
+    /// `query` returning None means it failed: the connection is dropped and reopened next time.
+    pub fn get(&mut self, query: impl FnOnce(&Connection) -> Option<T>) -> T {
+        let mut wal = self.path.as_os_str().to_owned();
+        wal.push("-wal");
+        let sig = (mtime_ms(&self.path), mtime_ms(Path::new(&wal)));
+        if self.sig == Some(sig) {
+            return self.last.clone();
+        }
+        self.sig = Some(sig);
+        if self.conn.is_none() {
+            self.conn = open_live(&self.path);
+        }
+        self.last = match self.conn.as_ref().and_then(query) {
+            Some(v) => v,
+            None => {
+                self.conn = None;
+                T::default()
+            }
+        };
+        self.last.clone()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn live_query_reruns_only_after_a_write() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("x.db");
+        Connection::open(&path).unwrap().execute_batch("CREATE TABLE t(v INTEGER); INSERT INTO t VALUES (1);").unwrap();
+        let mut q: LiveQuery<i64> = LiveQuery::new(path.clone());
+        let runs = std::cell::Cell::new(0);
+        let read = |q: &mut LiveQuery<i64>| q.get(|c| { runs.set(runs.get() + 1); c.query_row("SELECT SUM(v) FROM t", [], |r| r.get(0)).ok() });
+        assert_eq!(read(&mut q), 1);
+        assert_eq!(read(&mut q), 1);
+        assert_eq!(runs.get(), 1);
+        std::thread::sleep(std::time::Duration::from_millis(20));
+        Connection::open(&path).unwrap().execute("INSERT INTO t VALUES (2)", []).unwrap();
+        assert_eq!(read(&mut q), 3);
+        assert_eq!(runs.get(), 2);
+    }
 
     #[test]
     fn uri_escapes_and_normalizes_paths() {

@@ -22,6 +22,10 @@ impl Processes for Platform {
     }
     /// The Linux scheduler already favours interactive threads; nothing measured called for more
     fn lower_current_thread_priority(&self) {}
+    /// /proc/<pid>/io does not separate socket traffic, which is the signal this is used for
+    fn io_counters(&self, _pid: u32) -> Option<(u64, u64)> {
+        None
+    }
 }
 
 impl Pty for Platform {

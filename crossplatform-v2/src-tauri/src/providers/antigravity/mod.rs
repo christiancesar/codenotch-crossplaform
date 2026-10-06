@@ -8,12 +8,13 @@
 //!      is no published denominator, so the ring draws only its track.
 //! Read only; token values are never cached and never logged.
 
+mod activity;
 mod bridge;
 mod cli;
 mod direct;
 mod transcripts;
 
-use super::{FetchError, LimitWindow, ProviderId, ProviderStatus, Reading, UsageProvider, UsageSnapshot};
+use super::{Activity, FetchError, LimitWindow, ProviderId, ProviderStatus, Reading, UsageProvider, UsageSnapshot};
 use crate::support::time::now_ms;
 use std::sync::Mutex;
 
@@ -125,6 +126,14 @@ fn legacy_present() -> bool {
 impl UsageProvider for Antigravity {
     fn id(&self) -> ProviderId {
         ProviderId::Gemini
+    }
+
+    fn is_present(&self) -> bool {
+        cli::find_agy().is_some() || legacy_present()
+    }
+
+    fn activity(&self) -> Vec<Activity> {
+        activity::read(now_ms())
     }
 
     fn fetch(&self) -> Result<Reading, FetchError> {

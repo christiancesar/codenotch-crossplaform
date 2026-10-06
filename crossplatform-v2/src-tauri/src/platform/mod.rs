@@ -18,6 +18,9 @@ pub trait Processes {
     fn listening_ports(&self, pid: u32) -> Vec<u16>;
     /// Background probes always yield to foreground input.
     fn lower_current_thread_priority(&self);
+    /// `(other, read)` transfer byte counters of a process. Windows counts socket traffic under
+    /// "other"; None where the OS has no such counter.
+    fn io_counters(&self, pid: u32) -> Option<(u64, u64)>;
 }
 
 pub trait Pty {

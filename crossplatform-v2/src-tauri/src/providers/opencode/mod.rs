@@ -4,14 +4,25 @@
 //! OpenCode's own auth.json. Everyone else gets a derived token tally from the local
 //! `opencode.db`, marked as ours. The DB's account and credential tables are never read.
 
+mod activity;
 mod go;
 mod tally;
 
-use super::{FetchError, ProviderId, Reading, UsageProvider};
+use super::{Activity, FetchError, ProviderId, Reading, UsageProvider};
+use crate::support::sqlite::LiveQuery;
+use std::sync::Mutex;
 use crate::support::sqlite::open_ro;
 use std::path::PathBuf;
 
-pub struct OpenCode;
+pub struct OpenCode {
+    activity: Mutex<LiveQuery<Vec<Activity>>>,
+}
+
+impl Default for OpenCode {
+    fn default() -> Self {
+        OpenCode { activity: Mutex::new(LiveQuery::new(db_path().unwrap_or_default())) }
+    }
+}
 
 fn data_dir() -> Option<PathBuf> {
     dirs::data_local_dir().map(|d| d.join("opencode"))
@@ -30,6 +41,15 @@ fn tally() -> Result<Reading, FetchError> {
 impl UsageProvider for OpenCode {
     fn id(&self) -> ProviderId {
         ProviderId::Opencode
+    }
+
+    fn is_present(&self) -> bool {
+        db_path().is_some_and(|p| p.is_file())
+    }
+
+    fn activity(&self) -> Vec<Activity> {
+        let now = crate::support::time::now_ms();
+        self.activity.lock().unwrap().get(|c| activity::query(c, now))
     }
 
     fn fetch(&self) -> Result<Reading, FetchError> {

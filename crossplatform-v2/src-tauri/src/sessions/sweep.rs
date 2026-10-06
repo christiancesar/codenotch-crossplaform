@@ -85,6 +85,9 @@ mod tests {
             vec![]
         }
         fn lower_current_thread_priority(&self) {}
+        fn io_counters(&self, _: u32) -> Option<(u64, u64)> {
+            None
+        }
     }
 
     fn done(id: &str, ppid: u32) -> HookEvent {
