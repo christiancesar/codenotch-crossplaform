@@ -2,6 +2,7 @@
 
 pub mod events;
 mod ipc;
+pub mod state;
 
 use tauri::Manager;
 
@@ -14,6 +15,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
         .plugin(tauri_plugin_opener::init())
+        .manage(state::AppState::load())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
