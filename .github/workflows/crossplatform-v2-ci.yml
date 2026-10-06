@@ -1,0 +1,54 @@
+name: crossplatform-v2 CI
+
+# The rebuild in crossplatform-v2/ (see cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md).
+# Builds the frontend, runs the Rust tests (which regenerate src/libs/ipc/bindings.ts) and fails
+# if the committed bindings no longer match the Rust commands.
+on:
+  push:
+    branches: [feat/codenotch-next]
+    paths: ["crossplatform-v2/**", ".github/workflows/crossplatform-v2-ci.yml"]
+  pull_request:
+    paths: ["crossplatform-v2/**", ".github/workflows/crossplatform-v2-ci.yml"]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: crossplatform-v2
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Linux Tauri build deps
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: crossplatform-v2/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crossplatform-v2/src-tauri
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: cargo test
+        working-directory: crossplatform-v2/src-tauri
+        run: cargo test
+
+      - name: IPC bindings are up to date
+        run: git diff --exit-code -- src/libs/ipc/bindings.ts
