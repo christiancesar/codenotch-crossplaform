@@ -15,10 +15,6 @@
     "linux-notes": {
       "path": "cross-platform/docs/notes",
       "description": "Linux desktop-environment notes (edge pinning, tray, notifications, Secret Service)"
-    },
-    "windows-ref": {
-      "path": "windows",
-      "description": "Reference Windows port — read-only source of truth; never edit files under windows/"
     }
   },
   "agent": {
