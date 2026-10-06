@@ -4,6 +4,7 @@ mod config;
 mod diagnostics;
 mod platform;
 mod providers;
+mod sessions;
 mod storage;
 mod support;
 

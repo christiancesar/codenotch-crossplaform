@@ -16,6 +16,8 @@ pub trait Processes {
     fn command_lines(&self, needle: &str) -> Vec<(u32, String)>;
     /// TCP ports `pid` is listening on, sorted and deduplicated.
     fn listening_ports(&self, pid: u32) -> Vec<u16>;
+    /// Background probes always yield to foreground input.
+    fn lower_current_thread_priority(&self);
 }
 
 pub trait Pty {

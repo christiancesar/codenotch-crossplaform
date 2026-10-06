@@ -20,6 +20,12 @@ impl Processes for Platform {
     fn listening_ports(&self, pid: u32) -> Vec<u16> {
         process::listening_ports(pid)
     }
+    fn lower_current_thread_priority(&self) {
+        use ::windows::Win32::System::Threading::{GetCurrentThread, SetThreadPriority, THREAD_PRIORITY_BELOW_NORMAL};
+        unsafe {
+            let _ = SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+        }
+    }
 }
 
 impl Pty for Platform {

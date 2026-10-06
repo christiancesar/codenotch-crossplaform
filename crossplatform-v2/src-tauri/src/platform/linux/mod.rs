@@ -20,6 +20,8 @@ impl Processes for Platform {
     fn listening_ports(&self, pid: u32) -> Vec<u16> {
         net::listening_ports(pid)
     }
+    /// The Linux scheduler already favours interactive threads; nothing measured called for more
+    fn lower_current_thread_priority(&self) {}
 }
 
 impl Pty for Platform {

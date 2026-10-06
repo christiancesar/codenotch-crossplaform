@@ -25,6 +25,8 @@ ureq = { version = "2", features = ["json", "native-tls"] }
 native-tls = "0.2"
 # Cursor and OpenCode keep their state in SQLite; bundled compiles SQLite with the crate
 rusqlite = { version = "0.32", features = ["bundled"] }
+tiny_http = "0.12"
+notify = "6"
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 # Release candidates: pinned with `=` so an rc bump never changes the generated bindings unasked
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }

@@ -13,3 +13,21 @@ pub fn log(line: &str) {
         let _ = writeln!(f, "{line}");
     }
 }
+
+/// watch.log: what the transcript watcher saw, for `doctor`. Cleared at each start.
+pub fn watch_log(line: &str) {
+    if cfg!(test) {
+        return;
+    }
+    use std::io::Write;
+    let path = crate::storage::paths::config_dir().join("watch.log");
+    if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(f, "[{}] {line}", crate::support::time::now_ms());
+    }
+}
+
+pub fn clear_watch_log() {
+    if !cfg!(test) {
+        let _ = std::fs::write(crate::storage::paths::config_dir().join("watch.log"), "");
+    }
+}
