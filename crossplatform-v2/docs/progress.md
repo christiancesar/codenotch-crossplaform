@@ -85,6 +85,18 @@ See `phase0-compat-gate.md`.
 - `diagnostics/`: doctor as independent checks in a Report; doctor deep; `cli.rs`.
 - 105 tests.
 
+## Phase 5: app wiring, commands, bindings (done)
+
+- `app/`: state, typed events, workers, ui actions, setup; the only holder of AppHandle.
+- 34 commands, 10 events, generated `bindings.ts`; CI checks it is current.
+- Deliberate surface changes from v0.3: `get_usage` returns all providers with their id (was
+  five getters), one `usage` event with the provider id (was five event names),
+  `get_state` -> `get_sessions`, `nub_capable` -> `starts_collapsed`, `open_usage_page`
+  folded into `open_provider_page`, manual refresh no longer clears a 429 deadline.
+- An unreadable config is reported on the notch (Notice) instead of only in run.log.
+- Smoke run on Ubuntu 26.04: notch at (1580,155) from the saved ratio, hook route answered,
+  config untouched, Claude 429 persisted as a backoff.
+
 ## Open decisions
 
 - **Frontend styling** (plain CSS, CSS Modules, styled-components or Tailwind): the user wants
@@ -92,5 +104,5 @@ See `phase0-compat-gate.md`.
 
 ## Next
 
-Phase 5: `app/` wiring (state, typed events, workers, setup) and the 38 commands as thin
-adapters with generated bindings; then a backend smoke run against the v0.3 UI contract.
+Phase 6: the notch and settings windows in React against `bindings.ts`. Blocked on the
+styling decision above.
