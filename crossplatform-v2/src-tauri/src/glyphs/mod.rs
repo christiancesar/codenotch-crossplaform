@@ -1,10 +1,11 @@
 //! Provider marks. No vendor logo is drawn here; only existing artwork, in this order:
 //!   1. a user override, `<config dir>/glyphs/<id>.svg|.png` or `glyphs/` next to the executable;
-//!   2. the built-in SVGs from npm `@lobehub/icons-static-svg` 1.95.0 (MIT), unmodified, see
-//!      assets/glyphs/NOTICE.md.
+//!   2. the built-in official brand marks from npm `@lobehub/icons-static-svg` 1.95.1 (MIT),
+//!      unmodified, see assets/glyphs/NOTICE.md: in colour where the brand has colours.
 //! v0.3 also had a third step (the installed app's icon from its .exe), but every provider has a
-//! built-in mark, so it could never run and was not carried over. SVGs are inlined into the DOM
-//! (`fill="currentColor"` follows the page's state), so they are sanitized first.
+//! built-in mark, so it could never run and was not carried over. Monochrome SVGs are inlined
+//! into the DOM (`fill="currentColor"` follows the page's state), so they are sanitized first;
+//! colour marks and bitmaps go through an <img>, which isolates their ids and runs no script.
 
 use crate::providers::ProviderId;
 use serde::Serialize;
@@ -16,30 +17,35 @@ use std::path::{Path, PathBuf};
 #[serde(rename_all = "lowercase")]
 pub enum GlyphKind {
     /// Inline SVG, monochrome, follows currentColor
-    Svg,
-    /// Bitmap artwork, as a data: URL
-    Png,
+    Mark,
+    /// Colour artwork (SVG or PNG) shown as an image from a data: URL
+    Image,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Type)]
 pub struct Glyph {
     pub kind: GlyphKind,
-    /// data: URL for png
+    /// data: URL, for `image`
     pub url: String,
-    /// The sanitized SVG text for svg
+    /// The sanitized SVG text, for `mark`
     pub svg: String,
     /// Where it came from, for doctor
     pub source: String,
 }
 
-fn builtin(id: ProviderId) -> &'static str {
+/// The official mark, and whether it is in colour.
+fn builtin(id: ProviderId) -> (&'static str, bool) {
     match id {
-        ProviderId::Claude => include_str!("../../assets/glyphs/claude.svg"),
-        ProviderId::Codex => include_str!("../../assets/glyphs/codex.svg"),
-        ProviderId::Cursor => include_str!("../../assets/glyphs/cursor.svg"),
-        ProviderId::Gemini => include_str!("../../assets/glyphs/gemini.svg"),
-        ProviderId::Opencode => include_str!("../../assets/glyphs/opencode.svg"),
+        ProviderId::Claude => (include_str!("../../assets/glyphs/claude-color.svg"), true),
+        ProviderId::Codex => (include_str!("../../assets/glyphs/codex-color.svg"), true),
+        ProviderId::Gemini => (include_str!("../../assets/glyphs/antigravity-color.svg"), true),
+        ProviderId::Cursor => (include_str!("../../assets/glyphs/cursor.svg"), false),
+        ProviderId::Opencode => (include_str!("../../assets/glyphs/opencode.svg"), false),
     }
+}
+
+fn data_url(mime: &str, bytes: &[u8]) -> String {
+    format!("data:{mime};base64,{}", crate::support::base64::encode(bytes))
 }
 
 /// Minimal SVG sanitising before inlining into the DOM: drop <script> blocks and on*="…" event
@@ -102,8 +108,8 @@ fn from_file(p: &Path) -> Option<Glyph> {
     let bytes = std::fs::read(p).ok().filter(|b| !b.is_empty() && b.len() <= 512 * 1024)?;
     let source = p.display().to_string();
     match p.extension()?.to_string_lossy().to_lowercase().as_str() {
-        "svg" => Some(Glyph { kind: GlyphKind::Svg, url: String::new(), svg: sanitize_svg(&String::from_utf8_lossy(&bytes)), source }),
-        "png" => Some(Glyph { kind: GlyphKind::Png, url: format!("data:image/png;base64,{}", crate::support::base64::encode(&bytes)), svg: String::new(), source }),
+        "svg" => Some(Glyph { kind: GlyphKind::Mark, url: String::new(), svg: sanitize_svg(&String::from_utf8_lossy(&bytes)), source }),
+        "png" => Some(Glyph { kind: GlyphKind::Image, url: data_url("image/png", &bytes), svg: String::new(), source }),
         _ => None,
     }
 }
@@ -112,11 +118,14 @@ fn glyph_for(id: ProviderId, dirs: &[PathBuf]) -> Glyph {
     dirs.iter()
         .flat_map(|d| ["svg", "png"].map(|ext| d.join(format!("{}.{ext}", id.as_str()))))
         .find_map(|p| from_file(&p))
-        .unwrap_or_else(|| Glyph {
-            kind: GlyphKind::Svg,
-            url: String::new(),
-            svg: sanitize_svg(builtin(id)),
-            source: "built-in · @lobehub/icons-static-svg 1.95.0 (MIT)".into(),
+        .unwrap_or_else(|| {
+            let (svg, colour) = builtin(id);
+            let source = "built-in official mark · @lobehub/icons-static-svg 1.95.1 (MIT)".to_string();
+            if colour {
+                Glyph { kind: GlyphKind::Image, url: data_url("image/svg+xml", svg.as_bytes()), svg: String::new(), source }
+            } else {
+                Glyph { kind: GlyphKind::Mark, url: String::new(), svg: sanitize_svg(svg), source }
+            }
         })
 }
 
@@ -154,14 +163,18 @@ mod tests {
         assert!(glyph_for(ProviderId::Cursor, &[dir.path().to_path_buf()]).source.starts_with("built-in"));
         std::fs::write(dir.path().join("cursor.png"), [0x89, b'P', b'N', b'G']).unwrap();
         let g = glyph_for(ProviderId::Cursor, &[dir.path().to_path_buf()]);
-        assert_eq!(g.kind, GlyphKind::Png);
+        assert_eq!(g.kind, GlyphKind::Image);
         assert!(g.url.starts_with("data:image/png;base64,"));
     }
 
     #[test]
-    fn every_provider_has_a_builtin_mark() {
+    fn every_provider_has_its_official_mark() {
         for id in ProviderId::ALL {
-            assert!(builtin(id).contains("<svg"), "{id:?}");
+            assert!(builtin(id).0.contains("<svg"), "{id:?}");
         }
+        let claude = glyph_for(ProviderId::Claude, &[]);
+        assert_eq!(claude.kind, GlyphKind::Image, "colour marks are images");
+        assert!(claude.url.starts_with("data:image/svg+xml;base64,"));
+        assert_eq!(glyph_for(ProviderId::Cursor, &[]).kind, GlyphKind::Mark, "monochrome marks inline");
     }
 }

@@ -105,9 +105,9 @@ export type DragEnded = {
 
 export type Glyph = {
 	kind: GlyphKind,
-	/**  data: URL for png */
+	/**  data: URL, for `image` */
 	url: string,
-	/**  The sanitized SVG text for svg */
+	/**  The sanitized SVG text, for `mark` */
 	svg: string,
 	/**  Where it came from, for doctor */
 	source: string,
@@ -115,9 +115,9 @@ export type Glyph = {
 
 export type GlyphKind = 
 /**  Inline SVG, monochrome, follows currentColor */
-"svg" | 
-/**  Bitmap artwork, as a data: URL */
-"png";
+"mark" | 
+/**  Colour artwork (SVG or PNG) shown as an image from a data: URL */
+"image";
 
 export type GlyphsChanged = { [key in string]: Glyph };
 

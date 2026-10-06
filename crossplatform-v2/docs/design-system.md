@@ -209,14 +209,18 @@ CSS tokens for what stays in CSS:
 | --- | --- | --- |
 | `--dur-card-grace` | 250 ms | Pointer out to card out; the pointer must cross the gap |
 | `--dur-cell-fade` | 120 ms | Cells fading on collapse |
-| `animate-notch-spin` | `1.2s steps(12) infinite` | Working indicator |
-| `animate-notch-pulse` | `1.1s steps(6) infinite` | Waiting on you |
+| `animate-notch-spin` | `1.1s linear infinite` | Working indicator (official timing) |
+| `animate-notch-pulse` | `1.8s ease-in-out infinite`, opacity 1 to 0.3 | Waiting on you (official 0.9 s each way) |
 
 Rules:
 
-- **Continuous indicators are CSS and stepped.** A 60 fps transform in a transparent
-  always-on-top window stalled the whole desktop compositor (v0.3, Windows); `steps()` keeps it
-  to about 10 repaints a second and still reads as motion.
+- **Continuous indicators animate a composited layer only.** v0.3 rotated an SVG element at
+  60 fps in a transparent always-on-top window and the whole desktop compositor stuttered,
+  because every frame repainted the window. Rotating an HTML wrapper with
+  `will-change: transform` (or fading it with `will-change: opacity`) lets the GPU move a cached
+  texture with no repaint, so the official smooth timing is kept. Only `transform` and
+  `opacity` are ever animated continuously. (An earlier draft stepped them with `steps()`; it
+  read as stuck.)
 - **A repeat is never cancelled to stop a spin.** The refresh turn is one finite turn that
   lands where it started; a repeating spin set back to its target keeps spinning.
 - **Collapse animates `max-height`, never a measured `height`.** Measuring raced late provider
@@ -245,6 +249,10 @@ Rules:
 
 ## Components (notch)
 
+All of them are in Storybook (`npm run storybook` in `crossplatform-v2/`), one story per state,
+plus `Notch/Notch`, the whole window composed with hover. Provider marks are the official ones
+(`src-tauri/assets/glyphs/NOTICE.md`).
+
 Each component lives in `src/components/notch/<Name>/` with `<Name>.tsx`, `index.ts`, and a
 `<Name>.css` only when it needs keyframes or SVG rules Tailwind cannot express. Every prop is
 documented with TSDoc, including which states it renders and which tokens it reads. Props
@@ -255,13 +263,13 @@ take model types from `src/libs/ipc/bindings.ts`, never re-declared shapes.
 | `NotchShell` | Black body welded to the edge, fillets, outline cue, collapse | `collapsed`, `scale`, `children` | expanded, collapsed, no-anim |
 | `ProviderCell` | One provider: `UsageRing` + `ProviderGlyph` + `PercentLabel` | `provider`, `snapshot`, `slot`, `activity` | ok, stale, needsAuth, error, none, limit-hit |
 | `UsageRing` | Track + progress arc (+ optional weekly arc) | `used`, `band`, `secondary?` | metered, count (track only), empty |
-| `ActivityArc` | Working indicator inside the ring | `state` | busy (spin), waiting (pulse), off |
-| `ProviderGlyph` | Inline SVG mark or PNG override or letter | `glyph`, `fallback` | svg, png, letter, dimmed |
+| `ActivityArc` | Working indicator inside the ring, on a composited layer | `state` | working (quarter arc turning), waiting (ring breathing), idle |
+| `ProviderGlyph` | The provider's official mark: colour marks as an image, monochrome marks inline, letter fallback | `glyph`, `fallback`, `size` | image, mark, letter |
 | `PercentLabel` | `N%` with `~` when derived | `value`, `derived`, `stale` | |
 | `HoverCard` | Card + tail pointing at a cell | `anchorY`, `children` | hidden, entering, shown, leaving |
 | `CardHeader` | Glyph + "<Provider> Usage" + note | `provider`, `note` | |
 | `LimitWindowBlock` | Label, reset copy, bar, "N % used" | `window`, `now` | metered, count, derived |
-| `UsageBar` | Track + band fill | `used`, `band` | |
+| `UsageBar` | Track + band fill, swept with `scaleX` (composited) | `used` | metered, track only |
 | `ResetLabel` | "Resets in 51 min" / "Resets Thu 12:00 AM" | `resetsAt`, `now`, `lang` | relative (< 1 h), absolute |
 | `SessionList` / `SessionRow` | Claude Code sessions and provider activity | `sessions`, `activity` | running, attention, done, idle |
 | `StatusDot` | State dot | `state` | |

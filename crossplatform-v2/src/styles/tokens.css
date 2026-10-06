@@ -40,9 +40,12 @@
 }
 
 @theme {
-  /* Stepped: a 60 fps transform in a transparent always-on-top window stalls the compositor */
-  --animate-notch-spin: notch-spin 1.2s steps(12) infinite;
-  --animate-notch-pulse: notch-pulse 1.1s steps(6) infinite;
+  /* The official timings (ProviderRing.ActivityArc): a linear 1.1 s turn, a 0.9 s breath each
+     way. Smooth and cheap only on a composited layer: use them with `will-change-transform`
+     (spin) or `will-change-[opacity]` (pulse) on an HTML element, never on SVG internals, so the
+     GPU moves a cached texture instead of repainting the window every frame. */
+  --animate-notch-spin: notch-spin 1.1s linear infinite;
+  --animate-notch-pulse: notch-pulse 1.8s ease-in-out infinite;
 
   @keyframes notch-spin {
     to {
@@ -55,7 +58,7 @@
       opacity: 1;
     }
     50% {
-      opacity: 0.25;
+      opacity: 0.3;
     }
   }
 }
