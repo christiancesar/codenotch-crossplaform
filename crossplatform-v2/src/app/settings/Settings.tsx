@@ -1,12 +1,20 @@
-import { useBackendCheck } from "../../libs/ipc/useBackendCheck";
+import { Button } from "@/components/ui/button";
+import { useBackendCheck } from "@/libs/ipc/useBackendCheck";
 
-// Placeholder until phase 6, see Notch.tsx.
+// Placeholder until the settings panes exist.
 export default function Settings() {
   const line = useBackendCheck();
   return (
-    <main style={{ font: "14px system-ui", padding: 24 }}>
-      <h1 style={{ fontSize: 18 }}>Codenotch Settings</h1>
-      <p>{line}</p>
+    <main className="min-h-screen space-y-4 p-6">
+      <h1 className="font-heading text-2xl font-semibold lining-nums">Codenotch Settings</h1>
+      <p className="text-sm text-muted-foreground tabular-nums">{line}</p>
+      <div className="flex gap-2">
+        <span className="size-4 rounded-full bg-band-ample" />
+        <span className="size-4 rounded-full bg-band-watch" />
+        <span className="size-4 rounded-full bg-band-critical" />
+        <span className="size-4 rounded-full bg-state-done" />
+      </div>
+      <Button>shadcn button</Button>
     </main>
   );
 }

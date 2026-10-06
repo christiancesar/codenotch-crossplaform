@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { commands, events } from ".";
+import { commands, events } from "@/libs/ipc";
 
 /** Placeholder until phase 6: proves the typed commands and one event reach the page. */
 export function useBackendCheck(): string {
