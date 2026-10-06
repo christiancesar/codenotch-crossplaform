@@ -2,6 +2,7 @@
 //! persistence and change notification live in the scheduler, written once for all of them.
 //! Nothing here knows Tauri: `app/` wires the scheduler's callback to events.
 
+pub mod antigravity;
 pub mod claude;
 pub mod codex;
 pub mod cursor;
@@ -24,6 +25,15 @@ pub trait UsageProvider: Send + Sync {
     /// Seconds until the next read.
     fn poll_secs(&self, _session_active: bool) -> u64 {
         300
+    }
+    /// Whether a scheduled or requested read should run now. A provider whose read is
+    /// expensive (it starts a process) answers false while its last reading is fresh enough.
+    fn should_fetch(&self, _current: &UsageSnapshot, _now: u64) -> bool {
+        true
+    }
+    /// Whether hovering the notch asks for a read. Only cheap or cached reads should.
+    fn refresh_on_hover(&self) -> bool {
+        false
     }
     /// The snapshot restored from disk at startup. An old reading is never presented as live.
     fn restore(&self, mut snap: UsageSnapshot) -> UsageSnapshot {

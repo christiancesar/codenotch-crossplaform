@@ -12,7 +12,27 @@ pub struct ProcMaps {
 
 pub trait Processes {
     fn proc_maps(&self) -> ProcMaps;
+    /// `(pid, full command line)` of processes whose name contains `needle`.
+    fn command_lines(&self, needle: &str) -> Vec<(u32, String)>;
+    /// TCP ports `pid` is listening on, sorted and deduplicated.
+    fn listening_ports(&self, pid: u32) -> Vec<u16>;
 }
+
+pub trait Pty {
+    /// Runs `program` and returns what it printed (at most 64 KB), killing it and every
+    /// descendant on `timeout`. On Windows it runs inside a pseudo console, because some CLIs
+    /// print nothing to a redirected pipe there.
+    fn run_captured(&self, program: &std::path::Path, args: &[&str], cwd: Option<&std::path::Path>, timeout: std::time::Duration) -> Result<String, String>;
+}
+
+pub trait Credentials {
+    /// A generic credential from the OS store by target name (Windows Credential Manager).
+    /// None where the OS has no such store.
+    fn read_generic(&self, target: &str) -> Option<Vec<u8>>;
+}
+
+/// Output beyond this is an error, not a reading: no CLI quota table is anywhere near it.
+pub const MAX_CAPTURE: usize = 64 * 1024;
 
 pub trait Focus {
     /// Raises the terminal window hosting the Claude CLI process `claude_pid`.
@@ -38,7 +58,11 @@ pub trait Executables {
     fn find_on_path(&self, base: &str) -> Option<std::path::PathBuf> {
         let path = std::env::var_os("PATH")?;
         let names = self.exe_names(base);
-        std::env::split_paths(&path).flat_map(|dir| names.iter().map(move |n| dir.join(n))).find(|p| p.is_file())
+        // Relative PATH entries would resolve against whatever directory we happen to run in
+        std::env::split_paths(&path)
+            .filter(|d| d.is_absolute())
+            .flat_map(|dir| names.iter().map(move |n| dir.join(n)))
+            .find(|p| p.is_file())
     }
 }
 

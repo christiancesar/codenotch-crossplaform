@@ -1,16 +1,36 @@
 //! Windows: ToolHelp snapshots, top-level window enumeration, the HKCU Run key.
 
 mod autostart;
+mod credentials;
 mod process;
+mod pty;
 mod windows;
 
-use super::{Autostart, Executables, Focus, Locale, ProcMaps, Processes};
+use super::{Autostart, Credentials, Executables, Focus, Locale, ProcMaps, Processes, Pty};
 
 pub struct Platform;
 
 impl Processes for Platform {
     fn proc_maps(&self) -> ProcMaps {
         process::proc_maps()
+    }
+    fn command_lines(&self, needle: &str) -> Vec<(u32, String)> {
+        process::command_lines(needle)
+    }
+    fn listening_ports(&self, pid: u32) -> Vec<u16> {
+        process::listening_ports(pid)
+    }
+}
+
+impl Pty for Platform {
+    fn run_captured(&self, program: &std::path::Path, args: &[&str], cwd: Option<&std::path::Path>, timeout: std::time::Duration) -> Result<String, String> {
+        pty::run_captured(program, args, cwd, timeout)
+    }
+}
+
+impl Credentials for Platform {
+    fn read_generic(&self, target: &str) -> Option<Vec<u8>> {
+        credentials::read_generic(target)
     }
 }
 

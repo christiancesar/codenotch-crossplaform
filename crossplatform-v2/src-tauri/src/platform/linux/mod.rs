@@ -1,16 +1,38 @@
 //! Linux: /proc, EWMH over X11 (the app runs under XWayland, see window.rs in phase 4), XDG.
 
 mod autostart;
+mod net;
 mod process;
+mod pty;
 mod x11;
 
-use super::{Autostart, Executables, Focus, Locale, ProcMaps, Processes};
+use super::{Autostart, Credentials, Executables, Focus, Locale, ProcMaps, Processes, Pty};
 
 pub struct Platform;
 
 impl Processes for Platform {
     fn proc_maps(&self) -> ProcMaps {
         process::proc_maps()
+    }
+    fn command_lines(&self, needle: &str) -> Vec<(u32, String)> {
+        process::command_lines(needle)
+    }
+    fn listening_ports(&self, pid: u32) -> Vec<u16> {
+        net::listening_ports(pid)
+    }
+}
+
+impl Pty for Platform {
+    fn run_captured(&self, program: &std::path::Path, args: &[&str], cwd: Option<&std::path::Path>, timeout: std::time::Duration) -> Result<String, String> {
+        pty::run_captured(program, args, cwd, timeout)
+    }
+}
+
+/// No generic credential store is read on Linux (Secret Service is a later step); providers fall
+/// back to their other sources.
+impl Credentials for Platform {
+    fn read_generic(&self, _target: &str) -> Option<Vec<u8>> {
+        None
     }
 }
 

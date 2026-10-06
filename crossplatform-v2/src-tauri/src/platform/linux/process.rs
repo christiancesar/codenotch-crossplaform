@@ -28,6 +28,21 @@ pub fn proc_maps() -> ProcMaps {
     m
 }
 
+/// From /proc/<pid>/cmdline, arguments joined by spaces; matched against the executable name.
+pub fn command_lines(needle: &str) -> Vec<(u32, String)> {
+    let Ok(entries) = std::fs::read_dir("/proc") else { return Vec::new() };
+    entries
+        .flatten()
+        .filter_map(|e| {
+            let pid: u32 = e.file_name().to_string_lossy().parse().ok()?;
+            let raw = std::fs::read(e.path().join("cmdline")).ok()?;
+            let args: Vec<String> = raw.split(|b| *b == 0).filter(|a| !a.is_empty()).map(|a| String::from_utf8_lossy(a).into_owned()).collect();
+            let exe = std::path::Path::new(args.first()?).file_name()?.to_string_lossy().into_owned();
+            exe.contains(needle).then(|| (pid, args.join(" ")))
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

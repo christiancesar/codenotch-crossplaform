@@ -99,6 +99,10 @@ pub fn spawn(provider: Arc<dyn UsageProvider>, dir: PathBuf, is_active: IsActive
                     sleep_interruptible(((backoff_until - now) / 1000).clamp(1, 30), &wake);
                     continue;
                 }
+                if !provider.should_fetch(&snapshot.lock().unwrap(), now) {
+                    sleep_interruptible(provider.poll_secs(is_active()), &wake);
+                    continue;
+                }
                 let result = provider.fetch();
                 let next = {
                     let mut cur = snapshot.lock().unwrap();
