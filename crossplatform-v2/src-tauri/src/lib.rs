@@ -2,6 +2,7 @@ mod app;
 mod commands;
 mod config;
 mod diagnostics;
+mod glyphs;
 mod i18n;
 mod notch;
 mod platform;
