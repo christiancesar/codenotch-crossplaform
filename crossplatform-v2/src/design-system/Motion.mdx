@@ -1,0 +1,29 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Surface } from "./Tokens";
+
+<Meta title="Design System/Motion" />
+
+# Motion
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--dur-card-in` | 180 ms | Hover card in |
+| `--dur-card-grace` | 250 ms | Pointer out to card out |
+| `--dur-collapse` | 180 ms | Pill to tab and back |
+| `--dur-cell-fade` | 120 ms | Cells fading on collapse |
+
+Continuous indicators are **stepped** (about 10 repaints a second): a 60 fps transform in a
+transparent always-on-top window stalls the desktop compositor. With reduced motion they stop.
+
+<Surface>
+  <div className="flex items-center gap-10">
+    <div className="flex flex-col items-center gap-2">
+      <div className="size-(--ring-size) animate-notch-spin rounded-full border-(length:--ring-progress-stroke) border-state-running border-t-ring-track" />
+      <span className="text-[11px] text-muted-foreground">animate-notch-spin · running</span>
+    </div>
+    <div className="flex flex-col items-center gap-2">
+      <span className="size-(--status-dot) animate-notch-pulse rounded-full bg-state-attention" />
+      <span className="text-[11px] text-muted-foreground">animate-notch-pulse · attention</span>
+    </div>
+  </div>
+</Surface>
