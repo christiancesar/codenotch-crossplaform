@@ -2,11 +2,11 @@
 
 Phase 0 of `cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md`.
 Nothing on `feat/codenotch-next` merges into `development` until every item here holds
-for the new app in `backend/` + `frontend/`.
+for the new app in `crossplatform-v2/`.
 
 ## Golden fixtures
 
-`backend/tests/fixtures/persisted/`:
+`crossplatform-v2/src-tauri/tests/fixtures/persisted/`:
 
 | Directory | Content |
 | --- | --- |

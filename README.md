@@ -14,8 +14,8 @@ still contains them is tagged `archive/pre-rebuild-cleanup`.
 - `cross-platform/` is the current Tauri 2 app (`codenotch`) and the hook client Claude
   Code calls (`codenotch-hook`). It is the reference while the app is rebuilt.
 - `cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md` describes the
-  rebuild: a `create-tauri-app` scaffold with a `backend/` (Rust) and `frontend/`
-  (React + TypeScript + Vite) split and a generated, typed IPC contract.
+  rebuild: a stock `create-tauri-app` scaffold in `crossplatform-v2/`, with `src-tauri/`
+  (Rust) and `src/` (React + TypeScript + Vite) and a generated, typed IPC contract.
 
 ## Build
 

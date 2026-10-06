@@ -158,11 +158,9 @@ https://v2.tauri.app/concept/process-model/
 
 O que é adaptado depois de gerar:
 
-1. **Layout.** `src-tauri/` vira `backend/`. `src/`, `index.html`, `vite.config.ts` e
-   `tsconfig*.json` vão pra `frontend/`. O `package.json` fica na raiz do projeto, então
-   o CLI do Tauri rodado da raiz continua encontrando `backend/tauri.conf.json`. A
-   ligação exata (root do Vite, `devUrl`, `frontendDist`, `beforeDevCommand`,
-   `beforeBuildCommand`) é definida e verificada no PR do scaffold.
+1. **Layout.** O layout do scaffold fica como gerado, em `crossplatform-v2/`: `src/` é o
+   frontend, `src-tauri/` é o backend. "Backend" e "frontend" neste spec nomeiam essas
+   duas metades, não diretórios. Nenhuma ligação de caminho do Vite ou do Tauri muda.
 2. **`tauri.conf.json`.** `productName`, `version`, `identifier`, as duas janelas com as
    propriedades atuais (`transparent`, `decorations`, `alwaysOnTop`, `skipTaskbar`,
    tamanhos, `visible: false`), configurações de bundle e ícones vêm do arquivo atual.
@@ -178,21 +176,23 @@ O que é adaptado depois de gerar:
 
 Uma nota de nomenclatura: "janela" sempre significa uma janela do SO no nível do Tauri
 (`notch` e `settings` em `app.windows`), nunca uma página no sentido de roteamento de
-SPA. Uma árvore React por janela, em `frontend/src/app/notch` e
-`frontend/src/app/settings`.
+SPA. Uma árvore React por janela, em `src/app/notch` e
+`src/app/settings`.
 
 ## Layout do projeto
 
 ```
-<raiz do repositório>/
+crossplatform-v2/
 ├── package.json                  # vite, react, @tauri-apps/api, @tauri-apps/cli
-├── backend/                      # Rust / Tauri (processo core)
-└── frontend/                     # React + Vite (webview)
+├── index.html, vite.config.ts, tsconfig.json
+├── src/                          # frontend: React + Vite (webview)
+└── src-tauri/                    # backend: Rust / Tauri (processo core)
 ```
 
-O nível raiz divide por processo, não por linguagem. O nome `ui/` foi abandonado porque
-costuma significar biblioteca de componentes, que é uma coisa dentro de `frontend/`, não
-o frontend inteiro.
+O layout padrão do `create-tauri-app`, sem mudança: a divisão é por processo, e a
+estrutura abaixo fica dentro de `src/` e `src-tauri/src/`. O nome `ui/` foi abandonado
+porque costuma significar biblioteca de componentes, que é uma pasta dentro de `src/`,
+não o frontend inteiro.
 
 ## Estrutura do backend
 
@@ -217,7 +217,7 @@ O layout agrupa por funcionalidade e obtém responsabilidade única com três re
 ### Árvore
 
 ```
-backend/
+crossplatform-v2/src-tauri/
 ├── Cargo.toml
 ├── build.rs
 ├── tauri.conf.json
@@ -309,7 +309,7 @@ Todo provedor faz o mesmo trabalho com fontes diferentes, então a parte comum v
 trait e o loop repetido vira um scheduler só.
 
 ```rust
-// backend/src/providers/mod.rs (sketch)
+// src-tauri/src/providers/mod.rs (sketch)
 pub trait UsageProvider: Send + Sync {
     fn id(&self) -> ProviderId;
     /// Whether the tool is installed or signed in at all.
@@ -380,7 +380,7 @@ platform/
 ```
 
 ```rust
-// backend/src/platform/mod.rs (sketch)
+// src-tauri/src/platform/mod.rs (sketch)
 pub trait Focus {
     fn focus_terminal(&self, claude_pid: u32) -> bool;
     fn focus_claude_desktop(&self) -> bool;
@@ -472,11 +472,11 @@ teria compilado e produzido `undefined` em runtime.
 
 Os tipos são gerados com `tauri-specta`. Os tipos do modelo derivam `specta::Type`, os
 comandos ganham `#[specta::specta]` e o builder exporta comandos e eventos pra
-`frontend/src/libs/ipc/bindings.ts`. O arquivo é commitado; o CI gera de novo e falha se
+`src/libs/ipc/bindings.ts`. O arquivo é commitado; o CI gera de novo e falha se
 houver diferença.
 
 ```rust
-// backend/src/app/mod.rs (sketch, confirm against the pinned version)
+// src-tauri/src/app/mod.rs (sketch, confirm against the pinned version)
 let builder = tauri_specta::Builder::<tauri::Wry>::new()
     .commands(tauri_specta::collect_commands![
         crate::commands::usage::get_usage,
@@ -491,7 +491,7 @@ let builder = tauri_specta::Builder::<tauri::Wry>::new()
 builder
     .export(
         specta_typescript::Typescript::default(),
-        "../frontend/src/libs/ipc/bindings.ts",
+        "../src/libs/ipc/bindings.ts",
     )
     .expect("failed to export IPC bindings");
 ```
@@ -499,7 +499,7 @@ builder
 Como o arquivo gerado fica pros tipos de hoje (ilustrativo):
 
 ```ts
-// frontend/src/libs/ipc/bindings.ts (generated, never edited)
+// src/libs/ipc/bindings.ts (generated, never edited)
 export type LimitWindow = {
   id: string;
   label: string;
@@ -566,7 +566,7 @@ exemplo com `ts-to-zod`) em vez de escrever à mão.
 ## Estrutura do frontend
 
 ```
-frontend/
+crossplatform-v2/
 ├── index.html                      # a única entrada do Vite
 ├── src/
 │   ├── main.tsx                    # escolhe a árvore pelo label da janela
@@ -597,7 +597,7 @@ com um label, e nada impede duas delas de carregarem o mesmo bundle. O `main.tsx
 a árvore:
 
 ```tsx
-// frontend/src/main.tsx
+// src/main.tsx
 import { lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -704,15 +704,15 @@ mesmo reset silencioso.
 4. **Gravação atômica em todo lugar.** `storage/atomic.rs` (arquivo temporário mais
    rename, vindo do `agy_cli.rs::atomic_write`) é o único jeito de gravar um arquivo
    persistido.
-5. **Fixtures de referência da v0.3.0.** Antes do primeiro PR de backend, arquivos reais
+5. **Fixtures de referência da v0.3.0.** Antes do primeiro commit de backend, arquivos reais
    de uma instalação v0.3.0 (anonimizados) entram em
-   `backend/tests/fixtures/persisted/v0.3.0/`, junto com os formatos legados que o
+   `src-tauri/tests/fixtures/persisted/v0.3.1/`, junto com os formatos legados que o
    `config::load()` ainda trata (sem `tray_mode`, só com `tray_providers`). Os testes
    carregam cada um e conferem que todo valor sobrevive. Esses testes ficam depois da
    reconstrução.
 
 ```rust
-// backend/src/storage/versioned.rs (sketch)
+// src-tauri/src/storage/versioned.rs (sketch)
 pub enum Loaded<T> {
     /// No file: first run, defaults are safe to save.
     Missing,
@@ -759,10 +759,10 @@ pub fn load<T: DeserializeOwned>(path: &Path, migrations: &[fn(Value) -> Value])
 
 ## Migração
 
-O projeto novo fica na raiz do repositório (`package.json`, `backend/`, `frontend/`), ao
-lado de `cross-platform/`, que continua como referência da v0.3 até o corte final. Não há
-`Cargo.toml` na raiz antes do corte, então `backend/` compila sozinho e não conflita com o
-pacote `codenotch` do workspace em `cross-platform/`.
+O projeto novo fica em `crossplatform-v2/` na raiz do repositório, ao lado de
+`cross-platform/`, que continua como referência da v0.3 até o corte final. O `src-tauri/`
+é um crate próprio, fora do workspace de `cross-platform/`, então os dois pacotes
+`codenotch` não conflitam.
 
 Todo o trabalho da reconstrução acontece numa única branch, `feat/codenotch-next`, salvo
 em commits conforme cada fase avança. Ela entra em `development` uma vez só, quando o
@@ -773,8 +773,7 @@ portado pra árvore nova num commit nessa mesma branch.
    lista de contratos congelados e um checklist de paridade do comportamento da v0.3.0
    no Windows e no Linux (notch, hover card, drag, escala, modos do tray, cada painel de
    settings, hooks, autostart, doctor).
-1. **Scaffold.** Rodar o `create-tauri-app`, adaptar o layout pra `backend/` e
-   `frontend/`, trazer `tauri.conf.json`, `Cargo.toml`, capabilities e ícones. O CI
+1. **Scaffold.** Rodar o `create-tauri-app` em `crossplatform-v2/`, trazer `tauri.conf.json`, `Cargo.toml`, capabilities e ícones. O CI
    compila no Windows e no Linux com as duas janelas abrindo vazias. O spike do
    `tauri-specta` roda aqui, com um comando e um evento.
 2. **Fundações.** `support/`, `storage/` (load versionado, gravação atômica, quarentena),
@@ -788,7 +787,7 @@ portado pra árvore nova num commit nessa mesma branch.
 6. **Frontend.** `notch` e `settings` reescritos em React sobre o `bindings.ts`. Pode
    começar em paralelo às fases 3 e 4 assim que os primeiros comandos existirem.
 7. **Corte final.** O checklist de paridade passa nos dois SOs. Instalar por cima de uma
-   v0.3.0 preserva a config e os snapshots do usuário. O `codenotch-hook/` vai pra raiz do
-   repositório, um `Cargo.toml` de workspace na raiz recebe os membros `backend` e
+   v0.3.0 preserva a config e os snapshots do usuário. O `codenotch-hook/` vai pra dentro de
+   `crossplatform-v2/`, um `Cargo.toml` de workspace lá recebe os membros `src-tauri` e
    `codenotch-hook`, `cross-platform/` é removido, e `projectPath` e `working-directory`
    dos workflows são atualizados.

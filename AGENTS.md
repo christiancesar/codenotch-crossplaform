@@ -14,9 +14,9 @@ something needs to be looked up.
   the app over `POST 127.0.0.1:<port>/event`, relaunches the app if it is down, and
   stays silent when the user quit from the tray (`user-quit` marker).
 - `cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md` is the plan:
-  a `create-tauri-app` scaffold (React + TypeScript + Vite) at the repository root, with
-  `package.json`, `backend/` and `frontend/`, built beside `cross-platform/` until
-  cutover. Follow its phases in order.
+  a `create-tauri-app` scaffold (React + TypeScript + Vite) in `crossplatform-v2/`, kept
+  in the stock layout (`src/` frontend, `src-tauri/` backend) and built beside
+  `cross-platform/` until cutover. Follow its phases in order.
 - All rebuild work goes on the single branch `feat/codenotch-next`, committed as it
   advances, merged into `development` only when the app fully works. Don't open extra
   branches for it.

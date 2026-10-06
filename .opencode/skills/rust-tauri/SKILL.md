@@ -14,8 +14,9 @@ description: How the Codenotch Rust/Tauri 2 codebase works — workspace layout,
   when a session starts, stops, or is waiting on you, over a localhost HTTP port.
 
 `codenotch/` is the v0.3 reference implementation. The rebuild described in
-`docs/specs/2026-09-15-cross-platform-architecture-spec.md` goes to the repository
-root (`backend/` + `frontend/`), outside this workspace until cutover. Keep both Windows and Linux
+`docs/specs/2026-09-15-cross-platform-architecture-spec.md` goes to
+`../crossplatform-v2/` (stock Tauri layout: `src-tauri/` + `src/`), outside this workspace
+until cutover. Keep both Windows and Linux
 compiling.
 
 ## Dependencies (codenotch/Cargo.toml)
