@@ -26,6 +26,18 @@ specta = { version = "=2.0.0-rc.25", features = ["derive"] }
 specta-typescript = "=0.0.12"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = "0.13" # EWMH queries and requests: active window, client list, raise-and-focus
+gtk = "0.18" # reaches through Tauri's window for accept-focus and the X input shape
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_Globalization",
+] }
+
 [dev-dependencies]
 tempfile = "3"
 

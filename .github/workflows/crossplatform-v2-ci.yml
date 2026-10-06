@@ -52,3 +52,10 @@ jobs:
 
       - name: IPC bindings are up to date
         run: git diff --exit-code -- src/libs/ipc/bindings.ts
+
+      - name: OS-specific code lives only in platform/
+        if: runner.os == 'Linux'
+        run: |
+          if grep -rnE 'cfg\((not\()?(windows|unix|target_os)' src-tauri/src --include=*.rs | grep -v '^src-tauri/src/platform/'; then
+            echo "Move the code above into src-tauri/src/platform/"; exit 1
+          fi
