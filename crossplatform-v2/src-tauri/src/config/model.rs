@@ -1,11 +1,14 @@
+use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
+use specta::Type;
 
 /// How small the notch may be drawn, as a multiple of its designed size. Below roughly 0.4 the
 /// rings stop being readable at 100 % display scaling.
 pub const SCALE_MIN: f64 = 0.40;
 pub const SCALE_MAX: f64 = 1.00;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
 pub enum TrayMode {
     /// The plain mark
     Off,
@@ -36,7 +39,7 @@ impl TrayMode {
 
 /// One reading shown on the tray icon or as a notch ring. `window` is a window id as the provider
 /// reports it ("session", "weekly_all"...), or empty / "top" for whichever window is fullest.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 pub struct Slot {
     pub provider: String,
     pub window: String,

@@ -54,7 +54,8 @@ pub fn start(store: Arc<Mutex<Store>>, on_change: Arc<dyn Fn() + Send + Sync>) {
 mod tests {
     use super::*;
     use crate::platform::ProcMaps;
-    use crate::sessions::{HookEvent, SessionState, Source};
+    use crate::sessions::store::SessionState;
+    use crate::sessions::{HookEvent, Source};
 
     struct Fake {
         fg: u32,

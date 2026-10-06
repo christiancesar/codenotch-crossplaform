@@ -1,5 +1,8 @@
-//! Thin #[tauri::command] adapters. Each one reads or updates state, calls one module function
-//! and returns; no logic of its own.
+//! Thin #[tauri::command] adapters: read or update AppState, call one module function, return.
 
-pub mod spike;
+pub mod notch;
+pub mod sessions;
+pub mod settings;
 pub mod system;
+pub mod tray;
+pub mod usage;

@@ -12,7 +12,6 @@ use std::collections::{HashMap, HashSet};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::{channel, RecvTimeoutError};
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const QUIET_DONE_MS: u64 = 2_500;
@@ -309,7 +308,7 @@ pub fn start(sink: super::hook_server::Sink) {
             crate::diagnostics::watch_log(&format!("watcher started v{}", env!("CARGO_PKG_VERSION")));
             // Roots that do not exist yet (the CLI never ran) are retried every minute
             let mut pending: Vec<PathBuf> = roots();
-            let mut try_watch = |pending: &mut Vec<PathBuf>, w: &mut notify::RecommendedWatcher| {
+            let try_watch = |pending: &mut Vec<PathBuf>, w: &mut notify::RecommendedWatcher| {
                 pending.retain(|r| {
                     let ok = r.exists() && w.watch(r, RecursiveMode::Recursive).is_ok();
                     crate::diagnostics::watch_log(&format!("{}: {}", if ok { "watching" } else { "not available yet" }, r.display()));

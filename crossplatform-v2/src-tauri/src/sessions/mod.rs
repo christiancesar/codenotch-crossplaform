@@ -8,4 +8,4 @@ pub mod store;
 pub mod sweep;
 pub mod watcher;
 
-pub use store::{HookEvent, Session, SessionState, SessionsSnapshot, Source, Store};
+pub use store::{HookEvent, SessionsSnapshot, Source, Store};

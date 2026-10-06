@@ -5,32 +5,279 @@ import * as __TAURI_EVENT from "@tauri-apps/api/event";
 
 /** Commands */
 export const commands = {
-	appVersion: () => __TAURI_INVOKE<string>("app_version"),
+	/**  Every provider's current reading, in display order. */
+	getUsage: () => __TAURI_INVOKE<ProviderUsage[]>("get_usage"),
+	refreshUsage: () => __TAURI_INVOKE<void>("refresh_usage"),
+	getSessions: () => __TAURI_INVOKE<SessionsSnapshot>("get_sessions"),
+	getActivity: () => __TAURI_INVOKE<Activity[]>("get_activity"),
+	/**  Raises the session's terminal, or the Claude desktop app for a session without a process. */
+	focusSession: (id: string) => __TAURI_INVOKE<boolean>("focus_session", { id }),
+	dismissSession: (id: string) => __TAURI_INVOKE<void>("dismiss_session", { id }),
 	/**
-	 *  Checks three things at once: a multi-word argument round-trips, u64/i64 arrive as `number`,
-	 *  and an event emitted from a command reaches the page.
+	 *  Hot rectangles in window-relative physical pixels (the page multiplies by its own DPR): the
+	 *  pill, plus the card while it is open. Empty is click-through.
 	 */
-	spikeEcho: (inputText: string, fetchedAt: number) => __TAURI_INVOKE<SpikeReply>("spike_echo", { inputText, fetchedAt }),
+	setHot: (rects: ([(number | null), (number | null), (number | null), (number | null)])[], expanded: boolean) => __TAURI_INVOKE<void>("set_hot", { rects, expanded }),
+	dragBegin: () => __TAURI_INVOKE<void>("drag_begin"),
+	/**
+	 *  With two monitors at different scales the WebView can pick the other monitor's DPR, leaving
+	 *  the page 255 CSS px wide instead of 340. The page reports its DPR, and a zoom pulls it back
+	 *  to the primary monitor's scale; at most three corrections, in case it never follows.
+	 */
+	reportDpr: (dpr: number | null, width: number | null, height: number | null) => __TAURI_INVOKE<void>("report_dpr", { dpr, width, height }),
+	getScale: () => __TAURI_INVOKE<number | null>("get_scale"),
+	/**
+	 *  Only the value is stored: the page scales the pill with CSS, so the window never resizes and
+	 *  the slider does not move under the cursor.
+	 */
+	setScale: (scale: number | null) => __TAURI_INVOKE<void>("set_scale", { scale }),
+	getNotchSlots: () => __TAURI_INVOKE<Slot[]>("get_notch_slots"),
+	setNotchSlots: (slots: Slot[]) => __TAURI_INVOKE<void>("set_notch_slots", { slots }),
+	resetNotchPosition: () => __TAURI_INVOKE<void>("reset_notch_position"),
+	/**  The page starts collapsed to the nub (Linux) or shows the pill (Windows). */
+	startsCollapsed: () => __TAURI_INVOKE<boolean>("starts_collapsed"),
+	getTrayOptions: () => __TAURI_INVOKE<TrayOption[]>("get_tray_options"),
+	getTrayConfig: () => __TAURI_INVOKE<TrayConfig>("get_tray_config"),
+	setTrayConfig: (config: TrayConfig) => __TAURI_INVOKE<void>("set_tray_config", { config }),
+	/**
+	 *  The real icon as a picture, so the settings preview cannot drift from the taskbar. None for
+	 *  the plain mark, which the page draws itself.
+	 */
+	getTrayPreview: (config: TrayConfig) => __TAURI_INVOKE<string | null>("get_tray_preview", { config }),
+	getAppIcon: () => __TAURI_INVOKE<string | null>("get_app_icon"),
+	getLang: () => __TAURI_INVOKE<LangInfo>("get_lang"),
+	setLang: (lang: string) => __TAURI_INVOKE<void>("set_lang", { lang }),
+	getUiFlags: () => __TAURI_INVOKE<UiFlags>("get_ui_flags"),
+	/**
+	 *  Hiding both would leave the app with nothing to click, so the tray stays whenever the notch
+	 *  is off. The answer is what was stored, so the window shows the corrected state.
+	 */
+	setUiFlags: (notchVisible: boolean, trayVisible: boolean) => __TAURI_INVOKE<UiFlags>("set_ui_flags", { notchVisible, trayVisible }),
+	getAutostart: () => __TAURI_INVOKE<boolean>("get_autostart"),
+	setAutostart: (on: boolean) => typedError<string, string>(__TAURI_INVOKE("set_autostart", { on })),
+	getHooksInstalled: () => __TAURI_INVOKE<boolean>("get_hooks_installed"),
+	setHooksInstalled: (on: boolean) => typedError<string, string>(__TAURI_INVOKE("set_hooks_installed", { on })),
+	openSettings: () => __TAURI_INVOKE<void>("open_settings"),
+	appVersion: () => __TAURI_INVOKE<string>("app_version"),
+	getGlyphs: () => __TAURI_INVOKE<{ [key in string]: Glyph }>("get_glyphs"),
+	/**  The data folder, with the glyph override directory created so it can be found. */
+	openDataDir: () => typedError<null, string>(__TAURI_INVOKE("open_data_dir")),
+	/**  A click on a provider's cell opens its usage page. */
+	openProviderPage: (provider: ProviderId) => typedError<null, string>(__TAURI_INVOKE("open_provider_page", { provider })),
+	/**  The page's own diagnostics go to run.log. */
+	logJs: (msg: string) => __TAURI_INVOKE<void>("log_js", { msg }),
 };
 
 /** Events */
 export const events = {
-	spikeTick: makeEvent<SpikeTick>("spike_tick"),
+	activity: makeEvent<ActivityChanged>("activity"),
+	dragEnd: makeEvent<DragEnded>("drag_end"),
+	glyphs: makeEvent<GlyphsChanged>("glyphs"),
+	lang: makeEvent<LangChanged>("lang"),
+	notchSlots: makeEvent<NotchSlotsChanged>("notch_slots"),
+	notice: makeEvent<Notice>("notice"),
+	pointerLeft: makeEvent<PointerLeft>("pointer_left"),
+	scale: makeEvent<ScaleChanged>("scale"),
+	sessions: makeEvent<SessionsChanged>("sessions"),
+	usage: makeEvent<UsageChanged>("usage"),
 };
 
 /* Types */
-export type SpikeReply = {
-	echoed_text: string,
-	fetched_at: number,
-	count: number | null,
+/**  "Is it working?" for a tool other than Claude Code's own sessions (those come from hooks). */
+export type Activity = {
+	provider: ProviderId,
+	state: ActivityState,
+	name: string,
+	detail: string,
+	/**  Epoch ms */
+	since: number,
 };
 
-/**  Phase 1 spike only: proves an event with a u64 field reaches the page typed as `number`. */
-export type SpikeTick = {
+export type ActivityChanged = Activity[];
+
+export type ActivityState = "busy" | 
+/**  Waiting on you: an approval, a plan, a question */
+"waiting";
+
+export type DragEnded = {
+	moved: boolean,
+};
+
+export type Glyph = {
+	kind: GlyphKind,
+	/**  data: URL for png */
+	url: string,
+	/**  The sanitized SVG text for svg */
+	svg: string,
+	/**  Where it came from, for doctor */
+	source: string,
+};
+
+export type GlyphKind = 
+/**  Inline SVG, monochrome, follows currentColor */
+"svg" | 
+/**  Bitmap artwork, as a data: URL */
+"png";
+
+export type GlyphsChanged = { [key in string]: Glyph };
+
+export type LangChanged = {
+	lang: string,
+	resolved: string,
+};
+
+export type LangInfo = {
+	/**  What the user chose, possibly "auto" */
+	lang: string,
+	/**  The language actually used */
+	resolved: string,
+};
+
+export type LimitWindow = {
+	id: string,
+	label: string,
+	/**  Fraction used, 0.0 to 1.0 */
+	used: number | null,
+	/**  Reset time in epoch ms, None when unknown */
+	resets_at: number | null,
+	/**
+	 *  A pure count with no published denominator (requests today): the cell shows ~N and the
+	 *  ring draws only its track
+	 */
+	count: number | null,
+	/**  The number is ours, not the vendor's; the card prefixes it with ~ */
+	derived: boolean,
+};
+
+export type NotchSlotsChanged = Slot[];
+
+/**  Something the user should read on the notch (a refused second instance, say) */
+export type Notice = string;
+
+/**  The cursor left the notch (or focus moved away): close the card */
+export type PointerLeft = null;
+
+/**
+ *  Ids are frozen: config slots, glyph names and the page all use these strings. Antigravity is
+ *  "gemini" for historical reasons.
+ */
+export type ProviderId = "claude" | "codex" | "cursor" | "gemini" | "opencode";
+
+export type ProviderStatus = "ok" | 
+/**  A reading that is not current: restored after a restart, or kept through a failure */
+"stale" | "needsAuth" | "backoff" | 
+/**  Nothing to show and the last attempt failed */
+"error" | 
+/**  The tool is not installed; the provider is left off the notch */
+"absent" | 
+/**  Installed and signed in, but nothing metered yet */
+"none";
+
+export type ProviderUsage = {
+	provider: ProviderId,
+	snapshot: UsageSnapshot,
+};
+
+/**  The notch size changed (possibly from the settings window) */
+export type ScaleChanged = number | null;
+
+export type Session = {
+	id: string,
+	title: string,
+	state: SessionState,
+	/**  Start of the current activity, epoch ms */
+	started: number,
+	/**  Elapsed time frozen at done, ms */
+	total: number,
+	/**  Last action ("🔧 Bash: cargo test") */
+	last: string,
+	/**  What attention is about (a permission request, a question) */
+	attn: string,
+	/**  The user's latest input: the card shows what you said, not the agent's action */
+	prompt: string,
+	/**  The model the session actually uses */
+	model: string,
+};
+
+export type SessionState = "attention" | "running" | "done" | "idle";
+
+export type SessionsChanged = SessionsSnapshot;
+
+export type SessionsSnapshot = {
+	sessions: Session[],
+	/**  The state that needs you most across all sessions */
+	agg: SessionState,
+	counts: Partial<{ [key in SessionState]: number }>,
+};
+
+/**
+ *  One reading shown on the tray icon or as a notch ring. `window` is a window id as the provider
+ *  reports it ("session", "weekly_all"...), or empty / "top" for whichever window is fullest.
+ */
+export type Slot = {
+	provider: string,
+	window: string,
+};
+
+export type TrayConfig = {
+	mode: TrayMode,
+	slots: Slot[],
+};
+
+export type TrayMode = 
+/**  The plain mark */
+"off" | 
+/**  Up to two readings as digits */
+"numbers" | 
+/**  A column per reading */
+"bars";
+
+/**
+ *  A provider and the windows it reports now, for the pickers: built from live readings, so a
+ *  provider that gains a window shows it.
+ */
+export type TrayOption = {
+	id: ProviderId,
+	label: string,
+	status: ProviderStatus,
+	windows: TrayWindowOption[],
+};
+
+export type TrayWindowOption = {
+	id: string,
+	label: string,
+	used: number,
+};
+
+export type UiFlags = {
+	notch_visible: boolean,
+	tray_visible: boolean,
+};
+
+export type UsageChanged = {
+	provider: ProviderId,
+	snapshot: UsageSnapshot,
+};
+
+export type UsageSnapshot = {
+	status: ProviderStatus,
+	windows: LimitWindow[],
 	fetched_at: number,
+	note: string,
+	/**  No request before this epoch ms (429 backoff); survives restarts */
+	backoff_until: number,
 };
 
 /* Tauri Specta runtime */
+async function typedError<T, E>(result: Promise<T>): Promise<{ status: "ok"; data: T } | { status: "error"; error: E }> {
+    try {
+        return { status: "ok", data: await result };
+    } catch (e) {
+        if (e instanceof Error) throw e;
+        return { status: "error", error: e as any };
+    }
+}
+
 type EventEmit<T> = [T] extends [null] ? () => Promise<void> : (payload: T) => Promise<void>;
 
 function makeEvent<T>(name: string, serialize?: (payload: T) => unknown, deserialize?: (payload: any) => T) {

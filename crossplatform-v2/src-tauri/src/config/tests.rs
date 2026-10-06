@@ -109,6 +109,7 @@ fn a_truncated_file_is_quarantined_not_overwritten() {
     std::fs::write(dir.path().join("config.json"), &original).unwrap();
     let r = load(dir.path());
     assert!(!r.missing, "an unreadable file must not count as missing, or defaults get saved");
+    assert!(r.quarantined.is_some());
     assert_eq!(r.config, Config::default());
     let aside: Vec<_> = std::fs::read_dir(dir.path())
         .unwrap()

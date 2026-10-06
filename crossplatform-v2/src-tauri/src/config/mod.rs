@@ -15,13 +15,15 @@ pub struct LoadResult {
     /// True only when there was no file at all. The caller writes defaults then, so the hook can
     /// read the port; a file that was there but unreadable is never written over.
     pub missing: bool,
+    /// Where an unreadable file was moved, so the user can be told
+    pub quarantined: Option<std::path::PathBuf>,
 }
 
 pub fn load(dir: &Path) -> LoadResult {
     match versioned::load::<stored::StoredConfig>(&dir.join(crate::storage::paths::CONFIG), migrate::MIGRATIONS) {
-        Loaded::Ok(s) => LoadResult { config: s.into(), missing: false },
-        Loaded::Missing => LoadResult { config: Config::default(), missing: true },
-        Loaded::Quarantined(_) => LoadResult { config: Config::default(), missing: false },
+        Loaded::Ok(s) => LoadResult { config: s.into(), missing: false, quarantined: None },
+        Loaded::Missing => LoadResult { config: Config::default(), missing: true, quarantined: None },
+        Loaded::Quarantined(p) => LoadResult { config: Config::default(), missing: false, quarantined: Some(p) },
     }
 }
 
