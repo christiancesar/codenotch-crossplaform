@@ -68,6 +68,23 @@ See `phase0-compat-gate.md`.
   failed read keeps the windows already shown (stale) instead of blanking them; a UTF-16LE
   credential blob is now actually decoded.
 
+## Phase 4: sessions, notch, tray, glyphs, diagnostics, CLI (done)
+
+- `sessions/`: typed four-state store, hook server on the frozen route, transcript watcher
+  (pure `Tracker` + thread), sweep and seen-clears-it (one function over the platform
+  traits, v0.3 had it twice), hooks installer as a pure settings.json transform.
+- Provider activity per provider plus one 2 s loop; `LiveQuery` re-queries only when a
+  database or its WAL changes. `providers::all()` is the registry.
+- `notch/`: placement and drag ratio as pure geometry, hit test and input region, drag and
+  watchdog over a WebviewWindow with callbacks.
+- `platform::Window` / `Input`: XWayland + input shaping on Linux, click-through toggling
+  and console attach on Windows, no-activate, left button, focus signature.
+- `tray/`: renderer moved unchanged, slot readings shared with the notch rule, menu with the
+  main-thread swap. Slots keep v0.3's provider lists in step (downgrade-safe).
+- `glyphs/`: override then built-in; v0.3's unreachable .exe-icon step dropped.
+- `diagnostics/`: doctor as independent checks in a Report; doctor deep; `cli.rs`.
+- 105 tests.
+
 ## Open decisions
 
 - **Frontend styling** (plain CSS, CSS Modules, styled-components or Tailwind): the user wants
@@ -75,7 +92,5 @@ See `phase0-compat-gate.md`.
 
 ## Next
 
-Phase 4: sessions (store, transcript watcher, hook server, hooks install, sweep), activity per
-provider, notch placement / hit-test / drag / pointer watchdog with the Linux window pieces
-(XWayland, input shape, no-activate), tray menu and icon rendering, glyphs, diagnostics
-(`doctor`), CLI subcommands.
+Phase 5: `app/` wiring (state, typed events, workers, setup) and the 38 commands as thin
+adapters with generated bindings; then a backend smoke run against the v0.3 UI contract.
