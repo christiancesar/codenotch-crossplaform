@@ -180,7 +180,7 @@ A naming note: "window" always means a Tauri OS-level window (`notch` and `setti
 ## Project layout
 
 ```
-cross-platform/codenotch/
+<repo root>/
 ├── package.json                  # vite, react, @tauri-apps/api, @tauri-apps/cli
 ├── backend/                      # Rust / Tauri (core process)
 └── frontend/                     # React + Vite (webview)
@@ -742,11 +742,15 @@ pub fn load<T: DeserializeOwned>(path: &Path, migrations: &[fn(Value) -> Value])
 
 ## Migration
 
-The new project is built beside the current one, in `cross-platform/codenotch-next/`,
-until cutover. The current tree keeps shipping bug fixes during the rebuild; every fix
-merged there is ported to the new tree in a follow-up PR. The new tree stays out of the
-Cargo workspace (`exclude` in `cross-platform/Cargo.toml`) because both packages are named
-`codenotch`.
+The new project lives at the repository root (`package.json`, `backend/`, `frontend/`),
+beside `cross-platform/`, which stays as the v0.3 reference until cutover. There is no
+root `Cargo.toml` before cutover, so `backend/` builds on its own and does not clash with
+the `codenotch` package in the `cross-platform/` workspace.
+
+All rebuild work happens on one branch, `feat/codenotch-next`, saved in commits as each
+phase advances. It merges into `development` once, when the parity checklist passes. A
+bug fixed in `cross-platform/` meanwhile is ported to the new tree in a commit on that
+branch.
 
 0. **Compatibility gate.** Golden fixtures of the persisted files, the list of frozen
    contracts, and a parity checklist of v0.3.0 behaviour on Windows and Linux (notch,
@@ -758,15 +762,15 @@ Cargo workspace (`exclude` in `cross-platform/Cargo.toml`) because both packages
 2. **Foundations.** `support/`, `storage/` (versioned load, atomic write, quarantine),
    `config/` with migrations passing the golden fixtures, `platform/` traits with both
    implementations.
-3. **Providers.** Trait, registry and scheduler, then one provider per PR, Claude first as
-   the reference. Parsing code and fixture tests move unchanged.
+3. **Providers.** Trait, registry and scheduler, then one provider per commit, Claude
+   first as the reference. Parsing code and fixture tests move unchanged.
 4. **Sessions, notch, tray, glyphs, diagnostics, CLI.**
 5. **Commands and bindings.** Thin adapters, `rename_all = "snake_case"`, generated
    `bindings.ts` committed, CI diff check.
 6. **Frontend.** `notch` and `settings` rewritten in React against `bindings.ts`. Can
    start alongside phases 3 and 4 once the first commands exist.
 7. **Cutover.** Parity checklist passes on both OSes. Installing over a v0.3.0 install
-   keeps the user's config and snapshots. The old tree is removed, `codenotch-next/` is
-   renamed to `codenotch/`, workspace members become `codenotch/backend` and
-   `codenotch-hook`, and `projectPath` and `working-directory` in the workflows are
-   updated.
+   keeps the user's config and snapshots. `codenotch-hook/` moves to the repository
+   root, a root `Cargo.toml` workspace gets the members `backend` and `codenotch-hook`,
+   `cross-platform/` is removed, and `projectPath` and `working-directory` in the
+   workflows are updated.

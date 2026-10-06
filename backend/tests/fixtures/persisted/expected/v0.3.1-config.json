@@ -1,0 +1,56 @@
+{
+  "port": 48666,
+  "lang": "auto",
+  "bar_x": null,
+  "bar_y": null,
+  "bar_w": null,
+  "drag_enabled": false,
+  "notch_y": 0.35648148148148145,
+  "scale": 0.75,
+  "tray_mode": "numbers",
+  "tray_providers": [
+    "claude",
+    "claude"
+  ],
+  "tray_slots": [
+    {
+      "provider": "claude",
+      "window": "session"
+    },
+    {
+      "provider": "claude",
+      "window": "weekly_all"
+    }
+  ],
+  "notch_providers": [
+    "claude",
+    "codex",
+    "cursor",
+    "gemini",
+    "opencode"
+  ],
+  "notch_slots": [
+    {
+      "provider": "claude",
+      "window": "session"
+    },
+    {
+      "provider": "codex",
+      "window": ""
+    },
+    {
+      "provider": "cursor",
+      "window": ""
+    },
+    {
+      "provider": "gemini",
+      "window": ""
+    },
+    {
+      "provider": "opencode",
+      "window": "rolling"
+    }
+  ],
+  "notch_visible": true,
+  "tray_visible": true
+}

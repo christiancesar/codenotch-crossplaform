@@ -1,0 +1,29 @@
+{
+  "port": 48666,
+  "lang": "ja",
+  "bar_x": null,
+  "bar_y": null,
+  "bar_w": null,
+  "drag_enabled": false,
+  "notch_y": 0.5,
+  "scale": 1.0,
+  "tray_mode": "off",
+  "tray_providers": [
+    "claude",
+    "codex"
+  ],
+  "tray_slots": [
+    {
+      "provider": "claude",
+      "window": ""
+    },
+    {
+      "provider": "codex",
+      "window": ""
+    }
+  ],
+  "notch_providers": [],
+  "notch_slots": [],
+  "notch_visible": true,
+  "tray_visible": true
+}

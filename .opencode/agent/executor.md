@@ -20,13 +20,13 @@ next step. Work like a contractor with a precise scope.
 
 - Do EXACTLY the ticket. Nothing beyond it: no refactors, no gold-plating, no unrelated fixes.
 - Don't restructure `cross-platform/codenotch` (the v0.3 reference) unless the ticket is a bug fix
-  there. New work goes to `cross-platform/codenotch-next/`, per the architecture spec.
+  there. New work goes to `backend/` and `frontend/` at the repo root, per the architecture spec.
 - NEVER run `git add`, `git commit`, `git push`, `git revert`, `git reset`. Git writes are the
   orchestrator's job.
 - NEVER invent a number, default a missing window to zero, or pass a guessed reading as official.
 - NO new dependencies unless the ticket explicitly adds them.
 - Comments explain WHY (a hidden constraint, a bug worked around) — never what the code does.
-- In `codenotch-next/`, OS-specific code lives only in `backend/src/platform/` and uses
+- In the new tree, OS-specific code lives only in `backend/src/platform/` and uses
   `target_os = "linux"`. Never break the build on either Windows or Linux.
 
 ## Before you start

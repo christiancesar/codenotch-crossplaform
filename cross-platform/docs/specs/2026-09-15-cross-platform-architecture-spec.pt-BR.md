@@ -184,7 +184,7 @@ SPA. Uma árvore React por janela, em `frontend/src/app/notch` e
 ## Layout do projeto
 
 ```
-cross-platform/codenotch/
+<raiz do repositório>/
 ├── package.json                  # vite, react, @tauri-apps/api, @tauri-apps/cli
 ├── backend/                      # Rust / Tauri (processo core)
 └── frontend/                     # React + Vite (webview)
@@ -759,11 +759,15 @@ pub fn load<T: DeserializeOwned>(path: &Path, migrations: &[fn(Value) -> Value])
 
 ## Migração
 
-O projeto novo é construído ao lado do atual, em `cross-platform/codenotch-next/`, até o
-corte final. A árvore atual continua recebendo correções de bug durante a reconstrução;
-toda correção feita lá é portada pra árvore nova num PR seguinte. A árvore nova fica fora
-do workspace do Cargo (`exclude` em `cross-platform/Cargo.toml`) porque os dois pacotes se
-chamam `codenotch`.
+O projeto novo fica na raiz do repositório (`package.json`, `backend/`, `frontend/`), ao
+lado de `cross-platform/`, que continua como referência da v0.3 até o corte final. Não há
+`Cargo.toml` na raiz antes do corte, então `backend/` compila sozinho e não conflita com o
+pacote `codenotch` do workspace em `cross-platform/`.
+
+Todo o trabalho da reconstrução acontece numa única branch, `feat/codenotch-next`, salvo
+em commits conforme cada fase avança. Ela entra em `development` uma vez só, quando o
+checklist de paridade passar. Um bug corrigido em `cross-platform/` nesse meio tempo é
+portado pra árvore nova num commit nessa mesma branch.
 
 0. **Bloqueio de compatibilidade.** Fixtures de referência dos arquivos persistidos, a
    lista de contratos congelados e um checklist de paridade do comportamento da v0.3.0
@@ -776,7 +780,7 @@ chamam `codenotch`.
 2. **Fundações.** `support/`, `storage/` (load versionado, gravação atômica, quarentena),
    `config/` com migrações passando nas fixtures de referência, traits de `platform/` com
    as duas implementações.
-3. **Provedores.** Trait, registro e scheduler, depois um provedor por PR, começando pelo
+3. **Provedores.** Trait, registro e scheduler, depois um provedor por commit, começando pelo
    Claude como referência. Código de parsing e testes de fixture se mudam sem alteração.
 4. **Sessões, notch, tray, glyphs, diagnóstico, CLI.**
 5. **Comandos e bindings.** Adaptadores finos, `rename_all = "snake_case"`, `bindings.ts`
@@ -784,7 +788,7 @@ chamam `codenotch`.
 6. **Frontend.** `notch` e `settings` reescritos em React sobre o `bindings.ts`. Pode
    começar em paralelo às fases 3 e 4 assim que os primeiros comandos existirem.
 7. **Corte final.** O checklist de paridade passa nos dois SOs. Instalar por cima de uma
-   v0.3.0 preserva a config e os snapshots do usuário. A árvore antiga é removida,
-   `codenotch-next/` é renomeado pra `codenotch/`, os membros do workspace viram
-   `codenotch/backend` e `codenotch-hook`, e `projectPath` e `working-directory` dos
-   workflows são atualizados.
+   v0.3.0 preserva a config e os snapshots do usuário. O `codenotch-hook/` vai pra raiz do
+   repositório, um `Cargo.toml` de workspace na raiz recebe os membros `backend` e
+   `codenotch-hook`, `cross-platform/` é removido, e `projectPath` e `working-directory`
+   dos workflows são atualizados.

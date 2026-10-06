@@ -18,8 +18,8 @@ Leia, nesta ordem:
 ## Regras de código (não negociáveis)
 
 - Não reestruture `cross-platform/codenotch` (referência v0.3) fora de um ticket de bugfix.
-  Trabalho novo vai para `cross-platform/codenotch-next/`.
-- Em `codenotch-next/`, código de SO só em `backend/src/platform/`, com
+  Trabalho novo vai para a raiz (`backend/`, `frontend/`).
+- No projeto novo, código de SO só em `backend/src/platform/`, com
   `target_os = "linux"`; **nunca** `#[cfg(linux)]`.
 - Comentários explicam **por quê** (uma restrição escondida, um bug contornado), não **o
   quê** o código faz.
