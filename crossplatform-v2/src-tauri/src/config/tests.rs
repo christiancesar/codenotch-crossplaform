@@ -84,6 +84,17 @@ fn keys_this_version_does_not_use_survive_a_save() {
 }
 
 #[test]
+fn setting_slots_keeps_the_v03_provider_lists_in_step() {
+    let (mut cfg, dir) = load_fixture("v0.3.1/config.json");
+    cfg.set_tray_slots(vec![Slot { provider: "codex".into(), window: String::new() }]);
+    cfg.set_notch_slots(vec![]);
+    save(dir.path(), &cfg).unwrap();
+    let doc: Value = serde_json::from_str(&std::fs::read_to_string(dir.path().join("config.json")).unwrap()).unwrap();
+    assert_eq!(doc["tray_providers"], serde_json::json!(["codex"]));
+    assert_eq!(doc["notch_providers"], serde_json::json!([]));
+}
+
+#[test]
 fn the_port_stays_a_top_level_key_the_hook_can_scan() {
     let dir = tempfile::tempdir().unwrap();
     save(dir.path(), &Config { port: 49001, ..Config::default() }).unwrap();

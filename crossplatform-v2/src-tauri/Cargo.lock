@@ -517,6 +517,7 @@ dependencies = [
  "gtk",
  "native-tls",
  "notify",
+ "png 0.17.16",
  "rusqlite",
  "serde",
  "serde_json",

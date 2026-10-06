@@ -85,6 +85,18 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Also writes v0.3's `tray_providers`, so going back to v0.3 still shows the same providers.
+    pub fn set_tray_slots(&mut self, slots: Vec<Slot>) {
+        self.extra.insert("tray_providers".into(), Value::from(slots.iter().map(|s| s.provider.clone()).collect::<Vec<_>>()));
+        self.tray_slots = slots;
+    }
+
+    /// Same for v0.3's `notch_providers`.
+    pub fn set_notch_slots(&mut self, slots: Vec<Slot>) {
+        self.extra.insert("notch_providers".into(), Value::from(slots.iter().map(|s| s.provider.clone()).collect::<Vec<_>>()));
+        self.notch_slots = slots;
+    }
+
     /// Rules that hold for any file, hand-edited ones included.
     pub fn normalized(mut self) -> Self {
         // Both hidden would leave the app unreachable: no pill, no tray icon, no way to settings

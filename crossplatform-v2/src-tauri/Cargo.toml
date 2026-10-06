@@ -27,6 +27,7 @@ native-tls = "0.2"
 rusqlite = { version = "0.32", features = ["bundled"] }
 tiny_http = "0.12"
 notify = "6"
+png = "0.17" # the tray preview and provider marks as PNG data URLs
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 # Release candidates: pinned with `=` so an rc bump never changes the generated bindings unasked
 specta = { version = "=2.0.0-rc.25", features = ["derive"] }
