@@ -58,6 +58,9 @@ pub enum ProviderStatus {
     /// The tool is not installed; the provider is left off the notch
     #[serde(rename = "absent")]
     Absent,
+    /// Installed and signed in, but nothing metered yet
+    #[serde(rename = "none")]
+    None,
 }
 
 impl ProviderStatus {
@@ -68,6 +71,7 @@ impl ProviderStatus {
             "needsAuth" => ProviderStatus::NeedsAuth,
             "backoff" => ProviderStatus::Backoff,
             "absent" => ProviderStatus::Absent,
+            "none" => ProviderStatus::None,
             _ => ProviderStatus::Error,
         }
     }
@@ -79,6 +83,7 @@ impl ProviderStatus {
             ProviderStatus::Backoff => "backoff",
             ProviderStatus::Error => "error",
             ProviderStatus::Absent => "absent",
+            ProviderStatus::None => "none",
         }
     }
 }
@@ -109,10 +114,24 @@ pub struct UsageSnapshot {
 }
 
 /// What one successful read returns.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Reading {
     pub windows: Vec<LimitWindow>,
     pub note: String,
+    /// When the numbers were recorded; None means now
+    pub recorded_at: Option<u64>,
+    /// false for last-known numbers (a local log from the tool's last run): shown as stale
+    pub current: bool,
+    /// The live source answered 429 and these numbers came from a fallback; the next request
+    /// still has to wait. Server hint in seconds, 0 when absent.
+    pub rate_limited: Option<u64>,
+}
+
+impl Reading {
+    /// Live numbers read just now.
+    pub fn live(windows: Vec<LimitWindow>, note: impl Into<String>) -> Reading {
+        Reading { windows, note: note.into(), recorded_at: None, current: true, rate_limited: None }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -124,6 +143,8 @@ pub enum FetchError {
     RateLimited { retry_after_secs: u64 },
     /// The tool is not installed at all
     Absent,
+    /// Installed, but there is nothing metered to show yet. The note says so.
+    NothingMetered(String),
     /// Anything else (network, unexpected HTTP status, unreadable body), shown as the note
     Other(String),
 }

@@ -4,7 +4,7 @@ mod autostart;
 mod process;
 mod x11;
 
-use super::{Autostart, Focus, Locale, ProcMaps, Processes};
+use super::{Autostart, Executables, Focus, Locale, ProcMaps, Processes};
 
 pub struct Platform;
 
@@ -57,6 +57,12 @@ impl Autostart for Platform {
     }
     fn disable(&self) -> Result<String, String> {
         autostart::disable()
+    }
+}
+
+impl Executables for Platform {
+    fn exe_names(&self, base: &str) -> Vec<String> {
+        vec![base.to_string()]
     }
 }
 

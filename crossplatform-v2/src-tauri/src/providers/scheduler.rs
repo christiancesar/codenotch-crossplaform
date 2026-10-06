@@ -20,16 +20,28 @@ pub fn backoff_secs(consecutive: u32, retry_after: u64) -> u64 {
 /// stay, marked stale, and the note says why.
 pub fn apply(prev: &UsageSnapshot, result: Result<Reading, FetchError>, now: u64, consecutive_429: &mut u32) -> UsageSnapshot {
     let mut next = prev.clone();
-    if !matches!(result, Err(FetchError::RateLimited { .. })) {
+    let rate_limited = match &result {
+        Err(FetchError::RateLimited { .. }) => true,
+        Ok(r) => r.rate_limited.is_some(),
+        _ => false,
+    };
+    if !rate_limited {
         *consecutive_429 = 0;
     }
     match result {
         Ok(r) => {
-            next.status = ProviderStatus::Ok;
+            next.status = if r.current { ProviderStatus::Ok } else { ProviderStatus::Stale };
             next.windows = r.windows;
-            next.fetched_at = now;
+            next.fetched_at = r.recorded_at.unwrap_or(now);
             next.note = r.note;
-            next.backoff_until = 0;
+            next.backoff_until = match r.rate_limited {
+                Some(hint) => {
+                    let wait = backoff_secs(*consecutive_429, hint);
+                    *consecutive_429 += 1;
+                    now + wait * 1000
+                }
+                None => 0,
+            };
         }
         Err(FetchError::NeedsAuth(note)) => {
             next.status = ProviderStatus::NeedsAuth;
@@ -44,6 +56,9 @@ pub fn apply(prev: &UsageSnapshot, result: Result<Reading, FetchError>, now: u64
         }
         Err(FetchError::Absent) => {
             next = UsageSnapshot { status: ProviderStatus::Absent, ..Default::default() };
+        }
+        Err(FetchError::NothingMetered(note)) => {
+            next = UsageSnapshot { status: ProviderStatus::None, note, ..Default::default() };
         }
         Err(FetchError::Other(msg)) => {
             next.status = if prev.windows.is_empty() { ProviderStatus::Error } else { ProviderStatus::Stale };
@@ -127,8 +142,18 @@ mod tests {
         assert_eq!(a.windows, prev.windows);
         let b = apply(&a, Err(FetchError::RateLimited { retry_after_secs: 0 }), 2_000, &mut n);
         assert_eq!(b.backoff_until, 122_000);
-        let c = apply(&b, Ok(Reading { windows: vec![win()], note: String::new() }), 3_000, &mut n);
+        let c = apply(&b, Ok(Reading::live(vec![win()], "")), 3_000, &mut n);
         assert_eq!((c.status, c.backoff_until, c.fetched_at, n), (ProviderStatus::Ok, 0, 3_000, 0));
+    }
+
+    #[test]
+    fn a_fallback_reading_keeps_its_own_time_and_can_carry_a_rate_limit() {
+        let mut n = 0;
+        let old_log = Reading { windows: vec![win()], note: "from last run".into(), recorded_at: Some(7), current: false, rate_limited: Some(0) };
+        let s = apply(&UsageSnapshot::default(), Ok(old_log), 100_000, &mut n);
+        assert_eq!((s.status, s.fetched_at, s.backoff_until, n), (ProviderStatus::Stale, 7, 160_000, 1));
+        let nothing = apply(&s, Err(FetchError::NothingMetered("no snapshot yet".into())), 0, &mut n);
+        assert_eq!((nothing.status, nothing.windows.len()), (ProviderStatus::None, 0));
     }
 
     #[test]

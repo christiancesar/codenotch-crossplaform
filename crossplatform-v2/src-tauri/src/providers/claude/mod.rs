@@ -27,7 +27,7 @@ impl UsageProvider for Claude {
             other => other,
         };
         match result {
-            Ok(body) => Ok(Reading { windows: parse::windows(&body), note: String::new() }),
+            Ok(body) => Ok(Reading::live(parse::windows(&body), "")),
             Err(api::Error::Rejected) => Err(FetchError::NeedsAuth(
                 if cred.expired {
                     "Credential expired — run any claude command (or chat with Claude) to refresh it"

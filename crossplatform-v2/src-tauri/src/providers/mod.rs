@@ -3,6 +3,7 @@
 //! Nothing here knows Tauri: `app/` wires the scheduler's callback to events.
 
 pub mod claude;
+pub mod codex;
 pub mod model;
 pub mod scheduler;
 mod stored;

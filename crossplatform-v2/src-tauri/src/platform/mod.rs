@@ -29,6 +29,19 @@ pub trait Autostart {
     fn disable(&self) -> Result<String, String>;
 }
 
+pub trait Executables {
+    /// File names a command `base` can have on PATH: `codex.exe` / `codex.cmd` on Windows,
+    /// `codex` on Linux.
+    fn exe_names(&self, base: &str) -> Vec<String>;
+
+    /// First match for `base` on PATH.
+    fn find_on_path(&self, base: &str) -> Option<std::path::PathBuf> {
+        let path = std::env::var_os("PATH")?;
+        let names = self.exe_names(base);
+        std::env::split_paths(&path).flat_map(|dir| names.iter().map(move |n| dir.join(n))).find(|p| p.is_file())
+    }
+}
+
 pub trait Locale {
     /// UI language for "auto": "en", "zh", "ja", "ko" or "pt".
     fn system_lang(&self) -> &'static str;
