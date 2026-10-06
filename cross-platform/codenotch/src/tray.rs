@@ -85,7 +85,11 @@ fn handle(app: &AppHandle, id: &str) {
                 let _ = w.set_focus();
             }
         }
-        "quit" => app.exit(0),
+        "quit" => {
+            // Without this the next Claude Code hook finds no server and starts the app right back up.
+            let _ = std::fs::write(crate::config::user_quit_path(), b"");
+            app.exit(0)
+        }
         _ => {}
     }
 }
