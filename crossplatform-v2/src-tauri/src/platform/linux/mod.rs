@@ -4,9 +4,11 @@ mod autostart;
 mod net;
 mod process;
 mod pty;
+mod window;
 mod x11;
 
-use super::{Autostart, Credentials, Executables, Focus, Locale, ProcMaps, Processes, Pty};
+use super::{Autostart, Credentials, Executables, Focus, Input, Locale, ProcMaps, Processes, Pty, Window};
+use std::cell::RefCell;
 
 pub struct Platform;
 
@@ -91,6 +93,53 @@ impl Autostart for Platform {
 impl Executables for Platform {
     fn exe_names(&self, base: &str) -> Vec<String> {
         vec![base.to_string()]
+    }
+}
+
+impl Window for Platform {
+    fn prepare_process(&self) {
+        window::prepare_process();
+    }
+    fn no_activate(&self, w: &tauri::WebviewWindow) {
+        window::no_activate(w);
+    }
+    fn shapes_input(&self) -> bool {
+        true
+    }
+    fn set_input_region(&self, w: &tauri::WebviewWindow, rects: Vec<[f64; 4]>) {
+        window::set_input_region(w, rects);
+    }
+    fn starts_collapsed(&self) -> bool {
+        true
+    }
+}
+
+thread_local! {
+    /// Polled every few ms by the drag and the watchdog: one connection per polling thread,
+    /// dropped and reopened when a query fails
+    static X: RefCell<Option<x11::Ewmh>> = const { RefCell::new(None) };
+}
+
+fn with_x<T>(f: impl FnOnce(&x11::Ewmh) -> Option<T>) -> Option<T> {
+    X.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        if slot.is_none() {
+            *slot = x11::Ewmh::connect();
+        }
+        let r = f(slot.as_ref()?);
+        if r.is_none() {
+            *slot = None;
+        }
+        r
+    })
+}
+
+impl Input for Platform {
+    fn left_button_down(&self) -> bool {
+        with_x(|x| Some(x.left_button_down())).unwrap_or(false)
+    }
+    fn focus_signature(&self) -> Option<(u32, u32)> {
+        with_x(|x| x.focus_signature())
     }
 }
 

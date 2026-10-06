@@ -71,6 +71,29 @@ pub trait Executables {
     }
 }
 
+/// How the notch window behaves on this OS.
+pub trait Window {
+    /// Before anything else in main, before any thread exists (it may set environment variables).
+    fn prepare_process(&self);
+    /// The notch must never take focus from the window you are working in.
+    fn no_activate(&self, w: &tauri::WebviewWindow);
+    /// True when clicks are routed by shaping the window's input region to the hot rectangles;
+    /// false when the pointer watchdog toggles whole-window click-through instead.
+    fn shapes_input(&self) -> bool;
+    /// Input region as window-relative physical rectangles `[x, y, w, h]`; empty is fully
+    /// click-through. Only called when `shapes_input`.
+    fn set_input_region(&self, w: &tauri::WebviewWindow, rects: Vec<[f64; 4]>);
+    /// Whether the page starts collapsed to the small nub (Linux) or shows the pill (Windows).
+    fn starts_collapsed(&self) -> bool;
+}
+
+pub trait Input {
+    fn left_button_down(&self) -> bool;
+    /// `(active window, current desktop)` where the OS exposes them; a change while the card is
+    /// open closes it even if the pointer never moved (a keyboard desktop switch).
+    fn focus_signature(&self) -> Option<(u32, u32)>;
+}
+
 pub trait Locale {
     /// UI language for "auto": "en", "zh", "ja", "ko" or "pt".
     fn system_lang(&self) -> &'static str;

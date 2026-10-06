@@ -4,9 +4,10 @@ mod autostart;
 mod credentials;
 mod process;
 mod pty;
+mod window;
 mod windows;
 
-use super::{Autostart, Credentials, Executables, Focus, Locale, ProcMaps, Processes, Pty};
+use super::{Autostart, Credentials, Executables, Focus, Input, Locale, ProcMaps, Processes, Pty, Window};
 
 pub struct Platform;
 
@@ -93,6 +94,33 @@ impl Autostart for Platform {
 impl Executables for Platform {
     fn exe_names(&self, base: &str) -> Vec<String> {
         vec![format!("{base}.exe"), format!("{base}.cmd")]
+    }
+}
+
+impl Window for Platform {
+    fn prepare_process(&self) {
+        window::prepare_process();
+    }
+    fn no_activate(&self, w: &tauri::WebviewWindow) {
+        window::no_activate(w);
+    }
+    /// The pointer position is always current on Windows, so the watchdog toggles click-through
+    fn shapes_input(&self) -> bool {
+        false
+    }
+    fn set_input_region(&self, _w: &tauri::WebviewWindow, _rects: Vec<[f64; 4]>) {}
+    fn starts_collapsed(&self) -> bool {
+        false
+    }
+}
+
+impl Input for Platform {
+    fn left_button_down(&self) -> bool {
+        window::left_button_down()
+    }
+    /// Windows needs no forced collapse: leaving the window is always seen there
+    fn focus_signature(&self) -> Option<(u32, u32)> {
+        None
     }
 }
 

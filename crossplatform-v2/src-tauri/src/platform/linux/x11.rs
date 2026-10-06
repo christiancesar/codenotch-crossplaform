@@ -55,6 +55,21 @@ impl Ewmh {
         self.pid_of(active)
     }
 
+    pub fn left_button_down(&self) -> bool {
+        use x11rb::protocol::xproto::KeyButMask;
+        self.conn
+            .query_pointer(self.root)
+            .ok()
+            .and_then(|c| c.reply().ok())
+            .is_some_and(|r| KeyButMask::from(u16::from(r.mask)).contains(KeyButMask::BUTTON1))
+    }
+
+    pub fn focus_signature(&self) -> Option<(u32, u32)> {
+        let active = *self.u32_property(self.root, b"_NET_ACTIVE_WINDOW", AtomEnum::WINDOW, 1)?.first()?;
+        let desktop = *self.u32_property(self.root, b"_NET_CURRENT_DESKTOP", AtomEnum::CARDINAL, 1)?.first()?;
+        Some((active, desktop))
+    }
+
     pub fn activate(&self, win: Window) -> bool {
         let Some(active) = self.atom(b"_NET_ACTIVE_WINDOW") else { return false };
         // Source indication 1 = a normal application request
