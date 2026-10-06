@@ -50,6 +50,24 @@ See `phase0-compat-gate.md`.
   `STATUS_ENTRYPOINT_NOT_FOUND`).
 - CI fails if an OS `cfg` appears outside `platform/`.
 
+## Phase 3: providers (done)
+
+- Model: `ProviderId` (frozen ids and v0.3 file names), `ProviderStatus` (adds `none`, which
+  v0.3's page already handled), `LimitWindow`, `UsageSnapshot`, `Reading`, `FetchError`.
+- Snapshots keep the v0.3 format via a stored DTO; gate finding 3 fixed. All six real v0.3.1
+  snapshot files load and round-trip.
+- One scheduler for all providers: 429 backoff (60 s doubling to 15 min, Retry-After only
+  raises it, persisted), stale-not-blank, atomic save, change callback, refresh flag,
+  `should_fetch` for costly reads, hover opt-in.
+- Claude, Codex (live + rollout fallback), Cursor, OpenCode (Go + token tally), Antigravity
+  (CLI with TTL, bridge, Google credential, request count). Every v0.3 parser test moved.
+- New platform pieces: `Pty` (ConPTY on Windows, process group on Linux), `command_lines`,
+  `listening_ports` (/proc on Linux, no lsof), `Credentials`.
+- Live check on Ubuntu 26.04: `agy --print /usage` read through the new Linux runner.
+- Behaviour changes on purpose: Codex now uses the doubling backoff too; a needsAuth or
+  failed read keeps the windows already shown (stale) instead of blanking them; a UTF-16LE
+  credential blob is now actually decoded.
+
 ## Open decisions
 
 - **Frontend styling** (plain CSS, CSS Modules, styled-components or Tailwind): the user wants
@@ -57,6 +75,7 @@ See `phase0-compat-gate.md`.
 
 ## Next
 
-Phase 3: provider model (`UsageSnapshot`, `LimitWindow`, `FetchError`), stored snapshot DTO
-with the gate's finding 3 fixed, `UsageProvider` trait, registry and scheduler; then Claude
-as the reference provider.
+Phase 4: sessions (store, transcript watcher, hook server, hooks install, sweep), activity per
+provider, notch placement / hit-test / drag / pointer watchdog with the Linux window pieces
+(XWayland, input shape, no-activate), tray menu and icon rendering, glyphs, diagnostics
+(`doctor`), CLI subcommands.
