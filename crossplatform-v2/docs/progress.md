@@ -35,6 +35,21 @@ See `phase0-compat-gate.md`.
   Wrappers are positional, so call sites never write the keys. Response fields and event
   payloads stay snake_case through serde.
 
+## Phase 2: foundations (done, Windows build pending CI)
+
+- `support/`: `now_ms`, `sleep_interruptible` (wake flag passed in), `parse_iso`, base64,
+  `cap`. SQLite `open_ro` arrives with the Cursor/OpenCode providers.
+- `storage/`: config dir, atomic write, versioned load/save with migrations, quarantine.
+- `config/`: model vs on-disk DTO, unknown keys preserved, v1 -> v2 migration. Gate tests
+  pass for every golden config fixture (findings 1 and 2 of the gate are fixed).
+- `platform/`: `Processes`, `Focus`, `Autostart`, `Locale` with Windows and Linux
+  implementations; Linux autostart is new (XDG entry). The rest of the OS concerns
+  (window, input, pty, credentials, icons, console) land with their consumers in phases 3
+  and 4. Opening files and URLs goes through `tauri-plugin-opener` instead of a trait.
+- Windows test binaries now embed the Common Controls manifest (they failed with
+  `STATUS_ENTRYPOINT_NOT_FOUND`).
+- CI fails if an OS `cfg` appears outside `platform/`.
+
 ## Open decisions
 
 - **Frontend styling** (plain CSS, CSS Modules, styled-components or Tailwind): the user wants
@@ -42,6 +57,6 @@ See `phase0-compat-gate.md`.
 
 ## Next
 
-Phase 2: `support/`, `storage/` (versioned load, atomic write, quarantine), `config/` with
-migrations passing the golden fixtures, `platform/` traits with Windows and Linux
-implementations.
+Phase 3: provider model (`UsageSnapshot`, `LimitWindow`, `FetchError`), stored snapshot DTO
+with the gate's finding 3 fixed, `UsageProvider` trait, registry and scheduler; then Claude
+as the reference provider.
