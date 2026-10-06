@@ -3,7 +3,9 @@
 //! fire). Nothing here knows Tauri; `app/` applies the events and broadcasts changes.
 
 pub mod hook_server;
+pub mod hooks_install;
 pub mod store;
+pub mod sweep;
 pub mod watcher;
 
 pub use store::{HookEvent, Session, SessionState, SessionsSnapshot, Source, Store};
