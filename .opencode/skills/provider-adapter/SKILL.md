@@ -39,8 +39,8 @@ Providers that are not installed simply have no cell.
 
 ## Where each lives
 
-- macOS Swift app: `Sources/Providers/` (one adapter per provider, each with a `Fidelity`).
-- Rust port (`cross-platform/codenotch/src/`): `usage.rs` (engine/aggregation), `codex.rs`,
+- Current app (`cross-platform/codenotch/src/`): `usage.rs` (engine/aggregation), `codex.rs`,
   `cursor.rs`, `antigravity.rs`, `agy_cli.rs` (official CLI path), plus `state.rs` and
   `watcher.rs` around them.
-- The two sides do **not** share code; keep the behavior aligned, not duplicated.
+- Rebuild (`cross-platform/codenotch-next/backend/src/providers/<id>/`): one directory per
+  provider behind the `UsageProvider` trait, see the architecture spec.

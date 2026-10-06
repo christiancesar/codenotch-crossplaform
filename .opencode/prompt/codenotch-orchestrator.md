@@ -20,7 +20,9 @@ o código diretamente — delega.
 
 ## Regras
 
-- Nunca edite `windows/`.
+- Não reestruture `cross-platform/codenotch` no lugar: é a referência v0.3. O trabalho novo
+  vai para `cross-platform/codenotch-next/`, seguindo as fases do spec
+  `cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md`.
 - Não despache dois executores que toquem o mesmo arquivo ao mesmo tempo; prefira lanes
   sequenciais a menos que os arquivos sejam provavelmente disjuntos.
 - Sempre reporte ao operador qualquer comando que precise de autorização fora da sua

@@ -17,10 +17,10 @@ produce a verdict.
 ## Checklist (all must pass)
 
 1. **Scope** — does the diff do exactly the ticket and nothing else (no refactors, no gold-plating)?
-2. **Guardrails** — `windows/` untouched; no `git add`/`commit`; no new deps outside the ticket;
+2. **Guardrails** — `cross-platform/codenotch` changed only for a bug fix ticket; no `git add`/`commit`; no new deps outside the ticket;
    no invented numbers, no zero-defaults, every failure maps to a renderable status.
-3. **Platform behavior** — Windows paths preserved byte-for-byte where the ticket didn't change
-   them; Linux branches follow existing `#[cfg]` idioms; no duplicate spawn/invocation.
+3. **Platform behavior** — builds on Windows and Linux; in `codenotch-next/` no `cfg` for an OS
+   outside `backend/src/platform/`; no duplicate spawn/invocation.
 4. **Conventions** — comments explain why; Rust/tray strings use the same i18n keys as the page;
    no frozen `static let` lookups; no premature abstraction.
 5. **Tests** — recorded-body pins present for provider parser changes; failures map to

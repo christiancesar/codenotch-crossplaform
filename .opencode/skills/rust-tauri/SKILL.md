@@ -13,9 +13,10 @@ description: How the Codenotch Rust/Tauri 2 codebase works — workspace layout,
 - `codenotch-hook/` — a tiny companion binary (Claude Code session hook) that tells the app
   when a session starts, stops, or is waiting on you, over a localhost HTTP port.
 
-`windows/` is the reference Windows port: the read-only source of truth. **Never edit it.**
-Anything you change under `cross-platform/` should keep the Windows code paths byte-for-byte
-identical — add `#[cfg(not(windows))]` branches, don't rewrite existing ones.
+`codenotch/` is the v0.3 reference implementation. The rebuild described in
+`docs/specs/2026-09-15-cross-platform-architecture-spec.md` goes to `codenotch-next/`
+(`backend/` + `frontend/`), outside the workspace until cutover. Keep both Windows and Linux
+compiling.
 
 ## Dependencies (codenotch/Cargo.toml)
 

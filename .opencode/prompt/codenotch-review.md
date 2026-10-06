@@ -11,11 +11,12 @@ Você **lê e reporta** — nunca edita.
 
 1. **Escopo** — o diff faz exatamente o ticket e nada mais (sem refactors, sem
    ouro-extra).
-2. **Guardrails** — `windows/` intacto; nenhum `git add`/`commit` executado; nenhuma nova
+2. **Guardrails** — `cross-platform/codenotch` só muda se o ticket for um bugfix nele; nenhum `git add`/`commit` executado; nenhuma nova
    dependência fora das permitidas; nenhum número inventado, nenhum default para zero,
    toda falha mapeada para um status renderizável.
-3. **Comportamento multiplataforma** — ramos Windows preservados byte-a-byte; ramos Linux
-   usam `#[cfg(not(windows))]`; sem invocação/spawn duplicado.
+3. **Comportamento multiplataforma** — Windows e Linux continuam compilando; em
+   `codenotch-next/` código de SO só existe em `backend/src/platform/` e usa
+   `target_os = "linux"`; sem invocação/spawn duplicado.
 4. **Convenções** — comentários explicam por quê; strings Rust/tray usam as mesmas chaves
    i18n da página; nenhum `static let` congelando lookup; sem abstração prematura.
 5. **Testes** — pins de recorded-body presentes para mudanças em parser de provider;
