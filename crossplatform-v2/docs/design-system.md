@@ -62,15 +62,19 @@ on top. Themes are the shadcn convention: `:root` is light, `.dark` is dark.
 | --- | --- | --- | --- |
 | `bg-notch` | `black` | `black` | Notch body and hover card: the bezel, black in every theme |
 | `border-notch-outline` | `neutral-800` | `neutral-800` | 1 px outline cue (below) |
-| `*-band-ample` | `green-400` | `green-600` | 0 to 49 % used |
-| `*-band-watch` | `yellow-300` | `yellow-600` | 50 to 79 % |
-| `*-band-critical` | `orange-500` | `orange-600` | 80 to 100 % (100 %: full ring, dimmed glyph) |
+| `*-band-ample` | `green-400` | `green-600` | under 50 % used |
+| `*-band-watch` | `yellow-300` | `yellow-600` | 50 to 69 % |
+| `*-band-critical` | `orange-500` | `orange-600` | 70 % and over; at 100 % (exhausted) or blocked: full ring, glyph at 35 % |
 | `*-ring-track` | white 19 % | black 16 % | Ring track, translucent |
 | `*-bar-track` | white 18 % | black 15 % | Bar track, translucent |
 | `*-state-running` | `emerald-400` | same | Running / busy |
 | `*-state-attention` | `amber-400` | same | Attention / waiting on you |
 | `*-state-done` | `sky-400` | same | Done |
 | `*-state-idle` | `neutral-500` | same | Idle |
+
+Thresholds are the official app's (`UsageBand.swift`): the frame shows 21 % green, 52 % yellow,
+73 % orange, so the bands break at 50 and 70. The old spec's prose table (50 / 80) contradicts
+its own frame; the frame wins. `src/libs/usage.ts` and the tray share these thresholds.
 
 The ring and the bar of a window share its band colour. The tray icon draws the same bands
 (`tray/render.rs` holds the dark values as sRGB: `#05DF72`, `#FFDF20`, `#FF6900`), so the
@@ -184,35 +188,49 @@ than the window. Its width is capped and fluid below the cap.
 
 ## Motion
 
+State changes use **springs**, the official app's vocabulary (`NotchMotion.swift`), through the
+Motion library (`src/libs/motion.ts`). SwiftUI's `spring(response, dampingFraction)` converts
+exactly to a mass-1 spring: stiffness = (2π / response)², damping = 4π · dampingFraction /
+response. Motion runs only while something moves; nothing idles in a loop.
+
+| Name | Spring / curve | Use |
+| --- | --- | --- |
+| `unfold` | response 0.42, damping 0.78 | Folding open and shut |
+| `contents` | 0.36, 0.82 | Contents arriving after the shape starts opening; staggered 45 ms per cell, capped at 180 ms |
+| `glide` | 0.5, 0.86 | The card travelling between cells |
+| `crossfade` | ease-in-out 160 ms | Contents changing inside something already moving |
+| `reading` | 0.9, 0.9 | A percentage changing: the arc sweeps, never snaps |
+| `press` | 0.3, 0.62 | A ring pressed in while its refresh is in flight |
+| `refreshTurn` | `cubic-bezier(0.32, 0, 0.14, 1)` 950 ms | Exactly one turn of the reading on refresh |
+
+CSS tokens for what stays in CSS:
+
 | Token | Value | Use |
 | --- | --- | --- |
-| `--ease-standard` | `ease` | Every transition (v0.3's curve; the official app springs, which CSS approximates with Motion if wanted) |
-| `--dur-card-in` | 180 ms | Hover card in (fade + slight slide toward the notch) |
 | `--dur-card-grace` | 250 ms | Pointer out to card out; the pointer must cross the gap |
-| `--dur-collapse` | 180 ms | Pill to tab and back: width, max-height, padding, radius, gap |
-| `--dur-cell-fade` | 120 ms | Cells fade when collapsing |
-| `--anim-spin` | `1.2s steps(12) infinite` | Running session / busy activity arc |
-| `--anim-pulse` | `1.1s steps(6) infinite` | Attention / waiting |
+| `--dur-cell-fade` | 120 ms | Cells fading on collapse |
+| `animate-notch-spin` | `1.2s steps(12) infinite` | Working indicator |
+| `animate-notch-pulse` | `1.1s steps(6) infinite` | Waiting on you |
 
 Rules:
 
-- **Continuous animations are stepped.** A 60 fps SVG transform in a transparent
-  always-on-top window made the whole desktop compositor stutter (v0.3, Windows); `steps()`
-  keeps it to about 10 repaints a second and still reads as motion.
-- **Collapse animates `max-height`, never a measured `height`.** Measuring raced provider
-  data arriving late and left cells clipped.
-- **First layout never animates** (`no-anim` on mount), so launch has no shrink pop.
-- **`prefers-reduced-motion: reduce`:** spinners become a static arc, pulse becomes a solid
-  dot, the card appears without a slide.
-- Enter and exit choreography (card, notices) may use Motion (`motion` package) when CSS
-  transitions are not enough; continuous indicators stay CSS.
+- **Continuous indicators are CSS and stepped.** A 60 fps transform in a transparent
+  always-on-top window stalled the whole desktop compositor (v0.3, Windows); `steps()` keeps it
+  to about 10 repaints a second and still reads as motion.
+- **A repeat is never cancelled to stop a spin.** The refresh turn is one finite turn that
+  lands where it started; a repeating spin set back to its target keeps spinning.
+- **Collapse animates `max-height`, never a measured `height`.** Measuring raced late provider
+  data and left cells clipped.
+- **First layout never animates.**
+- **Reduced motion:** Motion follows `prefers-reduced-motion` (`MotionConfig
+  reducedMotion="user"`), the CSS indicators stop.
 
 ## Opacity and state treatments
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--opacity-stale` | 0.55 | Stale reading: ring and percent dimmed |
-| `--opacity-limit-glyph` | 0.55 | Glyph at 100 % used |
+| `--opacity-stale` | 0.45 | Stale reading: ring and glyph dimmed (official value) |
+| `--opacity-limit-glyph` | 0.35 | Glyph at 100 % used or blocked |
 | Derived number | `~` prefix | `derived: true` window |
 | Count window | track only, `~N` label | `count` set, no published denominator |
 | Absent provider | not rendered | `status: absent` |

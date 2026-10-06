@@ -1,5 +1,6 @@
 import type { Preview } from "@storybook/react-vite";
 import { withThemeByClassName } from "@storybook/addon-themes";
+import { MotionConfig } from "motion/react";
 import "../src/index.css";
 
 const preview: Preview = {
@@ -16,7 +17,14 @@ const preview: Preview = {
       storySort: { order: ["Design System", ["Introduction", "Colors", "Typography", "Geometry", "Motion"], "Notch", "Settings"] },
     },
   },
-  decorators: [withThemeByClassName({ themes: { dark: "dark", light: "" }, defaultTheme: "dark" })],
+  decorators: [
+    (Story) => (
+      <MotionConfig reducedMotion="user">
+        <Story />
+      </MotionConfig>
+    ),
+    withThemeByClassName({ themes: { dark: "dark", light: "" }, defaultTheme: "dark" }),
+  ],
   tags: ["autodocs"],
 };
 

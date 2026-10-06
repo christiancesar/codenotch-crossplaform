@@ -90,7 +90,8 @@
   --dur-card-grace: 250ms;
   --dur-collapse: 180ms;
   --dur-cell-fade: 120ms;
-  --opacity-stale: 0.55;
+  /* The official app's stale dim (ProviderRing: 0.45) */
+  --opacity-stale: 0.45;
 }
 
 @media (prefers-reduced-motion: reduce) {

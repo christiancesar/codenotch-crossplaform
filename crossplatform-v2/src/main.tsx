@@ -1,6 +1,7 @@
 import { lazy, StrictMode, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { MotionConfig } from "motion/react";
 import "./index.css";
 
 // Both OS windows load this one bundle; the window label picks the tree, and `lazy` keeps the
@@ -25,8 +26,11 @@ const Root = isSettings ? Settings : Notch;
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
-    <Suspense fallback={null}>
-      <Root />
-    </Suspense>
+    {/* Springs respect the system's reduced-motion setting */}
+    <MotionConfig reducedMotion="user">
+      <Suspense fallback={null}>
+        <Root />
+      </Suspense>
+    </MotionConfig>
   </StrictMode>,
 );

@@ -45,13 +45,13 @@ const GLYPH_H: usize = 7;
 /// pixels per digit and nothing legible.
 pub const MAX_NUMBER_ROWS: usize = 2;
 
-/// The same three bands the rings use: comfortable, getting close, nearly spent. These are the
+/// The same bands the rings use (src/libs/usage.ts): under 50 %, under 70 %, the rest. These are the
 /// dark-theme band tokens (Tailwind green-400, yellow-300, orange-500 in src/styles/tokens.css)
 /// converted to sRGB, so the icon and the notch show the same colour for the same number.
 fn band_color(pct: u32) -> [u8; 3] {
     if pct < 50 {
         [0x05, 0xdf, 0x72]
-    } else if pct < 80 {
+    } else if pct < 70 {
         [0xff, 0xdf, 0x20]
     } else {
         [0xff, 0x69, 0x00]
