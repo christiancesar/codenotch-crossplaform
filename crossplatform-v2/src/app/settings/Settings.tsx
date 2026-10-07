@@ -1,20 +1,50 @@
-import { Button } from "@/components/ui/button";
-import { useBackendCheck } from "@/libs/ipc/useBackendCheck";
+import { SettingsWindow } from "@/components/settings/SettingsWindow";
+import { AboutPane, BehaviourPane, HooksPane, NotchPane, TrayPane, type Platform } from "@/components/settings/panes";
+import { Toaster } from "@/components/ui/sonner";
+import { useSettings } from "./useSettings";
 
-// Placeholder until the settings panes exist.
+/** The OS decides a few words and paths; the page only needs to know which one it runs on. */
+const platform: Platform = /windows/i.test(navigator.userAgent) ? "windows" : "linux";
+
+/** The settings window: the Storybook panes, fed and saved through the IPC. */
 export default function Settings() {
-  const line = useBackendCheck();
+  const { data, loaded, strip, actions } = useSettings();
+  // Nothing until the first answer: a flash of defaults would show switches in the wrong place
+  if (!loaded && !strip) return null;
   return (
-    <main className="min-h-screen space-y-4 p-6">
-      <h1 className="font-heading text-2xl font-semibold lining-nums">Codenotch Settings</h1>
-      <p className="text-sm text-muted-foreground tabular-nums">{line}</p>
-      <div className="flex gap-2">
-        <span className="size-4 rounded-full bg-band-ample" />
-        <span className="size-4 rounded-full bg-band-watch" />
-        <span className="size-4 rounded-full bg-band-critical" />
-        <span className="size-4 rounded-full bg-state-done" />
-      </div>
-      <Button>shadcn button</Button>
-    </main>
+    <div className="h-screen">
+      <SettingsWindow
+        platform={platform}
+        strip={strip}
+        panes={{
+          tray: (
+            <TrayPane
+              platform={platform}
+              options={data.options}
+              config={data.tray}
+              onConfig={actions.setTray}
+              preview={data.preview}
+              logo={data.logo}
+              repairNote={data.repairNote}
+            />
+          ),
+          notch: <NotchPane options={data.options} slots={data.notchSlots} onSlots={actions.setNotchSlots} scale={data.scale} onScale={actions.setScale} />,
+          behaviour: (
+            <BehaviourPane
+              platform={platform}
+              autostart={data.autostart}
+              onAutostart={actions.setAutostart}
+              flags={data.flags}
+              onFlags={actions.setFlags}
+              lang={data.lang}
+              onLang={actions.setLang}
+            />
+          ),
+          hooks: <HooksPane platform={platform} installed={data.hooks} onInstalled={actions.setHooks} />,
+          about: <AboutPane platform={platform} version={data.version} logo={data.logo} onOpenData={actions.openDataDir} onResetPosition={actions.resetPosition} />,
+        }}
+      />
+      <Toaster position="bottom-center" />
+    </div>
   );
 }

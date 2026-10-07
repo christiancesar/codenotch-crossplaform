@@ -130,6 +130,14 @@ Translation (2026-10-07): the whole UI in en, pt, zh, ja and ko through i18next,
 backend's resolved language; Storybook has a Language toolbar menu. zh, ja and ko were written
 without a native reviewer and should get one.
 
+Wired to the IPC (2026-10-07): `app/settings` loads every pane from the `get_*` commands, saves
+through the `set_*` ones (toast on save, strip on failure, Result commands roll the switch back)
+and follows the `scale`, `notch_slots`, `lang` and `usage` events. `app/notch` draws the rings
+from `get_usage` and the events, the card per hovered provider, reports the hot rectangles to
+`set_hot` while anything moves, hands drags to `drag_begin`, opens the provider page on click,
+fits the viewport to 340 px and reports the DPR. Not yet run on the desktop: v0.3 was running
+(same identifier, single-instance).
+
 ## Open decisions
 
 - Five providers at frame sizes make the pill (511 px plus fillets) taller than the 460 px notch
@@ -140,6 +148,6 @@ without a native reviewer and should get one.
 
 ## Next
 
-1. User review of the settings window in Storybook; the five-provider pill height decision.
-2. Wire the notch and settings screens to the IPC (`bindings.ts`), replacing the placeholders.
+1. Run v2 on the desktop (v0.3 closed) and check the notch and settings against the stories.
+2. The five-provider pill height decision.
 3. Phase 7 cutover: parity checklist on Linux and Windows.
