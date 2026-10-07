@@ -22,6 +22,10 @@ fn main() {
     if send(port, &event, ppid, &body).is_ok() {
         return;
     }
+    // The user quit from the tray: a hook must not bring the app back
+    if config_dir().map(|d| user_quit(&d)).unwrap_or(false) {
+        return;
+    }
     // Main app not running: launch it detached, then retry briefly
     spawn_main();
     for _ in 0..20 {
@@ -33,27 +37,33 @@ fn main() {
     // Give up quietly — never affect Claude Code
 }
 
-/// Pulls "port": N out of the main app's config.json (Windows: %APPDATA%\codenotch; elsewhere:
-/// $XDG_CONFIG_HOME/codenotch, falling back to $HOME/.config/codenotch). Hand-rolled scan, no
-/// dependency
-fn read_port() -> u16 {
+/// The main app's config directory (Windows: %APPDATA%\codenotch; elsewhere:
+/// $XDG_CONFIG_HOME/codenotch, falling back to $HOME/.config/codenotch)
+fn config_dir() -> Option<String> {
     #[cfg(windows)]
-    let path = match std::env::var("APPDATA") {
-        Ok(a) => format!("{a}\\codenotch\\config.json"),
-        Err(_) => return DEFAULT_PORT,
-    };
+    return std::env::var("APPDATA").ok().map(|a| format!("{a}\\codenotch"));
     #[cfg(not(windows))]
-    let path = match std::env::var("XDG_CONFIG_HOME")
+    match std::env::var("XDG_CONFIG_HOME")
         .ok()
         .filter(|s| !s.is_empty())
     {
-        Some(x) => format!("{x}/codenotch/config.json"),
+        Some(x) => Some(format!("{x}/codenotch")),
         // XDG_CONFIG_HOME unset or empty: the XDG spec treats that as unset, so use the default
-        None => match std::env::var("HOME") {
-            Ok(h) => format!("{h}/.config/codenotch/config.json"),
-            Err(_) => return DEFAULT_PORT,
-        },
+        None => std::env::var("HOME").ok().map(|h| format!("{h}/.config/codenotch")),
+    }
+}
+
+/// Marker the main app writes on tray "Quit" and removes on its next launch
+fn user_quit(dir: &str) -> bool {
+    std::path::Path::new(dir).join("user-quit").exists()
+}
+
+/// Pulls "port": N out of the main app's config.json. Hand-rolled scan, no dependency
+fn read_port() -> u16 {
+    let Some(dir) = config_dir() else {
+        return DEFAULT_PORT;
     };
+    let path = std::path::Path::new(&dir).join("config.json");
     let Ok(txt) = std::fs::read_to_string(path) else {
         return DEFAULT_PORT;
     };
@@ -153,4 +163,20 @@ fn parent_pid() -> u32 {
 #[cfg(not(windows))]
 fn parent_pid() -> u32 {
     std::os::unix::process::parent_id()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::user_quit;
+
+    #[test]
+    fn quit_marker_blocks_relaunch_only_when_present() {
+        let dir = std::env::temp_dir().join(format!("codenotch-hook-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let d = dir.to_str().unwrap();
+        assert!(!user_quit(d));
+        std::fs::write(dir.join("user-quit"), b"").unwrap();
+        assert!(user_quit(d));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
 }

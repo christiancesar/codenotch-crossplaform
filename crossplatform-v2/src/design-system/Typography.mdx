@@ -1,0 +1,33 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { TypeSample, Surface } from "./Tokens";
+
+<Meta title="Design System/Typography" />
+
+# Typography
+
+**Raleway** for headings, **Space Grotesk** for everything else. Both are bundled with the app.
+Every number that changes is set in Space Grotesk with `tabular-nums`; Raleway has no tabular
+figures.
+
+## Notch
+
+<Surface>
+  <TypeSample label="Percent · 14 / 600" cls="font-sans text-[14px] font-semibold tabular-nums" sample="73%  21%  100%" />
+  <TypeSample label="Card title · 14 / 600 heading" cls="font-heading text-[14px] font-semibold" sample="Claude Usage" />
+  <TypeSample label="Card body · 11 / 400" cls="font-sans text-[11px] tabular-nums text-muted-foreground" sample="Current session · Resets in 51 min · 73% used" />
+  <TypeSample label="Letter fallback · 20 / 700" cls="font-sans text-[20px] font-bold" sample="Ag" />
+</Surface>
+
+## Settings window
+
+<TypeSample label="Pane title · 18 / 600 heading" cls="font-heading text-lg font-semibold lining-nums" sample="Taskbar icon" />
+<TypeSample label="Row label · 13 / 500" cls="font-sans text-[13px] font-medium" sample="Show the notch" />
+<TypeSample label="Help · 11 / 400" cls="font-sans text-[11px] text-muted-foreground" sample="Held on: the notch is hidden, so this icon is the only way left." />
+<TypeSample label="Mono · 12" cls="font-mono text-xs" sample="~/.config/codenotch/config.json" />
+
+## Figures
+
+<TypeSample label="Space Grotesk proportional" cls="font-sans text-2xl" sample="1111 / 8888" />
+<TypeSample label="Space Grotesk tabular" cls="font-sans text-2xl tabular-nums" sample="1111 / 8888" />
+<TypeSample label="Raleway default (old-style)" cls="font-heading text-2xl" sample="Claude 2026" />
+<TypeSample label="Raleway lining-nums" cls="font-heading text-2xl lining-nums" sample="Claude 2026" />

@@ -1,0 +1,7 @@
+# CI runs the tests through cargo-nextest: each test in its own process, so a hung or runaway test
+# is named and killed instead of taking the runner down with it.
+[profile.ci]
+# A test past 30 s is reported by name; past 2 minutes it is killed
+slow-timeout = { period = "30s", terminate-after = 4 }
+fail-fast = false
+failure-output = "immediate-final"

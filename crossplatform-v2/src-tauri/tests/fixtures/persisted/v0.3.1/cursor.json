@@ -1,0 +1,24 @@
+{
+  "status": "ok",
+  "windows": [
+    {
+      "id": "included",
+      "label": "Included usage",
+      "used": 0.505,
+      "resets_at": 1791726846730,
+      "count": null,
+      "derived": false
+    },
+    {
+      "id": "api",
+      "label": "API usage",
+      "used": 1.0,
+      "resets_at": 1791726846730,
+      "count": null,
+      "derived": false
+    }
+  ],
+  "fetched_at": 1791317442929,
+  "note": "Free · via Cursor",
+  "backoff_until": 0
+}

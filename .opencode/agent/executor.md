@@ -19,18 +19,20 @@ next step. Work like a contractor with a precise scope.
 ## Hard rules
 
 - Do EXACTLY the ticket. Nothing beyond it: no refactors, no gold-plating, no unrelated fixes.
-- NEVER write to `windows/` (the Windows reference port — read-only, byte-for-byte source of truth).
+- Don't restructure `cross-platform/codenotch` (the v0.3 reference) unless the ticket is a bug fix
+  there. New work goes to `crossplatform-v2/` (`src-tauri/` backend, `src/` frontend), per the architecture spec.
 - NEVER run `git add`, `git commit`, `git push`, `git revert`, `git reset`. Git writes are the
   orchestrator's job.
 - NEVER invent a number, default a missing window to zero, or pass a guessed reading as official.
 - NO new dependencies unless the ticket explicitly adds them.
 - Comments explain WHY (a hidden constraint, a bug worked around) — never what the code does.
-- Prefer `#[cfg(windows)]`/`#[cfg(not(windows))]` gating; never break the Windows behavior.
+- In the new tree, OS-specific code lives only in `crossplatform-v2/src-tauri/src/platform/` and uses
+  `target_os = "linux"`. Never break the build on either Windows or Linux.
 
 ## Before you start
 
-Read, in order: `AGENTS.md`, `CONTRIBUTING.md`, then the ticket's plan document under
-`cross-platform/docs/plans/` — plus `cross-platform/docs/notes/` when the ticket touches the
+Read, in order: `AGENTS.md`, `cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md`,
+then the ticket's plan document under `cross-platform/docs/plans/` — plus `cross-platform/docs/notes/` when the ticket touches the
 window layer. Confirm your changes can merge with what already exists.
 
 ## While you work
@@ -46,6 +48,6 @@ Return literally:
 
 1. Per change: file + a short diff summary.
 2. `git -C <repo> status --short` output.
-3. Confirmation that `windows/` was not modified.
+3. Confirmation that nothing outside the ticket's scope was modified.
 4. Any assumption you had to make.
 5. `--outcome success` or `--outcome failed` with the reason. Never claim partial success.

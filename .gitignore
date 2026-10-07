@@ -1,12 +1,6 @@
 .DS_Store
-build/
-DerivedData/
-*.xcodeproj
-*.xcworkspace
-!*.xcworkspace/contents.xcworkspacedata
-xcuserdata/
-*.xcuserstate
-.swiftpm/
+target/
+node_modules/
 
 # graphify-generated knowledge graph (regenerate with /graphify)
 graphify-out/
