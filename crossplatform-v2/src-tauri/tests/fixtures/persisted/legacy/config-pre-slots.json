@@ -1,0 +1,12 @@
+{
+  "port": 48666,
+  "lang": "en",
+  "bar_x": null,
+  "bar_y": null,
+  "bar_w": null,
+  "drag_enabled": false,
+  "notch_y": 0.42,
+  "scale": 0.8,
+  "tray_providers": ["claude", "codex"],
+  "notch_providers": ["claude", "cursor"]
+}

@@ -1,0 +1,52 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Surface } from "./Tokens";
+
+<Meta title="Design System/Motion" />
+
+# Motion
+
+## Springs
+
+State changes use the official app's springs (`NotchMotion.swift`), through Motion
+(`src/libs/motion.ts`). SwiftUI's `spring(response, dampingFraction)` converts exactly:
+stiffness = (2π / response)², damping = 4π · dampingFraction / response.
+
+| Name | Spring / curve | Use |
+| --- | --- | --- |
+| `unfold` | response 0.42, damping 0.78 | Folding open and shut |
+| `contents` | 0.36, 0.82 | Contents arriving after the shape opens, staggered 45 ms per cell |
+| `glide` | 0.5, 0.86 | The card travelling between cells |
+| `crossfade` | ease-in-out 160 ms | Contents changing inside something moving |
+| `reading` | 0.9, 0.9 | A percentage changing: the arc sweeps, never snaps |
+| `press` | 0.3, 0.62 | A ring pressed in while its refresh is in flight |
+| `refreshTurn` | `cubic-bezier(0.32, 0, 0.14, 1)` 950 ms | One turn of the reading on refresh |
+
+## Continuous indicators
+
+| Class | Timing | Use |
+| --- | --- | --- |
+| `animate-notch-spin` | 1.1 s linear, infinite | Working |
+| `animate-notch-pulse` | 1.8 s ease-in-out, opacity 1 to 0.3 | Waiting on you |
+
+They rotate or fade a **composited layer** (`will-change`), so the GPU moves a cached texture
+instead of repainting the transparent window every frame. With reduced motion they stop.
+
+<Surface>
+  <div className="flex items-center gap-10">
+    <div className="flex flex-col items-center gap-2">
+      <div className="size-(--ring-size) animate-notch-spin rounded-full border-(length:--ring-progress-stroke) border-state-running border-t-ring-track will-change-transform" />
+      <span className="text-[11px] text-muted-foreground">animate-notch-spin · working</span>
+    </div>
+    <div className="flex flex-col items-center gap-2">
+      <span className="size-(--status-dot) animate-notch-pulse rounded-full bg-state-attention will-change-[opacity]" />
+      <span className="text-[11px] text-muted-foreground">animate-notch-pulse · waiting</span>
+    </div>
+  </div>
+</Surface>
+
+## CSS durations
+
+| Token | Value | Use |
+| --- | --- | --- |
+| `--dur-card-grace` | 250 ms | Pointer out to card out: the pointer must cross the gap |
+| `--dur-cell-fade` | 120 ms | Cells fading on collapse |

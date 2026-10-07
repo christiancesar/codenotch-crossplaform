@@ -12,13 +12,15 @@ Leia, nesta ordem:
 3. `cross-platform/docs/notes/window-managers.md` se o ticket tocar a camada de janela.
 4. `.opencode/skills/edge-pinning/SKILL.md`, `.opencode/skills/rust-tauri/SKILL.md` e/ou
    `.opencode/skills/provider-adapter/SKILL.md` conforme o tema do ticket.
-5. Os arquivos de código listados no ticket e, quando relevante, a referência equivalente em
-   `windows/` (read-only — nunca edite nada lá).
+5. Os arquivos de código listados no ticket e, quando relevante, a implementação de
+   referência em `cross-platform/codenotch` (v0.3).
 
 ## Regras de código (não negociáveis)
 
-- **Nunca edite `windows/`**. O porte Windows é a fonte da verdade byte-a-byte.
-- Use `#[cfg(not(windows))]` para ramos Linux; **nunca** `#[cfg(linux)]`.
+- Não reestruture `cross-platform/codenotch` (referência v0.3) fora de um ticket de bugfix.
+  Trabalho novo vai para `crossplatform-v2/` (`src-tauri/` backend, `src/` frontend).
+- No projeto novo, código de SO só em `crossplatform-v2/src-tauri/src/platform/`, com
+  `target_os = "linux"`; **nunca** `#[cfg(linux)]`.
 - Comentários explicam **por quê** (uma restrição escondida, um bug contornado), não **o
   quê** o código faz.
 - Sem abstração prematura. Mantenha o estilo dos arquivos ao redor.
@@ -46,7 +48,7 @@ verificado ao vivo deve ser relatado como não-verificado — nunca alegue.
 
 ## Regras de git (proteção contra perda)
 
-- Você trabalha na branch principal (`cross-platform-port`) do repo
+- Você trabalha na branch indicada pelo orquestrador no repo
   `/media/ccrs/development/codenotch`.
 - **Commit frequentemente** seu progresso com `git add` + `git commit` para que um
   cancelamento ou `git reset` não perca trabalho.
@@ -62,6 +64,6 @@ Retorne literalmente:
 1. Hash do último commit na branch (`git rev-parse HEAD`).
 2. `git -C /media/ccrs/development/codenotch status --short`.
 3. Por alteração: arquivo + um curto resumo do diff.
-4. Confirmação de que `windows/` não foi modificado.
+4. Confirmação de que nada fora do escopo do ticket foi modificado.
 5. Suposições que você teve de fazer.
 6. `--outcome success` ou `--outcome failed` com o motivo. Nunca alegue sucesso parcial.

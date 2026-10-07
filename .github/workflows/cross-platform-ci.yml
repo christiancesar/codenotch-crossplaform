@@ -7,9 +7,10 @@ name: Cross-platform CI
 on:
   push:
     branches: [cross-platform-port]
-    paths: ["cross-platform/**", ".github/workflows/cross-platform-ci.yml"]
+    paths: ["cross-platform/**", "!cross-platform/docs/**", ".github/workflows/cross-platform-ci.yml"]
+  # v0.3 is kept as the reference for the rebuild: its CI runs when its code changes, not its docs
   pull_request:
-    paths: ["cross-platform/**", ".github/workflows/cross-platform-ci.yml"]
+    paths: ["cross-platform/**", "!cross-platform/docs/**", ".github/workflows/cross-platform-ci.yml"]
 
 jobs:
   test:
