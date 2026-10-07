@@ -25,7 +25,7 @@ const meta = {
   parameters: { layout: "centered" },
   decorators: [
     (Story) => (
-      <div className="dark relative h-[460px] w-[340px] rounded-xl bg-[#202028]">
+      <div className="relative h-[460px] w-[340px] rounded-xl bg-[#202028]">
         <Story />
       </div>
     ),

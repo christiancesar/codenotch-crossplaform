@@ -52,7 +52,7 @@ export const commands = {
 	getAppIcon: () => __TAURI_INVOKE<string | null>("get_app_icon"),
 	getLang: () => __TAURI_INVOKE<LangInfo>("get_lang"),
 	setLang: (lang: string) => __TAURI_INVOKE<void>("set_lang", { lang }),
-	/**  The settings window's theme; the notch is always dark. */
+	/**  The app's theme: every window follows it. */
 	getTheme: () => __TAURI_INVOKE<Theme>("get_theme"),
 	setTheme: (theme: Theme) => __TAURI_INVOKE<void>("set_theme", { theme }),
 	getUiFlags: () => __TAURI_INVOKE<UiFlags>("get_ui_flags"),
@@ -87,6 +87,7 @@ export const events = {
 	pointerLeft: makeEvent<PointerLeft>("pointer_left"),
 	scale: makeEvent<ScaleChanged>("scale"),
 	sessions: makeEvent<SessionsChanged>("sessions"),
+	theme: makeEvent<ThemeChanged>("theme"),
 	usage: makeEvent<UsageChanged>("usage"),
 };
 
@@ -227,10 +228,13 @@ export type Slot = {
 	window: string,
 };
 
-/**  The settings window's colours. The notch is always dark: it is part of the bezel. */
+/**  The app's colours: the settings window, the notch and its card. */
 export type Theme = 
 /**  Follows the desktop's light or dark preference */
 "system" | "light" | "dark";
+
+/**  The theme changed in Settings: every window applies it */
+export type ThemeChanged = Theme;
 
 export type TrayConfig = {
 	mode: TrayMode,

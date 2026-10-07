@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { UsageRing } from "./UsageRing";
 
 /** Stand-in for the provider glyph until ProviderGlyph exists */
-const Letter = ({ c = "C" }: { c?: string }) => <span className="text-[15px] font-bold text-white">{c}</span>;
+const Letter = ({ c = "C" }: { c?: string }) => <span className="text-[15px] font-bold text-notch-foreground">{c}</span>;
 
 const meta = {
   title: "Notch/UsageRing",
@@ -11,7 +11,7 @@ const meta = {
   parameters: { layout: "centered" },
   decorators: [
     (Story) => (
-      <div className="dark rounded-2xl bg-notch p-6">
+      <div className="rounded-2xl bg-notch p-6">
         <Story />
       </div>
     ),
@@ -56,7 +56,7 @@ export const FrameTrio: Story = {
           <UsageRing {...args} used={u}>
             <Letter c={["C", "O", "G"][i]} />
           </UsageRing>
-          <span className="text-[14px] font-semibold tabular-nums text-white">{Math.round(u * 100)}%</span>
+          <span className="text-[14px] font-semibold tabular-nums text-notch-foreground">{Math.round(u * 100)}%</span>
         </div>
       ))}
     </div>

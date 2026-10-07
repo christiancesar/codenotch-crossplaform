@@ -8,7 +8,7 @@ import type { ProviderId } from "@/libs/ipc";
 
 /** A screen edge: the shell is welded to the right side of this box. */
 const edge = (Story: () => React.ReactElement) => (
-  <div className="dark flex h-[460px] w-[340px] items-center justify-end overflow-hidden rounded-l-xl bg-[radial-gradient(circle_at_30%_30%,#3b3b4f,#14141c)]">
+  <div className="flex h-[460px] w-[340px] items-center justify-end overflow-hidden rounded-l-xl bg-[radial-gradient(circle_at_30%_30%,#3b3b4f,#14141c)]">
     <Story />
   </div>
 );
@@ -43,7 +43,7 @@ export const Folding: Story = {
     return <NotchShell {...args} collapsed={c} />;
   },
 };
-/** On a black wallpaper the 1 px outline is all that shows the edge. */
+/** Dark theme on a black wallpaper: the 1 px outline is all that shows the edge. */
 export const OnBlack: Story = {
   decorators: [
     (Story) => (

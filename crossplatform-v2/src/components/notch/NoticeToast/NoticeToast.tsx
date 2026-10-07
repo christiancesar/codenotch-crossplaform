@@ -8,7 +8,7 @@ export function NoticeToast({ message }: { message: string | null }) {
       {message && (
         <motion.div
           role="status"
-          className="rounded-lg bg-black/85 px-2 py-1 text-[10px] text-muted-foreground"
+          className="rounded-lg bg-notch/90 ring-1 ring-notch-outline px-2 py-1 text-[10px] text-muted-foreground"
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 6 }}

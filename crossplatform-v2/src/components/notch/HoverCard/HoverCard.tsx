@@ -63,7 +63,7 @@ function Card({ anchorY, children, className }: Omit<HoverCardProps, "open">) {
       exit={{ opacity: 0, x: 8, transition: notchMotion.crossfade }}
       transition={{ default: notchMotion.contents, top: move }}
     >
-      <div className="relative rounded-(--card-radius) bg-notch text-white">
+      <div className="relative rounded-(--card-radius) bg-notch text-notch-foreground ring-1 ring-notch-outline">
         <div
           className="overflow-y-auto p-(--card-padding) [scrollbar-width:none]"
           style={{ maxHeight: box.window ? box.window - 2 * MARGIN : undefined }}

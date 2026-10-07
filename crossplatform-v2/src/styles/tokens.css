@@ -2,8 +2,12 @@
    Tailwind palette; geometry and motion are measured off the official frame (see
    docs/design-system.md). Components use these names only, never a raw value. */
 
-/* Light: the settings window under a light system theme */
+/* Light theme: the whole app (settings, notch and card) */
 :root {
+  /* The notch in a light theme: a white bezel with a hairline, so it still reads as an edge */
+  --notch: var(--color-white);
+  --notch-outline: var(--color-neutral-300);
+  --notch-foreground: var(--color-neutral-950);
   --band-ample: var(--color-green-600);
   --band-watch: var(--color-yellow-600);
   --band-critical: var(--color-orange-600);
@@ -11,8 +15,12 @@
   --bar-track: oklch(0 0 0 / 15%);
 }
 
-/* Dark: the notch always, the settings window under a dark system theme */
+/* Dark theme: the whole app */
 .dark {
+  /* The frame's bezel: pure black, a 1 px outline so it survives a black wallpaper */
+  --notch: var(--color-black);
+  --notch-outline: var(--color-neutral-800);
+  --notch-foreground: var(--color-white);
   --band-ample: var(--color-green-400);
   --band-watch: var(--color-yellow-300);
   --band-critical: var(--color-orange-500);
@@ -23,9 +31,10 @@
 }
 
 @theme inline {
-  /* The bezel: pure black in every theme */
-  --color-notch: var(--color-black);
-  --color-notch-outline: var(--color-neutral-800);
+  /* The bezel and what is written on it, per theme */
+  --color-notch: var(--notch);
+  --color-notch-outline: var(--notch-outline);
+  --color-notch-foreground: var(--notch-foreground);
 
   --color-band-ample: var(--band-ample);
   --color-band-watch: var(--band-watch);

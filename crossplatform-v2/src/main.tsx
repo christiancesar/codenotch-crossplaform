@@ -7,7 +7,7 @@ import "./index.css";
 import "./libs/i18n";
 import { useBackendLang } from "./libs/i18n/useBackendLang";
 import { applyTheme } from "./libs/theme";
-import { commands } from "./libs/ipc";
+import { commands, events } from "./libs/ipc";
 
 // Both OS windows load this one bundle; the window label picks the tree, and `lazy` keeps the
 // settings code out of the notch, which is always on screen.
@@ -16,14 +16,11 @@ const Settings = lazy(() => import("./app/settings/Settings"));
 
 const isSettings = getCurrentWindow().label === "settings";
 const root = document.documentElement;
-if (isSettings) {
-  // The system's theme until the saved choice answers, then the choice (Behaviour pane)
-  applyTheme("system");
-  commands.getTheme().then(applyTheme, () => {});
-} else {
-  // The notch is always dark and transparent around the pill
-  root.classList.add("notch", "dark");
-}
+// The notch window is transparent around the pill and the card
+if (!isSettings) root.classList.add("notch");
+// The desktop's preference until the saved choice answers. Both windows wear the app's theme: the saved choice at start, then every change from Settings
+commands.getTheme().then(applyTheme, () => {});
+events.theme.listen((e) => applyTheme(e.payload));
 
 const Tree = isSettings ? Settings : Notch;
 

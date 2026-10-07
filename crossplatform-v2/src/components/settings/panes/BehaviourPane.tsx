@@ -25,7 +25,7 @@ export interface BehaviourPaneProps {
   /** What the user chose, possibly "auto" */
   lang: string;
   onLang: (lang: string) => void;
-  /** This window's theme; the notch is always dark */
+  /** The whole app's theme: this window, the notch and its card */
   theme: Theme;
   onTheme: (theme: Theme) => void;
   /** A failed save, shown under the block it belongs to */

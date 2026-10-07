@@ -40,7 +40,7 @@ function NotchWindow({ ids, collapsedAtRest }: { ids: ProviderId[]; collapsedAtR
   const keep = () => window.clearTimeout(leave.current);
   const now = Date.now();
   return (
-    <div ref={root} className="dark relative h-[460px] w-[340px] overflow-hidden rounded-l-xl bg-[radial-gradient(circle_at_25%_35%,#3d4058,#15161d)]" onMouseLeave={out}>
+    <div ref={root} className="relative h-[460px] w-[340px] overflow-hidden rounded-l-xl bg-[radial-gradient(circle_at_25%_35%,#3d4058,#15161d)]" onMouseLeave={out}>
       <div
         className="absolute top-1/2 right-0 -translate-y-1/2"
         onMouseEnter={() => {

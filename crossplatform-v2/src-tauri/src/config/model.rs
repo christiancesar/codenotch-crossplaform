@@ -18,7 +18,7 @@ pub enum TrayMode {
     Bars,
 }
 
-/// The settings window's colours. The notch is always dark: it is part of the bezel.
+/// The app's colours: the settings window, the notch and its card.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum Theme {

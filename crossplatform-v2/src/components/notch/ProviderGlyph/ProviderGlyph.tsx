@@ -23,10 +23,10 @@ export function ProviderGlyph({ glyph, fallback, size, className }: ProviderGlyp
     return <img src={glyph.url} alt="" draggable={false} className={cn(cls, "object-contain select-none")} style={box} />;
   }
   if (glyph?.kind === "mark") {
-    return <span aria-hidden className={cn(cls, "text-white [&>svg]:size-full [&>svg]:fill-current")} style={box} dangerouslySetInnerHTML={{ __html: glyph.svg }} />;
+    return <span aria-hidden className={cn(cls, "text-notch-foreground [&>svg]:size-full [&>svg]:fill-current")} style={box} dangerouslySetInnerHTML={{ __html: glyph.svg }} />;
   }
   return (
-    <span aria-hidden className={cn(cls, "flex items-center justify-center font-sans text-[15px] font-bold leading-none tracking-tight text-white")} style={box}>
+    <span aria-hidden className={cn(cls, "flex items-center justify-center font-sans text-[15px] font-bold leading-none tracking-tight text-notch-foreground")} style={box}>
       {fallback}
     </span>
   );

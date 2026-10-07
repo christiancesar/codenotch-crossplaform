@@ -4,9 +4,9 @@ const dark = () => matchMedia("(prefers-color-scheme: dark)");
 let stop: (() => void) | undefined;
 
 /**
- * Puts the settings window's theme into effect on `<html>`: light, dark, or the desktop's
- * preference, followed live while "system" is chosen. The notch never calls this: it is always
- * dark, as part of the bezel.
+ * Puts the app's theme into effect on `<html>`: light, dark, or the desktop's preference,
+ * followed live while "system" is chosen. Both windows call it; the notch's colours are theme
+ * tokens (`--notch`, `--notch-outline`, `--notch-foreground`).
  */
 export function applyTheme(theme: Theme, root: HTMLElement = document.documentElement) {
   stop?.();

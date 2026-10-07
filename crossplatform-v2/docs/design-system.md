@@ -58,10 +58,11 @@ on top. Themes are the shadcn convention: `:root` is light, `.dark` is dark.
 
 ### Codenotch roles (`tokens.css`)
 
-| Class | Dark (notch, dark settings) | Light | Role |
+| Class | Dark | Light | Role |
 | --- | --- | --- | --- |
-| `bg-notch` | `black` | `black` | Notch body and hover card: the bezel, black in every theme |
-| `border-notch-outline` | `neutral-800` | `neutral-800` | 1 px outline cue (below) |
+| `bg-notch` | `black` | `white` | Notch body and hover card: the bezel, in the app's theme |
+| `border-notch-outline` | `neutral-800` | `neutral-300` | 1 px outline cue (below) |
+| `text-notch-foreground` | `white` | `neutral-950` | Text and marks on the notch and the card |
 | `*-band-ample` | `green-400` | `green-600` | under 50 % used |
 | `*-band-watch` | `yellow-300` | `yellow-600` | 50 to 69 % |
 | `*-band-critical` | `orange-500` | `orange-600` | 70 % and over; at 100 % (exhausted) or blocked: full ring, glyph at 35 % |
@@ -242,7 +243,7 @@ Rules:
 ## Themes
 
 - **Notch:** always `.dark`, and transparent around the pill (`html.notch`).
-- **Settings window:** Light, Dark or System (Behaviour pane, `config.json` `theme`, absent = system), toggling `.dark` on `<html>` through `libs/theme.ts`; System follows `prefers-color-scheme` live. The notch is always dark.
+- **Theme:** Light, Dark or System for the whole app (Behaviour pane, `config.json` `theme`, absent = system). Both windows toggle `.dark` on `<html>` through `libs/theme.ts` and follow the backend's `theme` event; System follows `prefers-color-scheme` live. The notch's colours are tokens: `--notch` black / white, `--notch-outline` neutral-800 / neutral-300, `--notch-foreground` white / neutral-950.
 - A theme only changes variables. Components use token classes only (`bg-notch`,
   `text-muted-foreground`, `stroke-band-critical`), never a raw colour, so no component
   changes with the theme.

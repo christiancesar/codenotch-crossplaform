@@ -50,8 +50,9 @@ function silhouette(w: number, h: number, r: number, f: number, closed: boolean)
 }
 
 /**
- * The black body welded to the right screen edge: inverse rounded corners top and bottom so it
- * reads as part of the bezel, a 1 px outline so it survives a black wallpaper. Painted as a
+ * The body welded to the right screen edge (black in the dark theme, white in the light one):
+ * inverse rounded corners top and bottom so it reads as part of the bezel, a 1 px outline so it
+ * survives a wallpaper of its own colour. Painted as a
  * single SVG path, so fill and outline are one continuous shape at every size. Folds between the
  * cell column and the idle tab with the `unfold` spring; `max-height`, never a measured height,
  * so cells that arrive late are never clipped (the height is only read back to draw the path).

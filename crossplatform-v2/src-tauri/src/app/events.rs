@@ -55,6 +55,11 @@ pub struct LangChanged {
     pub resolved: String,
 }
 
+/// The theme changed in Settings: every window applies it
+#[derive(Debug, Clone, Serialize, Type, Event)]
+#[tauri_specta(event_name = "theme")]
+pub struct ThemeChanged(pub crate::config::Theme);
+
 /// Something the user should read on the notch (a refused second instance, say)
 #[derive(Debug, Clone, Serialize, Type, Event)]
 #[tauri_specta(event_name = "notice")]

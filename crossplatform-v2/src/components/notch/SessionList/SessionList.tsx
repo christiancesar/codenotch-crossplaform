@@ -20,12 +20,12 @@ export function SessionList({ sessions, activity = [], onFocus }: SessionListPro
   const { t } = useTranslation();
   if (sessions.length === 0 && activity.length === 0) return null;
   return (
-    <div className="mt-3 border-t border-white/10 pt-2">
+    <div className="mt-3 border-t border-notch-foreground/10 pt-2">
       {sessions.map((s) => (
         <button key={s.id} type="button" onClick={() => onFocus?.(s.id)} className="flex w-full items-start gap-[4.1px] py-0.5 text-left">
           <StatusDot state={s.state} className="mt-[3px]" />
           <span className="min-w-0 text-[11px] leading-snug">
-            <span className="block truncate text-white/85">{s.title}</span>
+            <span className="block truncate text-notch-foreground/85">{s.title}</span>
             {(s.attn || s.prompt) && <span className="block truncate text-muted-foreground">{s.attn ? backendText(t, s.attn) : t("notch.you", { prompt: s.prompt })}</span>}
           </span>
         </button>
@@ -34,7 +34,7 @@ export function SessionList({ sessions, activity = [], onFocus }: SessionListPro
         <div key={`${a.provider}-${i}`} className="flex items-start gap-[4.1px] py-0.5">
           <StatusDot state={a.state} className="mt-[3px]" />
           <span className="min-w-0 text-[11px] leading-snug">
-            <span className="block truncate text-white/85">
+            <span className="block truncate text-notch-foreground/85">
               {providerName[a.provider]} · {a.name}
             </span>
             <span className="block truncate text-muted-foreground">{backendText(t, a.detail)}</span>

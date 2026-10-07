@@ -16,5 +16,5 @@ export interface PercentLabelProps {
  */
 export function PercentLabel({ used, count = null, derived = false, className }: PercentLabelProps) {
   const text = count !== null ? `~${count}` : used === null ? "—" : `${derived ? "~" : ""}${Math.round(used * 100)}%`;
-  return <span className={cn("font-sans text-[14px] leading-none font-semibold tabular-nums text-white", className)}>{text}</span>;
+  return <span className={cn("font-sans text-[14px] leading-none font-semibold tabular-nums text-notch-foreground", className)}>{text}</span>;
 }

@@ -22,7 +22,7 @@ export function LimitWindowBlock({ window: w, now }: LimitWindowBlockProps) {
   return (
     <div className="mt-[7.5px] first:mt-0">
       <div className="flex flex-wrap items-baseline justify-between gap-x-2 text-[11px]">
-        <span className="font-medium whitespace-nowrap text-white/90">{backendText(t, w.label)}</span>
+        <span className="font-medium whitespace-nowrap text-notch-foreground/90">{backendText(t, w.label)}</span>
         <span className="ml-auto whitespace-nowrap text-muted-foreground tabular-nums">{formatReset(w.resets_at, now, t, INTL_LOCALE[toLang(i18n.language)])}</span>
       </div>
       <UsageBar used={isMetered(w) ? w.used : null} className="mt-[6.3px] mb-[6.7px]" />
