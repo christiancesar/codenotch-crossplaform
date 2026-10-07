@@ -79,8 +79,9 @@ export function SettingsWindow({ platform, panes, defaultTab, strip, className }
       <main ref={main} className="@container relative min-w-0 flex-1 overflow-y-auto">
         {strip && <div className="sticky top-0 z-10 border-b border-destructive/30 bg-destructive/10 px-8 py-2 text-xs text-destructive">{strip}</div>}
         {TABS.map((id) => (
-          // Grows with the window up to a readable measure, then centres: a maximized 4K window
-          // gets wider grids (container queries in the panes), not 3000 px lines
+          // Grows with the window up to max-w-6xl, then centres: a maximized 4K window gets wider
+          // grids (container queries in the panes), not 3000 px lines. Inside that, text and
+          // controls fill the width; nothing below caps itself narrower
           <TabsContent key={id} value={id} className="mx-auto w-full max-w-6xl px-8 py-6 @5xl:px-12 @5xl:py-8">
             {panes[id]}
           </TabsContent>

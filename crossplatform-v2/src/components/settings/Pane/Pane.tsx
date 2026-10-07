@@ -10,7 +10,7 @@ export function Pane({ title, lede, children }: { title: string; lede: string; c
     <section className="flex flex-col gap-7">
       <header className="flex flex-col gap-1.5">
         <h1 className="font-heading text-lg font-semibold">{title}</h1>
-        <p className="max-w-prose text-xs/relaxed text-muted-foreground">{lede}</p>
+        <p className="text-xs/relaxed text-muted-foreground">{lede}</p>
       </header>
       {children}
     </section>
@@ -23,7 +23,7 @@ export function Block({ title, sub, children, className }: { title?: string; sub
       {(title || sub) && (
         <div className="flex flex-col gap-1">
           {title && <h2 className="text-[13px] font-medium">{title}</h2>}
-          {sub && <p className="max-w-prose text-[11px]/relaxed text-muted-foreground">{sub}</p>}
+          {sub && <p className="text-[11px]/relaxed text-muted-foreground">{sub}</p>}
         </div>
       )}
       {children}
@@ -51,7 +51,7 @@ export function Row({ name, why, control, children, htmlFor }: RowProps) {
         <label htmlFor={htmlFor} className="text-[13px] font-medium">
           {name}
         </label>
-        <p className="max-w-prose text-[11px]/relaxed text-muted-foreground">{why}</p>
+        <p className="text-[11px]/relaxed text-muted-foreground">{why}</p>
         {children}
       </div>
       <div className="flex shrink-0 items-center pt-0.5">{control}</div>
@@ -61,7 +61,7 @@ export function Row({ name, why, control, children, htmlFor }: RowProps) {
 
 /** A quiet note under a block: what is held on, where a file lives. */
 export function Note({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn("max-w-prose text-[11px]/relaxed text-muted-foreground", className)}>{children}</p>;
+  return <p className={cn("text-[11px]/relaxed text-muted-foreground", className)}>{children}</p>;
 }
 
 /** A path or id the user may want to copy. */

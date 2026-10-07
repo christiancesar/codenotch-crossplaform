@@ -33,7 +33,7 @@ export function NotchPane({ options, slots, onSlots, scale, onScale }: NotchPane
       </Block>
 
       <Block title={t("settings.notch.size")} sub={t("settings.notch.sizeSub")}>
-        <div className="flex max-w-sm items-center gap-3">
+        <div className="flex items-center gap-3">
           <Slider min={40} max={100} step={5} value={[scale]} onValueChange={([v]) => onScale(v)} className="flex-1" aria-label={t("notch.size")} />
           <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">{scale}%</span>
         </div>
