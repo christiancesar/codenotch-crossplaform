@@ -8,7 +8,9 @@ edition = "2021"
 [lib]
 # The `_lib` suffix keeps the lib name distinct from the `codenotch` binary (cargo#8519 on Windows)
 name = "codenotch_lib"
-crate-type = ["staticlib", "cdylib", "rlib"]
+# rlib only: the scaffold's staticlib and cdylib are for Android and iOS, which this app does not
+# target, and linking them made every build and `cargo test` link the whole of Tauri two extra times
+crate-type = ["rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

@@ -4,11 +4,28 @@ name: crossplatform-v2 CI
 # Builds the frontend, runs the Rust tests (which regenerate src/libs/ipc/bindings.ts) and fails
 # if the committed bindings no longer match the Rust commands.
 on:
+  # Pushes only where the cache is shared from: a pull request can read the caches of its base
+  # branch, never of its head branch, so a push run on a feature branch both doubles the PR's
+  # run and warms a cache the PR cannot use
   push:
-    branches: [feat/codenotch-next]
+    branches: [development, main]
     paths: ["crossplatform-v2/**", ".github/workflows/crossplatform-v2-ci.yml"]
   pull_request:
     paths: ["crossplatform-v2/**", ".github/workflows/crossplatform-v2-ci.yml"]
+  workflow_dispatch: {}
+
+# A newer push to the same branch or PR cancels the run it supersedes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  # No debug info in CI: smaller, faster builds and a cache a fraction of the size. Backtraces
+  # still name the functions.
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
+  RUST_BACKTRACE: 1
 
 jobs:
   test:
@@ -17,6 +34,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # A healthy run takes a few minutes cold; never hold a runner for an hour again
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: crossplatform-v2
@@ -25,11 +44,10 @@ jobs:
 
       - name: Install Linux Tauri build deps
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev build-essential curl wget file \
-            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+          version: "1"
 
       - uses: actions/setup-node@v4
         with:
@@ -42,16 +60,29 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: crossplatform-v2/src-tauri
+          # Saved from development and main only; pull requests restore it
+          save-if: ${{ github.event_name == 'push' }}
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
 
       - run: npm ci
       - run: npm run build
 
-      - name: cargo test
+      - name: Build the tests
         working-directory: crossplatform-v2/src-tauri
-        # A hung test fails here with its log instead of holding the runner for an hour; libtest
-        # names any test running past 60 s
+        run: cargo nextest run --no-run --profile ci
+
+      - name: Run the tests
+        working-directory: crossplatform-v2/src-tauri
         timeout-minutes: 10
-        run: cargo test
+        run: cargo nextest run --profile ci
+
+      # nextest skips doctests; the crate has none, but keep them honest if one is added
+      - name: Doctests
+        working-directory: crossplatform-v2/src-tauri
+        run: cargo test --doc
 
       - name: IPC bindings are up to date
         run: git diff --exit-code -- src/libs/ipc/bindings.ts
