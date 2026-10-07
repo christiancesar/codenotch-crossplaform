@@ -9,7 +9,7 @@ import { trayPreview } from "@/fixtures/trayPreview";
 import { slotReading, trayNumbers, trayOptions } from "@/fixtures/settings";
 import { Toaster } from "@/components/ui/sonner";
 import logo from "../../../../src-tauri/icons/tray/tray-color.png";
-import { inWindow } from "../story-helpers";
+import { inWindow, maximized } from "../story-helpers";
 
 /**
  * The whole window with every control live, as the app will compose it. State is local here; the
@@ -61,7 +61,6 @@ function Harness({ platform, tab, strip }: { platform: Platform; tab?: SettingsT
 const meta = {
   title: "Settings/SettingsWindow",
   component: Harness,
-  decorators: [inWindow],
   parameters: { layout: "centered" },
   args: { platform: "linux" },
   argTypes: { platform: { control: "inline-radio", options: ["linux", "windows"] } },
@@ -70,7 +69,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** Every pane live. Switch the theme in the toolbar: the window follows the system theme. */
-export const Interactive: Story = { args: { tab: "tray" } };
-export const Windows: Story = { args: { platform: "windows", tab: "behaviour" } };
+export const Interactive: Story = { args: { tab: "tray" }, decorators: [inWindow] };
+export const Windows: Story = { args: { platform: "windows", tab: "behaviour" }, decorators: [inWindow] };
 /** A command failed: the strip across the top stays until the next one replaces it. */
-export const CommandFailed: Story = { args: { tab: "notch", strip: "set_notch_slots failed: config.json is read-only" } };
+export const CommandFailed: Story = { args: { tab: "notch", strip: "set_notch_slots failed: config.json is read-only" }, decorators: [inWindow] };
+/** Maximized on a large display: wider grids, content capped and centred. */
+export const Maximized: Story = { args: { tab: "tray" }, decorators: [maximized], parameters: { layout: "fullscreen" } };

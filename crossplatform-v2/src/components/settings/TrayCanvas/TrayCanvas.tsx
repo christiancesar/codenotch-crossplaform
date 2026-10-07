@@ -24,7 +24,7 @@ export interface TrayCanvasProps {
 export function TrayCanvas({ preview, logo, regions, regionNames, selected, onSelect, sizes = [16, 22, 24, 32] }: TrayCanvasProps) {
   return (
     <div className="flex flex-wrap items-start gap-6">
-      <div className="relative size-40 shrink-0 overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-border">
+      <div className="relative size-40 shrink-0 overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-border @3xl:size-48">
         {preview ? (
           <img src={preview} alt="Tray icon preview" className="size-full [image-rendering:pixelated]" />
         ) : (

@@ -38,13 +38,13 @@ export function NotchRings({ providers, stored, onChange }: NotchRingsProps) {
   const pick = (id: string, window: string) => save(on.map((s) => (s.provider === id ? { ...s, window } : s)));
 
   return (
-    <div className="flex flex-col divide-y rounded-lg border bg-card">
+    <div className="grid gap-px overflow-hidden rounded-lg border bg-border @4xl:grid-cols-2">
       {providers.map((p) => {
         const slot = slotOf(p.id);
         const only = !!slot && on.length === 1;
         const st = statusText[p.status] ?? p.status;
         return (
-          <div key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+          <div key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 bg-card px-4 py-2.5 @4xl:last:odd:col-span-2">
             <label className={cn("flex min-w-40 flex-1 items-center gap-2.5 text-[13px] font-medium", only ? "cursor-not-allowed" : "cursor-pointer")}>
               <Checkbox checked={!!slot} disabled={only} onCheckedChange={() => toggle(p.id)} aria-label={`Show ${p.label} on the notch`} />
               {p.label}
@@ -56,7 +56,7 @@ export function NotchRings({ providers, stored, onChange }: NotchRingsProps) {
               {only && <span className="text-[11px] font-normal text-muted-foreground">kept</span>}
             </label>
             <Select value={slot?.window || FULLEST} onValueChange={(v) => pick(p.id, v === FULLEST ? "" : v)} disabled={!slot}>
-              <SelectTrigger size="sm" className="w-56 text-xs" aria-label={`Window counted by ${p.label}'s ring`}>
+              <SelectTrigger size="sm" className="w-56 text-xs @4xl:w-48 @6xl:w-56" aria-label={`Window counted by ${p.label}'s ring`}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

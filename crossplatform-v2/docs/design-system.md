@@ -287,8 +287,10 @@ Slider, Badge, Button, Sonner, added with `npx shadcn@latest add <name>` into
 a reading is shown (band colours in the tray preview and the window picker). Sonner's wrapper
 drops `next-themes` (not a Next app) and follows the system theme.
 
-The window opens at 520 x 620. Panes lay out with container queries (`@container` on the pane
-area), so a pane renders the same in its story as in the window. Copy that differs between
+The window opens at 960 x 680 (minimum 720 x 560) and is resizable. Panes lay out with
+container queries (`@container` on the pane area), so a pane renders the same in its story as
+in the window. Maximized, the content grows to `max-w-6xl` and centres; the window picker goes
+to three columns and the notch list to two. Copy that differs between
 Linux and Windows (tray name, autostart, paths) lives in `settings/panes/copy.ts`.
 
 Rules moved from v0.3's settings.html are pure functions in `src/libs/settings.ts`: tray config

@@ -51,7 +51,7 @@ export function Row({ name, why, control, children, htmlFor }: RowProps) {
         <label htmlFor={htmlFor} className="text-[13px] font-medium">
           {name}
         </label>
-        <p className="text-[11px]/relaxed text-muted-foreground">{why}</p>
+        <p className="max-w-prose text-[11px]/relaxed text-muted-foreground">{why}</p>
         {children}
       </div>
       <div className="flex shrink-0 items-center pt-0.5">{control}</div>

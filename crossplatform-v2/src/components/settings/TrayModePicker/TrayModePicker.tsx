@@ -22,7 +22,7 @@ export function TrayModePicker({ value, onChange }: TrayModePickerProps) {
       value={value}
       // Radix answers "" when the pressed item is clicked again: keep the current mode
       onValueChange={(v) => v && onChange(v as TrayMode)}
-      className="grid w-full grid-cols-3"
+      className="grid w-full max-w-xl grid-cols-3"
       aria-label="Tray icon layout"
     >
       {MODES.map((m) => (

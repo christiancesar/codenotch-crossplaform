@@ -46,7 +46,7 @@ function Item({ on, label, pct, any, onClick }: { on: boolean; label: string; pc
  */
 export function SlotPicker({ providers, current, onChoose }: SlotPickerProps) {
   return (
-    <div role="radiogroup" aria-label="What this part shows" className="grid gap-3 @lg:grid-cols-2">
+    <div role="radiogroup" aria-label="What this part shows" className="grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3">
       {providers.map((p) => {
         const st = statusText[p.status] ?? p.status;
         return (

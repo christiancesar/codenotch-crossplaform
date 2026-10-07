@@ -55,9 +55,9 @@ export function SettingsWindow({ platform, panes, defaultTab, strip, className }
       orientation="vertical"
       value={tab}
       onValueChange={change}
-      className={cn("h-full min-h-0 gap-0 bg-background text-foreground", className)}
+      className={cn("@container/window h-full min-h-0 gap-0 bg-background text-foreground", className)}
     >
-      <nav className="flex w-40 shrink-0 flex-col border-r bg-muted/30 px-3 py-4">
+      <nav className="flex w-44 shrink-0 flex-col border-r bg-muted/30 px-3 py-4 @6xl/window:w-56 @6xl/window:px-4">
         <TabsList variant="line" aria-label="Settings sections" className="w-full items-stretch gap-0.5">
           {groups.map((g, gi) => (
             <div key={g.title} className={cn("flex flex-col gap-0.5", gi > 0 && "mt-4")}>
@@ -74,7 +74,9 @@ export function SettingsWindow({ platform, panes, defaultTab, strip, className }
       <main ref={main} className="@container relative min-w-0 flex-1 overflow-y-auto">
         {strip && <div className="sticky top-0 z-10 border-b border-destructive/30 bg-destructive/10 px-8 py-2 text-xs text-destructive">{strip}</div>}
         {TABS.map((id) => (
-          <TabsContent key={id} value={id} className="px-8 py-6">
+          // Grows with the window up to a readable measure, then centres: a maximized 4K window
+          // gets wider grids (container queries in the panes), not 3000 px lines
+          <TabsContent key={id} value={id} className="mx-auto w-full max-w-6xl px-8 py-6 @5xl:px-12 @5xl:py-8">
             {panes[id]}
           </TabsContent>
         ))}
