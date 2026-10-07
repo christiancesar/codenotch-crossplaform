@@ -97,12 +97,36 @@ See `phase0-compat-gate.md`.
 - Smoke run on Ubuntu 26.04: notch at (1580,155) from the saved ratio, hook route answered,
   config untouched, Claude 429 persisted as a backoff.
 
+## Phase 6: frontend (in progress)
+
+Decided with the user (2026-10-06):
+
+- **Styling:** Tailwind v4 + shadcn/ui (radix base, preset `b1vtaYiolM`, neutral theme). Colours
+  from the Tailwind palette; Codenotch roles in `src/styles/tokens.css`.
+- **Fonts:** Raleway (headings) and Space Grotesk (text), bundled via `@fontsource-variable`.
+- **Motion:** the official app's springs through Motion (`src/libs/motion.ts`); continuous
+  indicators on composited layers with the official smooth timings.
+- **Charts:** shadcn charts for card detail and history; notch rings stay SVG.
+- **Marks:** each provider's official brand mark (Lobe Icons 1.95.1), colour where the brand
+  has colours.
+- **Workshop:** Storybook 10 (`npm run storybook`), design system pages plus one story per
+  component state. Components are built and reviewed there before screens are wired to IPC.
+
+Done in Storybook: design system pages (Introduction, Colors, Typography, Geometry, Motion) and
+the notch components: UsageRing, ProviderGlyph, ActivityArc, PercentLabel, ProviderCell,
+NotchShell, HoverCard, CardHeader, UsageBar, LimitWindowBlock, StatusDot, SessionList,
+ScaleSlider, NoticeToast, and `Notch/Notch` composing the window with hover.
+
+Waiting on the user's review of the notch components in Storybook (visual adjustments).
+
 ## Open decisions
 
-- **Frontend styling** (plain CSS, CSS Modules, styled-components or Tailwind): the user wants
-  to discuss it before phase 6. Placeholders use inline styles until then.
+- Design-system open table (`design-system.md`, end): frame sizes vs v0.3 web sizes, card
+  body text floor of 11 px. Components currently follow the frame with the 11 px floor.
 
 ## Next
 
-Phase 6: the notch and settings windows in React against `bindings.ts`. Blocked on the
-styling decision above.
+1. Apply the user's review notes to the notch components.
+2. Settings window panes from shadcn components, in Storybook.
+3. Wire the notch and settings screens to the IPC (`bindings.ts`), replacing the placeholders.
+4. Phase 7 cutover: parity checklist on Linux and Windows.
