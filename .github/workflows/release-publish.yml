@@ -71,9 +71,8 @@ jobs:
             Codenotch 0.4.0 is the rebuild in crossplatform-v2/: a new Rust backend on the stock
             Tauri 2 layout, a React + TypeScript interface, a typed IPC contract, the whole UI
             translated (en, pt-BR, zh, ja, ko), a light/dark/system theme and a resizable
-            settings window. Settings and readings from 0.3 load unchanged.
-
-            Known: codenotch-hook is not bundled (it was not in 0.3 either), so the Claude Code
-            hooks switch needs the hook binary next to the executable.
+            settings window. Settings and readings from 0.3 load unchanged. The installers now
+            ship codenotch-hook next to the app, so the Claude Code hooks switch works out of the
+            box.
           releaseDraft: true
           prerelease: false

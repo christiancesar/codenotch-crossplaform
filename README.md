@@ -15,8 +15,9 @@ still contains them is tagged `archive/pre-rebuild-cleanup`.
   `src-tauri/` (Rust, Tauri 2) and `src/` (React + TypeScript + Vite), a generated, typed IPC
   contract (`src/libs/ipc/bindings.ts`), and a Storybook workshop for every component. Its docs
   are in `crossplatform-v2/docs/` (`progress.md`, `design-system.md`).
-- `cross-platform/` is the v0.3 app and the hook client Claude Code calls (`codenotch-hook`).
-  It stays as the reference the rebuild was checked against.
+  It also builds `codenotch-hook` (`src-tauri/hook/`), the client Claude Code's hooks call,
+  which the installers ship next to the app.
+- `cross-platform/` is the v0.3 app, kept as the reference the rebuild was checked against.
 
 ## Build
 

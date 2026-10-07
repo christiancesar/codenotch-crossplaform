@@ -151,6 +151,11 @@ through cargo-nextest with a per-test limit (the PR's Ubuntu runner had starved 
 locally before the PR: the CI steps, and `npm run tauri build -- --bundles deb,appimage`
 (3 min, deb 5.4 MB, AppImage 87 MB).
 
+`codenotch-hook` moved in unchanged as a second binary of the package (`src-tauri/hook/`, outside
+`src/` so the platform rule holds); the installers ship it next to the app (`/usr/bin` in the
+deb), where the hooks switch looks for it. v0.3 never packaged it: its hooks pointed at a debug
+build in the repository.
+
 ## Open decisions
 
 - Design-system open table (`design-system.md`, end): frame sizes vs v0.3 web sizes, card

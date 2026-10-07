@@ -4,6 +4,8 @@ version = "0.4.0"
 description = "Usage notch for Claude, Codex, Cursor, Antigravity and OpenCode"
 license = "MIT"
 edition = "2021"
+# Two binaries: `cargo run` and `tauri dev` start the app
+default-run = "codenotch"
 
 [lib]
 # The `_lib` suffix keeps the lib name distinct from the `codenotch` binary (cargo#8519 on Windows)
@@ -11,6 +13,17 @@ name = "codenotch_lib"
 # rlib only: the scaffold's staticlib and cdylib are for Android and iOS, which this app does not
 # target, and linking them made every build and `cargo test` link the whole of Tauri two extra times
 crate-type = ["rlib"]
+
+[[bin]]
+name = "codenotch"
+path = "src/main.rs"
+
+# The client Claude Code's hooks call: std only, its own small binary next to the app (the
+# installers ship both, and the hooks switch points Claude Code at it). It lives outside src/ so
+# the app's OS code stays in platform/; this file is self-contained by design.
+[[bin]]
+name = "codenotch-hook"
+path = "hook/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
