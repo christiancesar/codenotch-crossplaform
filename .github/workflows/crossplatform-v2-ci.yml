@@ -81,7 +81,9 @@ jobs:
         working-directory: crossplatform-v2/src-tauri
         timeout-minutes: 10
         # On Linux a runaway test (a fork loop, a memory leak) hits these limits and fails by name
-        # instead of starving the runner: twice the job lost its runner with no log at all
+        # instead of starving the runner: twice the job lost its runner with no log at all. Bash on
+        # every OS: Windows steps default to PowerShell
+        shell: bash
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then
             ulimit -u 4096      # processes for this user
