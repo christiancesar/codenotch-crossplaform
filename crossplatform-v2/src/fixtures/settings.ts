@@ -4,6 +4,7 @@
  */
 import type { ProviderId, TrayConfig, TrayOption, UsageSnapshot } from "@/libs/ipc";
 import { providerName } from "@/libs/usage";
+import { slotPercent } from "@/libs/settings";
 import { snapshots } from "./usage";
 
 const option = (id: ProviderId, snap: UsageSnapshot, status: TrayOption["status"] = snap.status): TrayOption => ({
@@ -28,9 +29,4 @@ export const trayBars: TrayConfig = {
 export const trayOff: TrayConfig = { mode: "off", slots: [{ provider: "claude", window: "" }] };
 
 /** The percent a slot would show, as the backend's `for_slot` picks it. */
-export function slotReading(options: TrayOption[], provider: string, window: string): number | null {
-  const wins = options.find((o) => o.id === provider)?.windows ?? [];
-  if (!wins.length) return null;
-  const pinned = window ? wins.find((w) => w.id === window) : undefined;
-  return pinned ? pinned.used : Math.max(...wins.map((w) => w.used));
-}
+export const slotReading = (options: TrayOption[], provider: string, window: string) => slotPercent(options, { provider, window });

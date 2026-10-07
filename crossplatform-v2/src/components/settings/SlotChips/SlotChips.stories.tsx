@@ -4,9 +4,9 @@ import { SlotChips } from "./SlotChips";
 import { onSurface } from "../story-helpers";
 
 const chips = [
-  { name: "Column 1", text: "Claude · Whichever is fullest" },
-  { name: "Column 2", text: "Codex · Weekly limit" },
-  { name: "Column 3", text: "Antigravity · Whichever is fullest" },
+  { name: "Column 1", provider: "Claude", window: "Whichever is fullest", pct: 73 },
+  { name: "Column 2", provider: "Codex", window: "Weekly limit", pct: 48 },
+  { name: "Column 3", provider: "Antigravity", window: "Whichever is fullest", pct: 52 },
 ];
 
 const meta = {
@@ -28,3 +28,5 @@ export const Numbers: Story = {};
 /** Bars: columns can be removed (while more than one) and added (up to five). */
 export const Bars: Story = { args: { chips, selected: 1, onRemove: () => {}, onAdd: () => {} } };
 export const OneColumnLeft: Story = { args: { chips: chips.slice(0, 1), onRemove: () => {}, onAdd: () => {} } };
+/** A provider with nothing to show (signed out): no percent. */
+export const NoReading: Story = { args: { chips: [chips[0], { name: "Column 2", provider: "Cursor", window: "Whichever is fullest", pct: null }], onRemove: () => {}, onAdd: () => {} } };

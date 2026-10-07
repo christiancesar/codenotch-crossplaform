@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Slot, TrayConfig, TrayMode, TrayOption } from "@/libs/ipc";
-import { MAX_BARS, defaultSlot, normalizeTray, provLabel, providerList, regionBoxes, slotName, winLabel } from "@/libs/settings";
+import { MAX_BARS, defaultSlot, normalizeTray, provLabel, providerList, regionBoxes, slotName, slotPercent, winLabel } from "@/libs/settings";
 import { Block, Note, Pane } from "../Pane";
 import { TrayModePicker } from "../TrayModePicker";
 import { TrayCanvas } from "../TrayCanvas";
@@ -65,7 +65,7 @@ export function TrayPane({ platform, options, config, onConfig, preview, logo, r
         />
         {config.mode !== "off" && (
           <SlotChips
-            chips={config.slots.map((s, i) => ({ name: names[i], text: describe(s) }))}
+            chips={config.slots.map((s, i) => ({ name: names[i], provider: provLabel(options, s.provider), window: winLabel(options, s.provider, s.window), pct: slotPercent(options, s) }))}
             selected={at}
             onSelect={setSel}
             onRemove={config.mode === "bars" ? remove : undefined}

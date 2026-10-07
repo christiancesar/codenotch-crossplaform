@@ -121,3 +121,11 @@ export function notchStored(options: TrayOption[], next: Slot[]): Slot[] {
   const isDefault = next.length === providerList(options).length && next.every((s) => !s.window);
   return isDefault ? [] : next;
 }
+
+/** The percent a slot shows: the pinned window, else the fullest. Mirrors `tray::readings::for_slot`. */
+export function slotPercent(options: TrayOption[], slot: Slot): number | null {
+  const wins = winsOf(options, slot.provider);
+  if (!wins.length) return null;
+  const pinned = slot.window ? wins.find((w) => w.id === slot.window) : undefined;
+  return pinned ? pinned.used : Math.max(...wins.map((w) => w.used));
+}
