@@ -48,6 +48,9 @@ jobs:
 
       - name: cargo test
         working-directory: crossplatform-v2/src-tauri
+        # A hung test fails here with its log instead of holding the runner for an hour; libtest
+        # names any test running past 60 s
+        timeout-minutes: 10
         run: cargo test
 
       - name: IPC bindings are up to date
