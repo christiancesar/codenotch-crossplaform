@@ -62,6 +62,9 @@ pub fn builder() -> Builder<tauri::Wry> {
         .dangerously_cast_bigints_to_number()
 }
 
+/// Debug runs (`tauri dev`) and `cargo test` regenerate the bindings; a release build never writes
+/// into the source tree.
+#[cfg(any(test, debug_assertions))]
 pub fn export(builder: &Builder<tauri::Wry>) -> Result<(), String> {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../src/libs/ipc/bindings.ts");
     builder.export(specta_typescript::Typescript::default(), path).map_err(|e| e.to_string())

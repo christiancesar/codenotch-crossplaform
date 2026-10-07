@@ -143,6 +143,14 @@ Notch height (2026-10-07, user's choice): the window grows with the pill instead
 current scale (five rings at 100 % need ~605 px), the backend clamps it to the monitor and
 re-places the window around the saved centre.
 
+## 0.4.0
+
+The rebuild becomes the released app: `package.json` at 0.4.0 (Cargo and tauri.conf already
+were), the package and release workflows build `crossplatform-v2/`, and CI runs the tests
+through cargo-nextest with a per-test limit (the PR's Ubuntu runner had starved twice). Checked
+locally before the PR: the CI steps, and `npm run tauri build -- --bundles deb,appimage`
+(3 min, deb 5.4 MB, AppImage 87 MB).
+
 ## Open decisions
 
 - Design-system open table (`design-system.md`, end): frame sizes vs v0.3 web sizes, card

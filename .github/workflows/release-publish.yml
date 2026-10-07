@@ -2,9 +2,10 @@ name: Release (Windows + Linux)
 
 # Follows the project's GitFlow: `release` stabilizes a version, merges into `main`
 # (production) AND back into `development`, then a `v*` tag pushed on `main` is what
-# actually cuts a public GitHub Release — never a raw push to `release` itself. This
-# builds cross-platform/codenotch for both OSes and publishes the installers as a
-# draft release for review before anyone can download them.
+# actually cuts a public GitHub Release, never a raw push to `release` itself. This
+# builds crossplatform-v2 (0.4.0 onwards; cross-platform/ is the v0.3 reference) for both
+# OSes and publishes the installers as a draft release for review before anyone can
+# download them.
 on:
   push:
     tags:
@@ -13,6 +14,9 @@ on:
 permissions:
   contents: write
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
   release:
     strategy:
@@ -20,39 +24,56 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Linux Tauri build deps
         if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev build-essential curl wget file \
-            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+          version: "1"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: crossplatform-v2/package-lock.json
 
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: cross-platform
+          workspaces: crossplatform-v2/src-tauri
+          key: release
+
+      # tauri-action runs `tauri build`, which runs beforeBuildCommand (npm run build); that
+      # needs the frontend's dependencies installed first
+      - name: Install frontend dependencies
+        working-directory: crossplatform-v2
+        run: npm ci
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: cross-platform/codenotch
-          # tauri-action does not auto-derive the tag from the triggering push event —
-          # without this it silently skips all uploads ("No releaseId or tagName
-          # provided"), which is exactly what happened on the first v0.3.0 attempt: both
-          # OS builds succeeded but no release was created at all.
+          projectPath: crossplatform-v2
+          # tauri-action does not derive the tag from the triggering push event: without this
+          # it silently skips all uploads ("No releaseId or tagName provided"), which is what
+          # happened on the first v0.3.0 attempt.
           tagName: ${{ github.ref_name }}
           # Linux gets deb + AppImage explicitly; Windows uses tauri.conf.json's
           # bundle.targets: "all" default (nsis + msi), no args needed.
           args: ${{ runner.os == 'Linux' && '--bundles deb,appimage' || '' }}
           releaseName: "Codenotch ${{ github.ref_name }}"
           releaseBody: |
-            Cross-platform build for Windows and Linux. See the plan and tickets under
-            cross-platform/docs/plans/ for what changed.
+            Codenotch 0.4.0 is the rebuild in crossplatform-v2/: a new Rust backend on the stock
+            Tauri 2 layout, a React + TypeScript interface, a typed IPC contract, the whole UI
+            translated (en, pt-BR, zh, ja, ko), a light/dark/system theme and a resizable
+            settings window. Settings and readings from 0.3 load unchanged.
+
+            Known: codenotch-hook is not bundled (it was not in 0.3 either), so the Claude Code
+            hooks switch needs the hook binary next to the executable.
           releaseDraft: true
           prerelease: false

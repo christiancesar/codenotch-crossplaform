@@ -11,23 +11,33 @@ still contains them is tagged `archive/pre-rebuild-cleanup`.
 
 ## Layout
 
-- `cross-platform/` is the current Tauri 2 app (`codenotch`) and the hook client Claude
-  Code calls (`codenotch-hook`). It is the reference while the app is rebuilt.
-- `cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md` describes the
-  rebuild: a stock `create-tauri-app` scaffold in `crossplatform-v2/`, with `src-tauri/`
-  (Rust) and `src/` (React + TypeScript + Vite) and a generated, typed IPC contract.
+- `crossplatform-v2/` is the app, from 0.4.0 on: a stock `create-tauri-app` layout with
+  `src-tauri/` (Rust, Tauri 2) and `src/` (React + TypeScript + Vite), a generated, typed IPC
+  contract (`src/libs/ipc/bindings.ts`), and a Storybook workshop for every component. Its docs
+  are in `crossplatform-v2/docs/` (`progress.md`, `design-system.md`).
+- `cross-platform/` is the v0.3 app and the hook client Claude Code calls (`codenotch-hook`).
+  It stays as the reference the rebuild was checked against.
 
 ## Build
 
-Linux needs the WebKitGTK toolchain:
+Linux needs the WebKitGTK toolchain and Node 24:
 
 ```sh
 sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev \
   libayatana-appindicator3-dev librsvg2-dev patchelf
-cd cross-platform
-cargo test
-cargo build
+cd crossplatform-v2
+npm ci
+npm run tauri dev                              # run it
+npm run storybook                              # the component workshop
+npm run tauri build -- --bundles deb,appimage  # installers
+(cd src-tauri && cargo test)                   # also regenerates the IPC bindings
 ```
+
+## Releases
+
+GitFlow: work lands on `development` through pull requests, then `development` goes to
+`release` and `release` to `main`. A `v*` tag on `main` builds the Linux and Windows installers
+and opens a draft GitHub Release for review.
 
 ## License
 
