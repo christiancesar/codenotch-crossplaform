@@ -281,9 +281,33 @@ Shared pure helpers in `src/libs/`: `band(used)`, `headline(snapshot, slot)` (mu
 
 ## Settings window
 
-Built from shadcn/ui components (Radix base): Switch, Select, Slider, Tabs, Tooltip, Button,
-added with `npx shadcn@latest add <name>` into `src/components/ui/`. They use the neutral theme
-as installed; Codenotch roles appear only where a reading is shown (band colours in previews).
+Built from shadcn/ui components (Radix base): Tabs, Switch, Select, Checkbox, ToggleGroup,
+Slider, Badge, Button, Sonner, added with `npx shadcn@latest add <name>` into
+`src/components/ui/`. They use the neutral theme as installed; Codenotch roles appear only where
+a reading is shown (band colours in the tray preview and the window picker). Sonner's wrapper
+drops `next-themes` (not a Next app) and follows the system theme.
+
+The window opens at 520 x 620. Panes lay out with container queries (`@container` on the pane
+area), so a pane renders the same in its story as in the window. Copy that differs between
+Linux and Windows (tray name, autostart, paths) lives in `settings/panes/copy.ts`.
+
+Rules moved from v0.3's settings.html are pure functions in `src/libs/settings.ts`: tray config
+normalization and repair, region boxes (same arithmetic as `tray/render.rs`), and the notch
+slot rule (empty list = every provider on "fullest", last ring held on).
+
+| Component | Renders | Key props |
+| --- | --- | --- |
+| `Pane`, `Block`, `Row`, `Note`, `Path` | Pane title and lede, headed block, name + why + control row | |
+| `TrayModePicker` | Numbers / Bars / Plain icon | `value`, `onChange` |
+| `TrayCanvas` | The 32 px icon magnified with clickable parts, plus actual sizes on dark and light panels | `preview`, `logo`, `regions`, `selected` |
+| `SlotChips` | The icon's parts as text; add and remove columns in Bars | `chips`, `selected`, `onAdd`, `onRemove` |
+| `SlotPicker` | Provider and window for one part, "Whichever is fullest" first | `providers`, `current`, `onChoose` |
+| `NotchRings` | One row per provider: ring on or off, window it counts | `providers`, `stored`, `onChange` |
+| `TrayPane`, `NotchPane`, `BehaviourPane`, `HooksPane`, `AboutPane` | The five panes, presentational | values + `on*` callbacks |
+| `SettingsWindow` | Section list (vertical tabs, remembered) and the pane area, error strip | `platform`, `panes`, `strip` |
+
+In stories the tray preview comes from `fixtures/trayPreview.ts`, a canvas port of
+`tray/render.rs`; the app always asks `get_tray_preview`.
 
 ## Charts
 

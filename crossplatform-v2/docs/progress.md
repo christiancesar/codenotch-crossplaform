@@ -117,16 +117,25 @@ the notch components: UsageRing, ProviderGlyph, ActivityArc, PercentLabel, Provi
 NotchShell, HoverCard, CardHeader, UsageBar, LimitWindowBlock, StatusDot, SessionList,
 ScaleSlider, NoticeToast, and `Notch/Notch` composing the window with hover.
 
-Waiting on the user's review of the notch components in Storybook (visual adjustments).
+Review notes applied (2026-10-07): `NotchShell` is one SVG silhouette (the idle tab's corners
+did not fit and the outline broke at the fillets); `HoverCard` stays inside the window, only the
+tail follows the cell, and scrolls past the window height.
+
+Settings window in Storybook (2026-10-07): the five v0.3 panes (tray icon, notch, behaviour,
+Claude Code, about) as presentational components under `src/components/settings/`, the v0.3
+rules in `src/libs/settings.ts`, and `Settings/SettingsWindow` composing them with every
+control live. Linux and Windows copy differ where the systems do.
 
 ## Open decisions
 
+- Five providers at frame sizes make the pill (511 px plus fillets) taller than the 460 px notch
+  window. Options put to the user: grow the window with the content (recommended), auto-fit the
+  pill, or go back to v0.3 spacing.
 - Design-system open table (`design-system.md`, end): frame sizes vs v0.3 web sizes, card
   body text floor of 11 px. Components currently follow the frame with the 11 px floor.
 
 ## Next
 
-1. Apply the user's review notes to the notch components.
-2. Settings window panes from shadcn components, in Storybook.
-3. Wire the notch and settings screens to the IPC (`bindings.ts`), replacing the placeholders.
-4. Phase 7 cutover: parity checklist on Linux and Windows.
+1. User review of the settings window in Storybook; the five-provider pill height decision.
+2. Wire the notch and settings screens to the IPC (`bindings.ts`), replacing the placeholders.
+3. Phase 7 cutover: parity checklist on Linux and Windows.
