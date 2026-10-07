@@ -9,7 +9,7 @@ import { ScaleSlider } from "@/components/notch/ScaleSlider";
 import { NoticeToast } from "@/components/notch/NoticeToast";
 import type { ActivityArcState } from "@/components/notch/ActivityArc";
 import { commands, events, type ProviderId, type Slot } from "@/libs/ipc";
-import { providerName } from "@/libs/usage";
+import { notchWindowHeight, providerName } from "@/libs/usage";
 import { useNotchData, type NotchData } from "./useNotchData";
 
 /** The window's designed width; a WebView that picked another monitor's DPR is zoomed back to it */
@@ -101,6 +101,12 @@ export default function Notch() {
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [reportHot, hover, collapsed, data.scale, data.usage, data.slots, data.sessions]);
+
+  // ---- window height: grows when the pill does not fit the 460 px minimum ---------------------
+  const ringCount = ready ? cells(data).length : 0;
+  useEffect(() => {
+    if (ringCount) commands.setNotchHeight(notchWindowHeight(ringCount, data.scale / 100)).catch(() => {});
+  }, [ringCount, data.scale]);
 
   // ---- DPR fit ---------------------------------------------------------------------------------
   useLayoutEffect(() => {

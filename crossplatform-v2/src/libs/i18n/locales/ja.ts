@@ -162,6 +162,13 @@ const ja: Messages = {
     hoursLimit: "{{n}} 時間の上限",
     daysLimit: "{{n}} 日の上限",
     via: "{{source}} 経由",
+    "Rate limited": "レート制限中",
+    rateLimitedRetry: "レート制限中、{{n}} 秒後に再試行",
+    "Claude is waiting for your input": "Claude があなたの返答を待っています",
+    claudePermission: "Claude が {{tool}} の使用許可を求めています",
+    "Antigravity is closed — last reading kept": "Antigravity は閉じています。最後の値を保持しています",
+    "Waiting for Antigravity CLI quota": "Antigravity CLI の利用枠を待っています",
+    "OpenCode publishes no quota — token count is Codenotch's own tally": "OpenCode は利用枠を公開していないため、トークン数は Codenotch 独自の集計です",
   },
 };
 

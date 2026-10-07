@@ -167,6 +167,13 @@ const en = {
     hoursLimit: "{{n}}h limit",
     daysLimit: "{{n}}d limit",
     via: "via {{source}}",
+    "Rate limited": "Rate limited",
+    rateLimitedRetry: "Rate limited, retrying in {{n}}s",
+    "Claude is waiting for your input": "Claude is waiting for your input",
+    claudePermission: "Claude needs your permission to use {{tool}}",
+    "Antigravity is closed — last reading kept": "Antigravity is closed, last reading kept",
+    "Waiting for Antigravity CLI quota": "Waiting for Antigravity CLI quota",
+    "OpenCode publishes no quota — token count is Codenotch's own tally": "OpenCode publishes no quota, so the token count is Codenotch's own tally",
   },
 } as const;
 

@@ -1,6 +1,6 @@
 //! Pinned to the right edge of the primary monitor at the saved vertical ratio.
 
-use super::{NOTCH_H, NOTCH_W};
+use super::NOTCH_W;
 
 /// Top-left for a window of physical size `win` whose centre sits at `ratio` of the monitor's
 /// height, kept fully on the monitor.
@@ -20,13 +20,14 @@ pub fn ratio_after_drag(top: i32, win_h: u32, mon_y: i32, mon_h: u32) -> f64 {
 /// Sizes the window from the monitor's scale and places it. The physical size is pinned straight
 /// from the monitor's scale factor: with two monitors at different scales the window could end up
 /// converted with the other monitor's factor, leaving the WebView ~256 logical px wide.
-pub fn place(w: &tauri::WebviewWindow, ratio: f64) -> Option<(i32, i32)> {
+pub fn place(w: &tauri::WebviewWindow, ratio: f64, height: f64) -> Option<(i32, i32)> {
     let mon = w.primary_monitor().ok().flatten()?;
     let s = mon.scale_factor();
-    let target = tauri::PhysicalSize::new((NOTCH_W * s).round() as u32, (NOTCH_H * s).round() as u32);
+    let target = tauri::PhysicalSize::new((NOTCH_W * s).round() as u32, (height * s).round() as u32);
     let _ = w.set_size(target);
-    // The measured size can still be 0x0 before the window is mapped; the target is what it will be
-    let size = w.outer_size().ok().filter(|z| z.width > 0 && z.height > 0).unwrap_or(target);
+    // The measured size can still be 0x0 before the window is mapped, and lags a resize just
+    // asked for: the target is what it will be
+    let size = target;
     let (x, y) = position((mon.position().x, mon.position().y), (mon.size().width, mon.size().height), (size.width, size.height), ratio);
     let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
     crate::diagnostics::log(&format!(

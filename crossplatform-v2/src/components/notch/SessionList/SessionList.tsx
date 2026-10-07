@@ -26,7 +26,7 @@ export function SessionList({ sessions, activity = [], onFocus }: SessionListPro
           <StatusDot state={s.state} className="mt-[3px]" />
           <span className="min-w-0 text-[11px] leading-snug">
             <span className="block truncate text-white/85">{s.title}</span>
-            {(s.attn || s.prompt) && <span className="block truncate text-muted-foreground">{s.attn || t("notch.you", { prompt: s.prompt })}</span>}
+            {(s.attn || s.prompt) && <span className="block truncate text-muted-foreground">{s.attn ? backendText(t, s.attn) : t("notch.you", { prompt: s.prompt })}</span>}
           </span>
         </button>
       ))}

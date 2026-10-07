@@ -138,16 +138,17 @@ from `get_usage` and the events, the card per hovered provider, reports the hot 
 fits the viewport to 340 px and reports the DPR. Not yet run on the desktop: v0.3 was running
 (same identifier, single-instance).
 
+Notch height (2026-10-07, user's choice): the window grows with the pill instead of clipping it.
+460 px stays the minimum; the page asks `set_notch_height` for the open pill plus fillets at the
+current scale (five rings at 100 % need ~605 px), the backend clamps it to the monitor and
+re-places the window around the saved centre.
+
 ## Open decisions
 
-- Five providers at frame sizes make the pill (511 px plus fillets) taller than the 460 px notch
-  window. Options put to the user: grow the window with the content (recommended), auto-fit the
-  pill, or go back to v0.3 spacing.
 - Design-system open table (`design-system.md`, end): frame sizes vs v0.3 web sizes, card
   body text floor of 11 px. Components currently follow the frame with the 11 px floor.
 
 ## Next
 
 1. Run v2 on the desktop (v0.3 closed) and check the notch and settings against the stories.
-2. The five-provider pill height decision.
-3. Phase 7 cutover: parity checklist on Linux and Windows.
+2. Phase 7 cutover: parity checklist on Linux and Windows.

@@ -162,6 +162,13 @@ const zh: Messages = {
     hoursLimit: "{{n}} 小时限额",
     daysLimit: "{{n}} 天限额",
     via: "来自 {{source}}",
+    "Rate limited": "请求受限",
+    rateLimitedRetry: "请求受限，{{n}} 秒后重试",
+    "Claude is waiting for your input": "Claude 正在等待你的回复",
+    claudePermission: "Claude 需要你的许可才能使用 {{tool}}",
+    "Antigravity is closed — last reading kept": "Antigravity 已关闭，保留上次读数",
+    "Waiting for Antigravity CLI quota": "正在等待 Antigravity CLI 额度",
+    "OpenCode publishes no quota — token count is Codenotch's own tally": "OpenCode 不公开额度，token 数为 Codenotch 自行统计",
   },
 };
 

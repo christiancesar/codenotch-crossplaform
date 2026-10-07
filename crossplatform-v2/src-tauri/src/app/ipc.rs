@@ -16,6 +16,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             notch::set_hot,
             notch::drag_begin,
             notch::report_dpr,
+            notch::set_notch_height,
             notch::get_scale,
             notch::set_scale,
             notch::get_notch_slots,

@@ -35,6 +35,21 @@ pub fn drag_begin(app: AppHandle, state: State<AppState>) {
     });
 }
 
+/// The page's pill no longer fits (five providers at full size): grow the window to `height`
+/// logical px, at least the minimum and at most the monitor, keeping the saved centre.
+#[tauri::command]
+#[specta::specta]
+pub fn set_notch_height(app: AppHandle, state: State<AppState>, height: f64) {
+    let Some(w) = app.get_webview_window(crate::app::ui::NOTCH) else { return };
+    let mon_h = w.primary_monitor().ok().flatten().map(|m| m.size().height as f64 / m.scale_factor()).unwrap_or(crate::notch::NOTCH_H);
+    let h = crate::notch::clamp_height(height, mon_h);
+    if (state.notch.height() - h).abs() < 1.0 {
+        return;
+    }
+    *state.notch.height.lock().unwrap() = h;
+    crate::app::ui::place_notch(&app);
+}
+
 /// With two monitors at different scales the WebView can pick the other monitor's DPR, leaving
 /// the page 255 CSS px wide instead of 340. The page reports its DPR, and a zoom pulls it back
 /// to the primary monitor's scale; at most three corrections, in case it never follows.

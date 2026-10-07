@@ -162,6 +162,13 @@ const pt: Messages = {
     hoursLimit: "Limite de {{n}}h",
     daysLimit: "Limite de {{n}} dias",
     via: "via {{source}}",
+    "Rate limited": "Limite de requisições",
+    rateLimitedRetry: "Limite de requisições, tentando de novo em {{n}}s",
+    "Claude is waiting for your input": "O Claude está esperando sua resposta",
+    claudePermission: "O Claude precisa da sua permissão para usar {{tool}}",
+    "Antigravity is closed — last reading kept": "O Antigravity está fechado, última leitura mantida",
+    "Waiting for Antigravity CLI quota": "Aguardando a cota do CLI do Antigravity",
+    "OpenCode publishes no quota — token count is Codenotch's own tally": "O OpenCode não publica cota, então a contagem de tokens é do próprio Codenotch",
   },
 };
 

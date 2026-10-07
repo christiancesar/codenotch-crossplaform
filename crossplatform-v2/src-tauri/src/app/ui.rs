@@ -18,7 +18,7 @@ pub fn place_notch(app: &AppHandle) {
     let st = app.state::<AppState>();
     let ratio = st.config.lock().unwrap().notch_y;
     if let Some(w) = app.get_webview_window(NOTCH) {
-        crate::notch::placement::place(&w, ratio);
+        crate::notch::placement::place(&w, ratio, st.notch.height());
     }
 }
 

@@ -25,6 +25,11 @@ export const commands = {
 	 *  to the primary monitor's scale; at most three corrections, in case it never follows.
 	 */
 	reportDpr: (dpr: number | null, width: number | null, height: number | null) => __TAURI_INVOKE<void>("report_dpr", { dpr, width, height }),
+	/**
+	 *  The page's pill no longer fits (five providers at full size): grow the window to `height`
+	 *  logical px, at least the minimum and at most the monitor, keeping the saved centre.
+	 */
+	setNotchHeight: (height: number | null) => __TAURI_INVOKE<void>("set_notch_height", { height }),
 	getScale: () => __TAURI_INVOKE<number | null>("get_scale"),
 	/**
 	 *  Only the value is stored: the page scales the pill with CSS, so the window never resizes and
