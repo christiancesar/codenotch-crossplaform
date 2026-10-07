@@ -1,4 +1,5 @@
 import { PencilIcon, PlusIcon, XIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { band } from "@/libs/usage";
 import { cn } from "@/lib/utils";
 
@@ -31,9 +32,10 @@ export interface SlotChipsProps {
  * that part of the picture. The cards share the row, so the choice reads as the main control.
  */
 export function SlotChips({ chips, selected, onSelect, onRemove, onAdd }: SlotChipsProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[11px] text-muted-foreground">Click a part, here or on the picture, to choose what it shows.</p>
+      <p className="text-[11px] text-muted-foreground">{t("settings.tray.partsHint")}</p>
       <div className="grid gap-2 @md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
         {chips.map((c, i) => {
           const on = i === selected;
@@ -62,7 +64,7 @@ export function SlotChips({ chips, selected, onSelect, onRemove, onAdd }: SlotCh
                   </span>
                   <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">{c.name}</span>
                   {on ? (
-                    <span className="ml-auto text-[10px] font-medium text-foreground">Editing</span>
+                    <span className="ml-auto text-[10px] font-medium text-foreground">{t("common.editing")}</span>
                   ) : (
                     <PencilIcon className="ml-auto size-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
                   )}
@@ -82,8 +84,8 @@ export function SlotChips({ chips, selected, onSelect, onRemove, onAdd }: SlotCh
                 <button
                   type="button"
                   onClick={() => onRemove(i)}
-                  aria-label={`Remove ${c.name.toLowerCase()}`}
-                  title="Remove this column"
+                  aria-label={t("settings.tray.removeNamed", { name: c.name })}
+                  title={t("settings.tray.removeColumn")}
                   className="absolute -top-1.5 -right-1.5 flex size-5 items-center justify-center rounded-full border bg-background text-muted-foreground opacity-0 shadow-sm outline-none transition-opacity group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <XIcon className="size-3" />
@@ -98,7 +100,7 @@ export function SlotChips({ chips, selected, onSelect, onRemove, onAdd }: SlotCh
             onClick={onAdd}
             className="flex min-h-20 items-center justify-center gap-1.5 rounded-lg border border-dashed text-xs text-muted-foreground outline-none transition-colors hover:border-foreground/30 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <PlusIcon className="size-3.5" /> Add column
+            <PlusIcon className="size-3.5" /> {t("settings.tray.addColumn")}
           </button>
         )}
       </div>

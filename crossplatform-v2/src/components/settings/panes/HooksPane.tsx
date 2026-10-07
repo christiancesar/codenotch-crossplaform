@@ -1,6 +1,7 @@
+import { Trans, useTranslation } from "react-i18next";
 import { Switch } from "@/components/ui/switch";
 import { Block, Note, Pane, Path, Row } from "../Pane";
-import { copy, type Platform } from "./copy";
+import { paths, type Platform } from "./copy";
 
 export interface HooksPaneProps {
   platform: Platform;
@@ -13,19 +14,14 @@ export interface HooksPaneProps {
 
 /** General: Claude Code's hooks, which make the session states exact instead of guessed. */
 export function HooksPane({ platform, installed, onInstalled, error }: HooksPaneProps) {
+  const { t } = useTranslation();
   return (
-    <Pane title="Claude Code" lede="Claude Code can tell Codenotch the moment something happens in a session, instead of Codenotch guessing from files on disk.">
-      <Block title="Session messages">
-        <Row
-          htmlFor="sw-hooks"
-          name="Let Claude Code notify Codenotch"
-          why="Adds a few lines to your Claude Code settings so it sends Codenotch a short message when a session starts, works, waits for your answer and finishes. That is what makes the ring spin and the amber dot breathe."
-          control={<Switch id="sw-hooks" checked={installed} onCheckedChange={onInstalled} />}
-        />
+    <Pane title={t("settings.tabs.hooks")} lede={t("settings.hooks.lede")}>
+      <Block title={t("settings.hooks.messages")}>
+        <Row htmlFor="sw-hooks" name={t("settings.hooks.name")} why={t("settings.hooks.why")} control={<Switch id="sw-hooks" checked={installed} onCheckedChange={onInstalled} />} />
         {error && <p className="text-[11px] text-destructive">{error}</p>}
         <Note>
-          The file changed is <Path>{copy[platform].hooksFile}</Path>. A dated copy is saved before anything is written, and switching this off takes the lines out
-          again. Hooks you added yourself are left alone.
+          <Trans i18nKey="settings.hooks.file" values={{ file: paths[platform].hooksFile }} components={{ path: <Path /> }} />
         </Note>
       </Block>
     </Pane>

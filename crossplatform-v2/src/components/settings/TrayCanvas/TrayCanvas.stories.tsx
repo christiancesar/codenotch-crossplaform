@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
 import { TrayCanvas } from "./TrayCanvas";
 import { regionBoxes, slotName } from "@/libs/settings";
+import i18n from "@/libs/i18n";
 import { trayPreview } from "@/fixtures/trayPreview";
 import { slotReading, trayBars, trayNumbers, trayOptions } from "@/fixtures/settings";
 import type { TrayConfig } from "@/libs/ipc";
@@ -11,7 +12,7 @@ import { onSurface } from "../story-helpers";
 const props = (cfg: TrayConfig) => ({
   preview: trayPreview(cfg, (p, w) => slotReading(trayOptions, p, w)),
   regions: regionBoxes(cfg),
-  regionNames: cfg.slots.map((_, i) => slotName(cfg.mode, i)),
+  regionNames: cfg.slots.map((_, i) => slotName(i18n.t, cfg.mode, i)),
 });
 const five: TrayConfig = { mode: "bars", slots: (["claude", "codex", "cursor", "gemini", "opencode"] as const).map((provider) => ({ provider, window: "" })) };
 

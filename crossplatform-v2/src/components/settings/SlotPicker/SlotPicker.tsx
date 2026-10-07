@@ -1,7 +1,9 @@
 import { CheckIcon } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Slot, TrayOption } from "@/libs/ipc";
 import { band } from "@/libs/usage";
 import { statusText } from "@/libs/settings";
+import { backendText } from "@/libs/i18n";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -45,10 +47,11 @@ function Item({ on, label, pct, any, onClick }: { on: boolean; label: string; pc
  * for every provider: it is the choice that survives a provider renaming its windows.
  */
 export function SlotPicker({ providers, current, onChoose }: SlotPickerProps) {
+  const { t } = useTranslation();
   return (
-    <div role="radiogroup" aria-label="What this part shows" className="grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3">
+    <div role="radiogroup" aria-label={t("settings.tray.pickerLabel")} className="grid gap-3 @lg:grid-cols-2 @4xl:grid-cols-3">
       {providers.map((p) => {
-        const st = statusText[p.status] ?? p.status;
+        const st = statusText(t, p.status);
         return (
           <div key={p.id} className="flex flex-col gap-1 rounded-lg border bg-card p-2">
             <div className="flex items-center justify-between gap-2 px-2 pt-1 pb-0.5">
@@ -59,11 +62,11 @@ export function SlotPicker({ providers, current, onChoose }: SlotPickerProps) {
                 </Badge>
               )}
             </div>
-            <Item any label="Whichever is fullest" on={current.provider === p.id && !current.window} onClick={() => onChoose({ provider: p.id, window: "" })} />
+            <Item any label={t("common.fullest")} on={current.provider === p.id && !current.window} onClick={() => onChoose({ provider: p.id, window: "" })} />
             {p.windows.map((w) => (
               <Item
                 key={w.id}
-                label={w.label}
+                label={backendText(t, w.label)}
                 pct={w.used}
                 on={current.provider === p.id && current.window === w.id}
                 onClick={() => onChoose({ provider: p.id, window: w.id })}
@@ -71,7 +74,7 @@ export function SlotPicker({ providers, current, onChoose }: SlotPickerProps) {
             ))}
             {!p.windows.length && (
               <p className="px-2 pb-1 text-[11px]/relaxed text-muted-foreground">
-                No windows reported{st ? ` (${st})` : ""}. "Whichever is fullest" starts working as soon as it reports one.
+                {st ? t("settings.tray.noWindowsStatus", { status: st }) : t("settings.tray.noWindows")}
               </p>
             )}
           </div>

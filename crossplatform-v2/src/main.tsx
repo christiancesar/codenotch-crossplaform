@@ -3,6 +3,9 @@ import ReactDOM from "react-dom/client";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { MotionConfig } from "motion/react";
 import "./index.css";
+// Before any tree renders, so the first paint is already in a language (English until the backend answers)
+import "./libs/i18n";
+import { useBackendLang } from "./libs/i18n/useBackendLang";
 
 // Both OS windows load this one bundle; the window label picks the tree, and `lazy` keeps the
 // settings code out of the notch, which is always on screen.
@@ -22,7 +25,12 @@ if (isSettings) {
   root.classList.add("notch", "dark");
 }
 
-const Root = isSettings ? Settings : Notch;
+const Tree = isSettings ? Settings : Notch;
+
+function Root() {
+  useBackendLang();
+  return <Tree />;
+}
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>

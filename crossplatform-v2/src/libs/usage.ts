@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { LimitWindow, ProviderId, UsageSnapshot } from "@/libs/ipc";
 
 /**
@@ -52,11 +53,11 @@ export function headline(snapshot: UsageSnapshot, windowId = ""): MeteredWindow 
 }
 
 /** "Resets in 51 min" under an hour, "Resets Thu 12:00 AM" beyond, in the user's language. */
-export function formatReset(resetsAt: number | null, now: number, lang = "en"): string {
+export function formatReset(resetsAt: number | null, now: number, t: TFunction, locale = "en"): string {
   if (resetsAt === null) return "";
   const ms = resetsAt - now;
-  if (ms <= 0) return "Resetting now";
-  if (ms < 3_600_000) return `Resets in ${Math.max(1, Math.round(ms / 60_000))} min`;
-  const when = new Intl.DateTimeFormat(lang, { weekday: "short", hour: "numeric", minute: "2-digit" }).format(resetsAt);
-  return `Resets ${when}`;
+  if (ms <= 0) return t("notch.resettingNow");
+  if (ms < 3_600_000) return t("notch.resetsIn", { count: Math.max(1, Math.round(ms / 60_000)) });
+  const when = new Intl.DateTimeFormat(locale, { weekday: "short", hour: "numeric", minute: "2-digit" }).format(resetsAt);
+  return t("notch.resetsAt", { when });
 }

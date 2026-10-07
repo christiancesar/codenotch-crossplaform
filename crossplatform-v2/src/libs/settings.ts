@@ -1,5 +1,7 @@
 import type { ProviderId, ProviderStatus, Slot, TrayConfig, TrayMode, TrayOption } from "@/libs/ipc";
+import type { TFunction } from "i18next";
 import { providerName } from "@/libs/usage";
+import { backendText } from "@/libs/i18n/backend";
 
 /**
  * Settings rules moved from v0.3's settings.html, as pure functions so the panes stay
@@ -10,16 +12,8 @@ export const MAX_BARS = 5;
 export const NUMBER_SLOTS = 2;
 const ORDER: ProviderId[] = ["claude", "codex", "cursor", "gemini", "opencode"];
 
-/** The words for a provider's status, shared by the tray picker and the notch list. */
-export const statusText: Record<ProviderStatus, string> = {
-  ok: "",
-  stale: "last reading is old",
-  needsAuth: "not signed in",
-  backoff: "rate limited, retrying later",
-  absent: "not installed",
-  none: "nothing to report",
-  error: "not reachable",
-};
+/** The words for a provider's status ("not signed in"), empty when it is fine. */
+export const statusText = (t: TFunction, status: ProviderStatus) => t(`status.${status}`);
 
 /** Whoever `get_tray_options` answered, or the five known providers until it does. */
 export function providerList(options: TrayOption[]): TrayOption[] {
@@ -31,9 +25,9 @@ export const provLabel = (options: TrayOption[], id: string) =>
 
 export const winsOf = (options: TrayOption[], id: string) => options.find((o) => o.id === id)?.windows ?? [];
 
-export function winLabel(options: TrayOption[], provider: string, window: string) {
-  if (!window) return "Whichever is fullest";
-  return winsOf(options, provider).find((w) => w.id === window)?.label ?? window;
+export function winLabel(t: TFunction, options: TrayOption[], provider: string, window: string) {
+  if (!window) return t("common.fullest");
+  return backendText(t, winsOf(options, provider).find((w) => w.id === window)?.label ?? window);
 }
 
 /** A provider for a new or repaired slot: one reporting windows first, then a healthy one. */
@@ -55,25 +49,27 @@ export const defaultSlot = (options: TrayOption[], existing: Slot[]): Slot => ({
  * A provider reporting no windows at all (signed out) keeps its stored window: that is not
  * evidence the choice is wrong.
  */
-function fixSlot(options: TrayOption[], s: Slot, notes: string[]): Slot {
+type Repair = { gone: string } | { provider: string; window: string };
+
+function fixSlot(options: TrayOption[], s: Slot, notes: Repair[]): Slot {
   if (!s?.provider) return { provider: pickProvider(options, []), window: "" };
   if (options.length && !options.some((o) => o.id === s.provider)) {
-    notes.push(`"${s.provider}" is no longer available`);
+    notes.push({ gone: s.provider });
     return { provider: pickProvider(options, []), window: "" };
   }
   let win = s.window ?? "";
   const wins = winsOf(options, s.provider);
   if (win && win !== "top" && wins.length && !wins.some((w) => w.id === win)) {
-    notes.push(`${provLabel(options, s.provider)} no longer reports "${win}"`);
+    notes.push({ provider: provLabel(options, s.provider), window: win });
     win = "";
   }
   return { provider: s.provider, window: win === "top" ? "" : win };
 }
 
-/** Numbers gets exactly two slots, bars one to five, never empty. Returns the repair note too. */
-export function normalizeTray(options: TrayOption[], cfg: TrayConfig): { config: TrayConfig; note: string } {
+/** Numbers gets exactly two slots, bars one to five, never empty. Returns what was repaired too. */
+export function normalizeTray(options: TrayOption[], cfg: TrayConfig): { config: TrayConfig; repair: Repair | null } {
   const mode: TrayMode = ["numbers", "bars", "off"].includes(cfg.mode) ? cfg.mode : "off";
-  const notes: string[] = [];
+  const notes: Repair[] = [];
   let slots = (cfg.slots ?? []).map((s) => fixSlot(options, s, notes));
   if (mode === "numbers") {
     while (slots.length < NUMBER_SLOTS) slots.push(defaultSlot(options, slots));
@@ -82,7 +78,7 @@ export function normalizeTray(options: TrayOption[], cfg: TrayConfig): { config:
     if (!slots.length) slots.push(defaultSlot(options, slots));
     slots = slots.slice(0, MAX_BARS);
   }
-  return { config: { mode, slots }, note: notes.length ? `${notes[0]}, so that slot now shows whichever window is fullest.` : "" };
+  return { config: { mode, slots }, repair: notes[0] ?? null };
 }
 
 /** A box over the 32 px icon, in percent. */
@@ -101,7 +97,12 @@ export function regionBoxes(cfg: TrayConfig): RegionBox[] {
   return Array.from({ length: n }, (_, i) => ({ left: ((ox + i * (col + gap)) / S) * 100, top: 0, width: (col / S) * 100, height: 100 }));
 }
 
-export const slotName = (mode: TrayMode, i: number) => (mode === "numbers" ? (i === 0 ? "Top half" : "Bottom half") : `Column ${i + 1}`);
+/** The words for a repair, shown once above the picker. */
+export const repairText = (t: TFunction, r: Repair) =>
+  "gone" in r ? t("settings.tray.repairGone", { provider: r.gone }) : t("settings.tray.repairWindow", { provider: r.provider, window: r.window });
+
+export const slotName = (t: TFunction, mode: TrayMode, i: number) =>
+  mode === "numbers" ? t(i === 0 ? "settings.tray.topHalf" : "settings.tray.bottomHalf") : t("settings.tray.column", { n: i + 1 });
 
 /**
  * The notch's rings. Stored as tray-shaped slots; an EMPTY list means every provider on

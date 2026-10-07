@@ -1,11 +1,8 @@
+import { useTranslation } from "react-i18next";
 import type { TrayMode } from "@/libs/ipc";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
-const MODES: { id: TrayMode; name: string; sub: string }[] = [
-  { id: "numbers", name: "Numbers", sub: "two readings" },
-  { id: "bars", name: "Bars", sub: "1 to 5 columns" },
-  { id: "off", name: "Plain icon", sub: "just the logo" },
-];
+const MODES = ["numbers", "bars", "off"] as const satisfies readonly TrayMode[];
 
 export interface TrayModePickerProps {
   value: TrayMode;
@@ -14,6 +11,7 @@ export interface TrayModePickerProps {
 
 /** What gets drawn into the 32 px tray icon. One is always chosen. */
 export function TrayModePicker({ value, onChange }: TrayModePickerProps) {
+  const { t } = useTranslation();
   return (
     <ToggleGroup
       type="single"
@@ -23,12 +21,12 @@ export function TrayModePicker({ value, onChange }: TrayModePickerProps) {
       // Radix answers "" when the pressed item is clicked again: keep the current mode
       onValueChange={(v) => v && onChange(v as TrayMode)}
       className="grid w-full max-w-xl grid-cols-3"
-      aria-label="Tray icon layout"
+      aria-label={t("settings.tray.layoutLabel")}
     >
       {MODES.map((m) => (
-        <ToggleGroupItem key={m.id} value={m.id} className="h-auto w-full flex-col items-start gap-0.5 px-3 py-2">
-          <span className="text-[13px] font-medium">{m.name}</span>
-          <span className="text-[11px] font-normal text-muted-foreground">{m.sub}</span>
+        <ToggleGroupItem key={m} value={m} className="h-auto w-full flex-col items-start gap-0.5 px-3 py-2">
+          <span className="text-[13px] font-medium">{t(`settings.tray.modes.${m}`)}</span>
+          <span className="text-[11px] font-normal text-muted-foreground">{t(`settings.tray.modes.${m}Sub`)}</span>
         </ToggleGroupItem>
       ))}
     </ToggleGroup>

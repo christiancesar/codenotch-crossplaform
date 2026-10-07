@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import type { Slot, TrayConfig, TrayMode, TrayOption } from "@/libs/ipc";
 import { MAX_BARS, defaultSlot, normalizeTray, provLabel, providerList, regionBoxes, slotName, slotPercent, winLabel } from "@/libs/settings";
 import { Block, Note, Pane } from "../Pane";
@@ -6,7 +7,7 @@ import { TrayModePicker } from "../TrayModePicker";
 import { TrayCanvas } from "../TrayCanvas";
 import { SlotChips } from "../SlotChips";
 import { SlotPicker } from "../SlotPicker";
-import { copy, type Platform } from "./copy";
+import type { Platform } from "./copy";
 
 export interface TrayPaneProps {
   platform: Platform;
@@ -20,17 +21,18 @@ export interface TrayPaneProps {
   preview: string | null;
   /** `get_app_icon` */
   logo: string | null;
-  /** Set when a saved slot had to be repaired on load */
+  /** Set when a saved slot had to be repaired on load (`repairText`) */
   repairNote?: string;
 }
 
 /** Appearance: the tray icon's layout, which part shows what, and the real pixels. */
 export function TrayPane({ platform, options, config, onConfig, preview, logo, repairNote }: TrayPaneProps) {
+  const { t } = useTranslation();
   const [sel, setSel] = useState(0);
   const providers = providerList(options);
   const at = Math.min(sel, config.slots.length - 1);
-  const names = config.slots.map((_, i) => slotName(config.mode, i));
-  const describe = (s: Slot) => `${provLabel(options, s.provider)} · ${winLabel(options, s.provider, s.window)}`;
+  const names = config.slots.map((_, i) => slotName(t, config.mode, i));
+  const describe = (s: Slot) => `${provLabel(options, s.provider)} · ${winLabel(t, options, s.provider, s.window)}`;
 
   const setMode = (mode: TrayMode) => {
     if (mode === config.mode) return;
@@ -46,14 +48,10 @@ export function TrayPane({ platform, options, config, onConfig, preview, logo, r
     onConfig({ ...config, slots: [...config.slots, defaultSlot(options, config.slots)] });
     setSel(config.slots.length);
   };
-  const t = copy[platform];
 
   return (
-    <Pane
-      title={t.tray}
-      lede={`${t.trayWhere[0].toUpperCase()}${t.trayWhere.slice(1)}. Codenotch draws your usage straight into it, 32 pixels square. Pick a layout, then click a part of the picture to choose what that part shows.`}
-    >
-      <Block title="Layout" sub="What gets drawn into those 32 pixels.">
+    <Pane title={t(`platform.${platform}.tray`)} lede={t("settings.tray.lede", { where: t(`platform.${platform}.trayWhere`) })}>
+      <Block title={t("settings.tray.layout")} sub={t("settings.tray.layoutSub")}>
         <TrayModePicker value={config.mode} onChange={setMode} />
         <TrayCanvas
           preview={preview}
@@ -65,7 +63,12 @@ export function TrayPane({ platform, options, config, onConfig, preview, logo, r
         />
         {config.mode !== "off" && (
           <SlotChips
-            chips={config.slots.map((s, i) => ({ name: names[i], provider: provLabel(options, s.provider), window: winLabel(options, s.provider, s.window), pct: slotPercent(options, s) }))}
+            chips={config.slots.map((s, i) => ({
+              name: names[i],
+              provider: provLabel(options, s.provider),
+              window: winLabel(t, options, s.provider, s.window),
+              pct: slotPercent(options, s),
+            }))}
             selected={at}
             onSelect={setSel}
             onRemove={config.mode === "bars" ? remove : undefined}
@@ -74,13 +77,17 @@ export function TrayPane({ platform, options, config, onConfig, preview, logo, r
         )}
       </Block>
 
-      <Block title="What each part shows" sub="Pick the tool, then the usage window you want drawn there.">
+      <Block title={t("settings.tray.eachPart")} sub={t("settings.tray.eachPartSub")}>
         {config.mode === "off" ? (
-          <Note>The icon shows the plain Codenotch logo. Choose Numbers or Bars above to draw your usage into it.</Note>
+          <Note>{t("settings.tray.plainNote")}</Note>
         ) : (
           <>
             <p className="text-xs">
-              Showing in <b className="font-medium">{names[at]}</b>: {describe(config.slots[at])}
+              <Trans
+                i18nKey="settings.tray.showingIn"
+                values={{ part: names[at], what: describe(config.slots[at]) }}
+                components={{ b: <b className="font-medium" /> }}
+              />
             </p>
             {repairNote && <Note>{repairNote}</Note>}
             <SlotPicker providers={providers} current={config.slots[at]} onChoose={choose} />

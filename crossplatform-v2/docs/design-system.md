@@ -311,6 +311,24 @@ slot rule (empty list = every provider on "fullest", last ring held on).
 In stories the tray preview comes from `fixtures/trayPreview.ts`, a canvas port of
 `tray/render.rs`; the app always asks `get_tray_preview`.
 
+## Language
+
+The whole UI (settings, notch, hover card) is translated with i18next + react-i18next into
+English, Português (Brasil), 中文, 日本語 and 한국어, the same set the tray menu speaks.
+
+- Strings live in `src/libs/i18n/locales/`. `en.ts` is the source and defines the keys; every
+  other locale is typed `Messages`, so a missing key fails the typecheck. Keys are typed in
+  `t()` through `i18next.d.ts`.
+- The language is the backend's: `get_lang().resolved` at start and the `lang` event after
+  (`useBackendLang`), so "Follow system" resolves the same way as the tray menu.
+- Text the backend sends in English (window labels, activity details, plan notes) goes through
+  `backendText`: split on " · ", each known piece translated, provider patterns ("5h limit",
+  "via Codex") matched. An unknown piece shows as sent.
+- Dates in the card use `Intl` with the language's locale (`INTL_LOCALE`).
+- Paths and each language's own name in the language list are never translated.
+- Storybook: the Language menu in the toolbar switches every story; in
+  `Settings/SettingsWindow` the Behaviour pane's select switches the window live, as in the app.
+
 ## Charts
 
 shadcn charts (Recharts) for the data views: the per-window detail and any usage history

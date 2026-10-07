@@ -126,6 +126,10 @@ Claude Code, about) as presentational components under `src/components/settings/
 rules in `src/libs/settings.ts`, and `Settings/SettingsWindow` composing them with every
 control live. Linux and Windows copy differ where the systems do.
 
+Translation (2026-10-07): the whole UI in en, pt, zh, ja and ko through i18next, following the
+backend's resolved language; Storybook has a Language toolbar menu. zh, ja and ko were written
+without a native reviewer and should get one.
+
 ## Open decisions
 
 - Five providers at frame sizes make the pill (511 px plus fillets) taller than the 460 px notch

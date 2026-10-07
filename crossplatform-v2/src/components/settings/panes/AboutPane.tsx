@@ -1,6 +1,7 @@
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Block, Note, Pane, Path, Row } from "../Pane";
-import { copy, type Platform } from "./copy";
+import { paths, type Platform } from "./copy";
 
 export interface AboutPaneProps {
   platform: Platform;
@@ -14,41 +15,41 @@ export interface AboutPaneProps {
 
 /** General: what this copy is, where its files live, and the way back for a lost notch. */
 export function AboutPane({ platform, version, logo, onOpenData, onResetPosition }: AboutPaneProps) {
-  const t = copy[platform];
+  const { t } = useTranslation();
   return (
-    <Pane title="About" lede="What this copy of Codenotch is, and where it keeps its files.">
+    <Pane title={t("settings.tabs.about")} lede={t("settings.about.lede")}>
       <Block>
         <div className="flex items-center gap-3">
           {logo ? <img src={logo} alt="" className="size-10" /> : <div className="size-10 rounded-lg bg-muted" />}
           <div>
             <div className="font-heading text-base font-semibold">Codenotch</div>
-            <div className="text-xs text-muted-foreground tabular-nums">Version {version}</div>
+            <div className="text-xs text-muted-foreground tabular-nums">{t("settings.about.version", { version })}</div>
           </div>
         </div>
-        <Note>Shows how much of your Claude, Codex, Cursor, Antigravity and OpenCode allowance you have used, in the {t.tray.toLowerCase()} and in a pill at the edge of the screen.</Note>
+        <Note>{t("settings.about.blurb", { tray: t(`platform.${platform}.trayLower`) })}</Note>
       </Block>
 
-      <Block title="Files">
+      <Block title={t("settings.about.files")}>
         <Row
-          name="Data folder"
-          why={`Everything Codenotch remembers lives in one folder: your settings, its log, and the "glyphs" folder for your own icons. Opens in ${t.fileManager}.`}
+          name={t("settings.about.dataFolder")}
+          why={t("settings.about.dataFolderWhy", { fileManager: t(`platform.${platform}.fileManager`) })}
           control={
             <Button variant="outline" size="sm" onClick={onOpenData}>
-              Open folder
+              {t("settings.about.openFolder")}
             </Button>
           }
         >
-          <Path>{t.dataDir}</Path>
+          <Path>{paths[platform].dataDir}</Path>
         </Row>
       </Block>
 
-      <Block title="If something looks wrong">
+      <Block title={t("settings.about.wrong")}>
         <Row
-          name="Put the notch back"
-          why="The pill can be dragged up and down the right-hand edge. If it ended up somewhere you cannot see it, on a screen you unplugged say, this puts it back in the middle of the edge."
+          name={t("settings.about.putBack")}
+          why={t("settings.about.putBackWhy")}
           control={
             <Button variant="outline" size="sm" onClick={onResetPosition}>
-              Reset position
+              {t("settings.about.resetPosition")}
             </Button>
           }
         />

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import type { RegionBox } from "@/libs/settings";
 import { cn } from "@/lib/utils";
 
@@ -18,9 +19,9 @@ export interface TrayCanvasProps {
 
 /** One panel colour for the actual-size strip */
 const PANELS = [
-  { bg: "bg-neutral-900", label: "text-neutral-400", name: "Dark panel" },
-  { bg: "bg-neutral-200", label: "text-neutral-600", name: "Light panel" },
-];
+  { bg: "bg-neutral-900", label: "text-neutral-400", name: "darkPanel" },
+  { bg: "bg-neutral-200", label: "text-neutral-600", name: "lightPanel" },
+] as const;
 
 /**
  * The tray icon magnified with nearest-neighbour scaling, so what is edited is literally the
@@ -30,17 +31,18 @@ const PANELS = [
  * sizes the panel really uses, on a dark and a light panel.
  */
 export function TrayCanvas({ preview, logo, regions, regionNames, selected, onSelect, sizes = [16, 22, 24, 32] }: TrayCanvasProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex flex-wrap items-stretch gap-6">
       <div className="relative size-44 shrink-0 rounded-xl bg-neutral-950 ring-1 ring-border @3xl:size-52">
         {/* The 32 x 32 art, inset so the frame's rounded corners never cut into it */}
         <div className="absolute inset-7 bg-neutral-900">
           {preview ? (
-            <img src={preview} alt="Tray icon preview" className="size-full [image-rendering:pixelated]" />
+            <img src={preview} alt={t("settings.tray.preview")} className="size-full [image-rendering:pixelated]" />
           ) : (
             <div className="flex size-full flex-col items-center justify-center gap-2 text-center">
               {logo && <img src={logo} alt="Codenotch" className="size-10" />}
-              <p className="text-[10px]/snug text-neutral-400">Plain logo, no numbers drawn.</p>
+              <p className="text-[10px]/snug text-neutral-400">{t("settings.tray.plainLogo")}</p>
             </div>
           )}
           {regions.map((b, i) => {
@@ -80,12 +82,12 @@ export function TrayCanvas({ preview, logo, regions, regionNames, selected, onSe
       {/* Beside the preview it is as tall as the preview: the words at the top, the panels at the foot */}
       <div className="flex min-w-60 flex-1 flex-col justify-between gap-3">
         <div className="flex flex-col gap-1">
-          <h3 className="text-xs font-medium">Actual size</h3>
-          <p className="text-[11px]/relaxed text-muted-foreground">How big it really is on the panel. If a number is unreadable here, it is unreadable there too.</p>
+          <h3 className="text-xs font-medium">{t("settings.tray.actualSize")}</h3>
+          <p className="text-[11px]/relaxed text-muted-foreground">{t("settings.tray.actualSizeSub")}</p>
         </div>
         <div className="grid gap-2 @xl:grid-cols-2">
           {PANELS.map((p) => (
-            <div key={p.name} title={p.name} className={cn("flex items-end justify-around gap-2 rounded-md px-3 py-4", p.bg)}>
+            <div key={p.name} title={t(`settings.tray.${p.name}`)} className={cn("flex items-end justify-around gap-2 rounded-md px-3 py-4", p.bg)}>
               {sizes.map((s) => (
                 <div key={s} className="flex flex-col items-center gap-1">
                   <img src={preview ?? logo ?? ""} alt="" style={{ width: s, height: s }} className={cn(!(preview ?? logo) && "invisible")} />

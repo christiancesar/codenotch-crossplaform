@@ -1,4 +1,6 @@
+import { useTranslation } from "react-i18next";
 import type { Activity, Session } from "@/libs/ipc";
+import { backendText } from "@/libs/i18n";
 import { providerName } from "@/libs/usage";
 import { StatusDot } from "../StatusDot";
 
@@ -15,6 +17,7 @@ export interface SessionListProps {
  * tools' activity. Nothing at all renders when both are empty.
  */
 export function SessionList({ sessions, activity = [], onFocus }: SessionListProps) {
+  const { t } = useTranslation();
   if (sessions.length === 0 && activity.length === 0) return null;
   return (
     <div className="mt-3 border-t border-white/10 pt-2">
@@ -23,7 +26,7 @@ export function SessionList({ sessions, activity = [], onFocus }: SessionListPro
           <StatusDot state={s.state} className="mt-[3px]" />
           <span className="min-w-0 text-[11px] leading-snug">
             <span className="block truncate text-white/85">{s.title}</span>
-            {(s.attn || s.prompt) && <span className="block truncate text-muted-foreground">{s.attn || `you: ${s.prompt}`}</span>}
+            {(s.attn || s.prompt) && <span className="block truncate text-muted-foreground">{s.attn || t("notch.you", { prompt: s.prompt })}</span>}
           </span>
         </button>
       ))}
@@ -34,7 +37,7 @@ export function SessionList({ sessions, activity = [], onFocus }: SessionListPro
             <span className="block truncate text-white/85">
               {providerName[a.provider]} · {a.name}
             </span>
-            <span className="block truncate text-muted-foreground">{a.detail}</span>
+            <span className="block truncate text-muted-foreground">{backendText(t, a.detail)}</span>
           </span>
         </div>
       ))}

@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { copy, type Platform } from "../panes/copy";
+import { useTranslation } from "react-i18next";
+import type { Platform } from "../panes/copy";
 
 export type SettingsTab = "tray" | "notch" | "behaviour" | "hooks" | "about";
 const TABS: SettingsTab[] = ["tray", "notch", "behaviour", "hooks", "about"];
@@ -33,6 +34,7 @@ export interface SettingsWindowProps {
  * a vertical tab list, so arrows, Home and End move through it; the chosen tab is remembered.
  */
 export function SettingsWindow({ platform, panes, defaultTab, strip, className }: SettingsWindowProps) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<SettingsTab>(() => defaultTab ?? savedTab());
   const main = useRef<HTMLElement>(null);
   const change = (v: string) => {
@@ -46,8 +48,11 @@ export function SettingsWindow({ platform, panes, defaultTab, strip, className }
     }
   };
   const groups: { title: string; tabs: [SettingsTab, string][] }[] = [
-    { title: "Appearance", tabs: [["tray", copy[platform].tray], ["notch", "Notch"]] },
-    { title: "General", tabs: [["behaviour", "Behaviour"], ["hooks", "Claude Code"], ["about", "About"]] },
+    { title: t("settings.groups.appearance"), tabs: [["tray", t(`platform.${platform}.tray`)], ["notch", t("settings.tabs.notch")]] },
+    {
+      title: t("settings.groups.general"),
+      tabs: [["behaviour", t("settings.tabs.behaviour")], ["hooks", t("settings.tabs.hooks")], ["about", t("settings.tabs.about")]],
+    },
   ];
 
   return (
@@ -58,7 +63,7 @@ export function SettingsWindow({ platform, panes, defaultTab, strip, className }
       className={cn("@container/window h-full min-h-0 gap-0 bg-background text-foreground", className)}
     >
       <nav className="flex w-44 shrink-0 flex-col border-r bg-muted/30 px-3 py-4 @6xl/window:w-56 @6xl/window:px-4">
-        <TabsList variant="line" aria-label="Settings sections" className="w-full items-stretch gap-0.5">
+        <TabsList variant="line" aria-label={t("settings.sections")} className="w-full items-stretch gap-0.5">
           {groups.map((g, gi) => (
             <div key={g.title} className={cn("flex flex-col gap-0.5", gi > 0 && "mt-4")}>
               <div className="px-2 pb-1 text-[10px] font-medium tracking-wider text-muted-foreground uppercase">{g.title}</div>

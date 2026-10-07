@@ -8,6 +8,7 @@ import { normalizeTray } from "@/libs/settings";
 import { trayPreview } from "@/fixtures/trayPreview";
 import { slotReading, trayNumbers, trayOptions } from "@/fixtures/settings";
 import { Toaster } from "@/components/ui/sonner";
+import i18n, { toLang } from "@/libs/i18n";
 import logo from "../../../../src-tauri/icons/tray/tray-color.png";
 import { inWindow, maximized } from "../story-helpers";
 
@@ -16,7 +17,12 @@ import { inWindow, maximized } from "../story-helpers";
  * app passes the same props from `get_*` and calls the matching `set_*` on change.
  */
 function Harness({ platform, tab, strip }: { platform: Platform; tab?: SettingsTab; strip?: string }) {
-  const saved = () => toast("Saved", { duration: 1200 });
+  const saved = () => toast(i18n.t("common.saved"), { duration: 1200 });
+  // As in the app: the select changes the whole window, "auto" follows the browser here
+  const changeLang = (v: string) => {
+    setLang(v);
+    i18n.changeLanguage(toLang(v === "auto" ? navigator.language : v));
+  };
   const [config, setConfig] = useState<TrayConfig>(() => normalizeTray(trayOptions, trayNumbers).config);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [scale, setScale] = useState(100);
@@ -47,7 +53,7 @@ function Harness({ platform, tab, strip }: { platform: Platform; tab?: SettingsT
           ),
           notch: <NotchPane options={trayOptions} slots={slots} onSlots={after(setSlots)} scale={scale} onScale={setScale} />,
           behaviour: (
-            <BehaviourPane platform={platform} autostart={autostart} onAutostart={after(setAutostart)} flags={flags} onFlags={after(setFlags)} lang={lang} onLang={after(setLang)} />
+            <BehaviourPane platform={platform} autostart={autostart} onAutostart={after(setAutostart)} flags={flags} onFlags={after(setFlags)} lang={lang} onLang={after(changeLang)} />
           ),
           hooks: <HooksPane platform={platform} installed={hooks} onInstalled={after(setHooks)} />,
           about: <AboutPane platform={platform} version="0.4.0" logo={logo} onOpenData={() => toast("Opened the data folder")} onResetPosition={() => toast("Notch moved back")} />,

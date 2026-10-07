@@ -65,6 +65,6 @@ export function Note({ children, className }: { children: React.ReactNode; class
 }
 
 /** A path or id the user may want to copy. */
-export function Path({ children }: { children: React.ReactNode }) {
+export function Path({ children }: { children?: React.ReactNode }) {
   return <code className="w-fit rounded bg-muted px-1.5 py-0.5 font-mono text-xs select-text">{children}</code>;
 }
