@@ -18,6 +18,36 @@ pub enum TrayMode {
     Bars,
 }
 
+/// The settings window's colours. The notch is always dark: it is part of the bezel.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    /// Follows the desktop's light or dark preference
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
+impl Theme {
+    /// Unknown strings follow the system
+    pub fn parse(s: &str) -> Theme {
+        match s {
+            "light" => Theme::Light,
+            "dark" => Theme::Dark,
+            _ => Theme::System,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Theme::System => "system",
+            Theme::Light => "light",
+            Theme::Dark => "dark",
+        }
+    }
+}
+
 impl TrayMode {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -48,8 +78,9 @@ pub struct Slot {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Config {
     pub port: u16,
-    /// "auto" | "en" | "zh" | "ja" | "ko"
+    /// "auto" | "en" | "zh" | "ja" | "ko" | "pt"
     pub lang: String,
+    pub theme: Theme,
     /// Window centre as a fraction of the primary monitor's height, 0 = top, 1 = bottom
     pub notch_y: f64,
     pub scale: f64,
@@ -71,6 +102,7 @@ impl Default for Config {
         Config {
             port: DEFAULT_PORT,
             lang: "auto".into(),
+            theme: Theme::System,
             notch_y: 0.5,
             scale: 1.0,
             // A fresh install shows readings straight away; upgrades keep their mark (migrate.rs)

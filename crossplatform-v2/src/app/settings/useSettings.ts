@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import i18n from "@/libs/i18n";
-import { commands, events, type Slot, type TrayConfig, type TrayOption, type UiFlags } from "@/libs/ipc";
+import { commands, events, type Slot, type Theme, type TrayConfig, type TrayOption, type UiFlags } from "@/libs/ipc";
+import { applyTheme } from "@/libs/theme";
 import { normalizeTray, repairText } from "@/libs/settings";
 
 /** Everything the settings window shows, as the backend answered it. */
@@ -17,6 +18,7 @@ export interface SettingsData {
   flags: UiFlags;
   autostart: boolean;
   lang: string;
+  theme: Theme;
   hooks: boolean;
   version: string;
 }
@@ -32,6 +34,7 @@ const EMPTY: SettingsData = {
   flags: { notch_visible: true, tray_visible: true },
   autostart: false,
   lang: "auto",
+  theme: "system",
   hooks: false,
   version: "",
 };
@@ -88,8 +91,9 @@ export function useSettings() {
       commands.getLang(),
       commands.getHooksInstalled(),
       commands.appVersion(),
+      commands.getTheme(),
     ])
-      .then(([options, stored, logo, notchSlots, scale, flags, autostart, lang, hooks, version]) => {
+      .then(([options, stored, logo, notchSlots, scale, flags, autostart, lang, hooks, version, theme]) => {
         if (!alive) return;
         const { config, repair } = normalizeTray(options, stored);
         setData({
@@ -103,6 +107,7 @@ export function useSettings() {
           flags,
           autostart,
           lang: lang.lang,
+          theme,
           hooks,
           version,
         });
@@ -169,6 +174,12 @@ export function useSettings() {
       patch({ lang });
       // The backend resolves "auto" and answers with the `lang` event, which switches the UI
       commands.setLang(lang).then(saved, (e) => fail("set_lang", e));
+    },
+    /** Applied at once, saved after */
+    setTheme: (theme: Theme) => {
+      patch({ theme });
+      applyTheme(theme);
+      commands.setTheme(theme).then(saved, (e) => fail("set_theme", e));
     },
     setHooks: async (on: boolean) => {
       patch({ hooks: on });

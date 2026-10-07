@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { TrayPane, NotchPane, BehaviourPane, HooksPane, AboutPane, type Platform } from ".";
-import type { Slot, TrayConfig, TrayOption, UiFlags } from "@/libs/ipc";
+import type { Slot, Theme, TrayConfig, TrayOption, UiFlags } from "@/libs/ipc";
 import { normalizeTray } from "@/libs/settings";
 import { trayPreview } from "@/fixtures/trayPreview";
 import { slotReading, trayBars, trayNumbers, trayOff, trayOptions, trayOptionsDegraded } from "@/fixtures/settings";
@@ -23,7 +23,20 @@ function Behaviour({ platform, flags: initial }: { platform: Platform; flags: Ui
   const [autostart, setAutostart] = useState(true);
   const [flags, setFlags] = useState(initial);
   const [lang, setLang] = useState("auto");
-  return <BehaviourPane platform={platform} autostart={autostart} onAutostart={setAutostart} flags={flags} onFlags={setFlags} lang={lang} onLang={setLang} />;
+  const [theme, setTheme] = useState<Theme>("system");
+  return (
+    <BehaviourPane
+      platform={platform}
+      autostart={autostart}
+      onAutostart={setAutostart}
+      flags={flags}
+      onFlags={setFlags}
+      lang={lang}
+      onLang={setLang}
+      theme={theme}
+      onTheme={setTheme}
+    />
+  );
 }
 function Hooks({ platform, error }: { platform: Platform; error?: string }) {
   const [on, setOn] = useState(true);

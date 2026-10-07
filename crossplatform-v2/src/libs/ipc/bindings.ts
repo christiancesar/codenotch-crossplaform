@@ -52,6 +52,9 @@ export const commands = {
 	getAppIcon: () => __TAURI_INVOKE<string | null>("get_app_icon"),
 	getLang: () => __TAURI_INVOKE<LangInfo>("get_lang"),
 	setLang: (lang: string) => __TAURI_INVOKE<void>("set_lang", { lang }),
+	/**  The settings window's theme; the notch is always dark. */
+	getTheme: () => __TAURI_INVOKE<Theme>("get_theme"),
+	setTheme: (theme: Theme) => __TAURI_INVOKE<void>("set_theme", { theme }),
 	getUiFlags: () => __TAURI_INVOKE<UiFlags>("get_ui_flags"),
 	/**
 	 *  Hiding both would leave the app with nothing to click, so the tray stays whenever the notch
@@ -223,6 +226,11 @@ export type Slot = {
 	provider: string,
 	window: string,
 };
+
+/**  The settings window's colours. The notch is always dark: it is part of the bezel. */
+export type Theme = 
+/**  Follows the desktop's light or dark preference */
+"system" | "light" | "dark";
 
 export type TrayConfig = {
 	mode: TrayMode,

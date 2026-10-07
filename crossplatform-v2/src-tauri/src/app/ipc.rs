@@ -30,6 +30,8 @@ pub fn builder() -> Builder<tauri::Wry> {
             tray::get_app_icon,
             settings::get_lang,
             settings::set_lang,
+            settings::get_theme,
+            settings::set_theme,
             settings::get_ui_flags,
             settings::set_ui_flags,
             settings::get_autostart,

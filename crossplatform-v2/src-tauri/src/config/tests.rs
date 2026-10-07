@@ -95,6 +95,20 @@ fn setting_slots_keeps_the_v03_provider_lists_in_step() {
 }
 
 #[test]
+fn the_theme_is_only_written_once_chosen() {
+    // v0.3 never wrote one: it loads as system and a save does not add the key
+    let (cfg, dir) = load_fixture("v0.3.1/config.json");
+    assert_eq!(cfg.theme, Theme::System);
+    save(dir.path(), &cfg).unwrap();
+    let doc: Value = serde_json::from_str(&std::fs::read_to_string(dir.path().join("config.json")).unwrap()).unwrap();
+    assert!(doc.get("theme").is_none());
+    // A chosen theme round-trips; an unknown one follows the system
+    save(dir.path(), &Config { theme: Theme::Dark, ..cfg.clone() }).unwrap();
+    assert_eq!(load(dir.path()).config.theme, Theme::Dark);
+    assert_eq!(Theme::parse("sepia"), Theme::System);
+}
+
+#[test]
 fn the_port_stays_a_top_level_key_the_hook_can_scan() {
     let dir = tempfile::tempdir().unwrap();
     save(dir.path(), &Config { port: 49001, ..Config::default() }).unwrap();

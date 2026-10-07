@@ -3,7 +3,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { SettingsWindow, type SettingsTab } from "./SettingsWindow";
 import { TrayPane, NotchPane, BehaviourPane, HooksPane, AboutPane, type Platform } from "../panes";
-import type { Slot, TrayConfig, UiFlags } from "@/libs/ipc";
+import type { Slot, Theme, TrayConfig, UiFlags } from "@/libs/ipc";
+import { applyTheme } from "@/libs/theme";
 import { normalizeTray } from "@/libs/settings";
 import { trayPreview } from "@/fixtures/trayPreview";
 import { slotReading, trayNumbers, trayOptions } from "@/fixtures/settings";
@@ -30,6 +31,12 @@ function Harness({ platform, tab, strip }: { platform: Platform; tab?: SettingsT
   const [flags, setFlags] = useState<UiFlags>({ notch_visible: true, tray_visible: true });
   const [lang, setLang] = useState("auto");
   const [hooks, setHooks] = useState(true);
+  const [theme, setTheme] = useState<Theme>("system");
+  // As in the app; the toolbar theme switch keeps working on top of it
+  const changeTheme = (v: Theme) => {
+    setTheme(v);
+    applyTheme(v);
+  };
   const after = <T,>(set: (v: T) => void) => (v: T) => {
     set(v);
     saved();
@@ -53,7 +60,7 @@ function Harness({ platform, tab, strip }: { platform: Platform; tab?: SettingsT
           ),
           notch: <NotchPane options={trayOptions} slots={slots} onSlots={after(setSlots)} scale={scale} onScale={setScale} />,
           behaviour: (
-            <BehaviourPane platform={platform} autostart={autostart} onAutostart={after(setAutostart)} flags={flags} onFlags={after(setFlags)} lang={lang} onLang={after(changeLang)} />
+            <BehaviourPane platform={platform} autostart={autostart} onAutostart={after(setAutostart)} flags={flags} onFlags={after(setFlags)} lang={lang} onLang={after(changeLang)} theme={theme} onTheme={after(changeTheme)} />
           ),
           hooks: <HooksPane platform={platform} installed={hooks} onInstalled={after(setHooks)} />,
           about: <AboutPane platform={platform} version="0.4.0" logo={logo} onOpenData={() => toast("Opened the data folder")} onResetPosition={() => toast("Notch moved back")} />,

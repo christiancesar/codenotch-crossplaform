@@ -6,6 +6,8 @@ import "./index.css";
 // Before any tree renders, so the first paint is already in a language (English until the backend answers)
 import "./libs/i18n";
 import { useBackendLang } from "./libs/i18n/useBackendLang";
+import { applyTheme } from "./libs/theme";
+import { commands } from "./libs/ipc";
 
 // Both OS windows load this one bundle; the window label picks the tree, and `lazy` keeps the
 // settings code out of the notch, which is always on screen.
@@ -15,11 +17,9 @@ const Settings = lazy(() => import("./app/settings/Settings"));
 const isSettings = getCurrentWindow().label === "settings";
 const root = document.documentElement;
 if (isSettings) {
-  // Follows the system theme
-  const dark = matchMedia("(prefers-color-scheme: dark)");
-  const apply = () => root.classList.toggle("dark", dark.matches);
-  apply();
-  dark.addEventListener("change", apply);
+  // The system's theme until the saved choice answers, then the choice (Behaviour pane)
+  applyTheme("system");
+  commands.getTheme().then(applyTheme, () => {});
 } else {
   // The notch is always dark and transparent around the pill
   root.classList.add("notch", "dark");

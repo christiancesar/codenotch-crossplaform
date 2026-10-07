@@ -242,7 +242,7 @@ Rules:
 ## Themes
 
 - **Notch:** always `.dark`, and transparent around the pill (`html.notch`).
-- **Settings window:** follows `prefers-color-scheme`, toggling `.dark` on `<html>`.
+- **Settings window:** Light, Dark or System (Behaviour pane, `config.json` `theme`, absent = system), toggling `.dark` on `<html>` through `libs/theme.ts`; System follows `prefers-color-scheme` live. The notch is always dark.
 - A theme only changes variables. Components use token classes only (`bg-notch`,
   `text-muted-foreground`, `stroke-band-critical`), never a raw colour, so no component
   changes with the theme.

@@ -68,7 +68,7 @@ export function SettingsWindow({ platform, panes, defaultTab, strip, className }
             <div key={g.title} className={cn("flex flex-col gap-0.5", gi > 0 && "mt-4")}>
               <div className="px-2 pb-1 text-[10px] font-medium tracking-wider text-muted-foreground uppercase">{g.title}</div>
               {g.tabs.map(([id, label]) => (
-                <TabsTrigger key={id} value={id} className="h-8 flex-none text-[13px] data-active:bg-muted dark:data-active:border-transparent dark:data-active:bg-muted">
+                <TabsTrigger key={id} value={id} className="h-auto min-h-8 flex-none py-1.5 text-left text-[13px] leading-snug whitespace-normal data-active:bg-muted dark:data-active:border-transparent dark:data-active:bg-muted">
                   {label}
                 </TabsTrigger>
               ))}

@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next";
-import type { UiFlags } from "@/libs/ipc";
+import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import type { Theme, UiFlags } from "@/libs/ipc";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Block, Note, Pane, Row } from "../Pane";
@@ -23,15 +25,18 @@ export interface BehaviourPaneProps {
   /** What the user chose, possibly "auto" */
   lang: string;
   onLang: (lang: string) => void;
+  /** This window's theme; the notch is always dark */
+  theme: Theme;
+  onTheme: (theme: Theme) => void;
   /** A failed save, shown under the block it belongs to */
   error?: string;
 }
 
 /**
- * General: start-up, what is on screen, language. One of notch and tray icon always stays on:
+ * General: start-up, what is on screen, theme, language. One of notch and tray icon always stays on:
  * with both gone there would be no way back to this window.
  */
-export function BehaviourPane({ platform, autostart, onAutostart, flags, onFlags, lang, onLang, error }: BehaviourPaneProps) {
+export function BehaviourPane({ platform, autostart, onAutostart, flags, onFlags, lang, onLang, theme, onTheme, error }: BehaviourPaneProps) {
   const { t } = useTranslation();
   const p = (k: "tray" | "trayLower" | "trayWhere" | "autostart" | "autostartWhy" | "systemLang") => t(`platform.${platform}.${k}`);
   const trayHeld = !flags.notch_visible;
@@ -62,6 +67,37 @@ export function BehaviourPane({ platform, autostart, onAutostart, flags, onFlags
           {trayHeld && <Note className="mt-1">{t("settings.behaviour.trayHeld")}</Note>}
         </Row>
         {error && <p className="text-[11px] text-destructive">{error}</p>}
+      </Block>
+
+      <Block title={t("settings.behaviour.theme")}>
+        <Row
+          name={t("settings.behaviour.themeName")}
+          why={t("settings.behaviour.themeWhy")}
+          control={
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={theme}
+              // Clicking the pressed one again answers "": keep the current theme
+              onValueChange={(v) => v && onTheme(v as Theme)}
+              aria-label={t("settings.behaviour.themeName")}
+            >
+              {(
+                [
+                  ["system", MonitorIcon, "themeSystem"],
+                  ["light", SunIcon, "themeLight"],
+                  ["dark", MoonIcon, "themeDark"],
+                ] as const
+              ).map(([v, Icon, key]) => (
+                <ToggleGroupItem key={v} value={v} className="gap-1.5 px-2.5 text-xs">
+                  <Icon className="size-3.5" />
+                  {t(`settings.behaviour.${key}`)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          }
+        />
       </Block>
 
       <Block title={t("settings.behaviour.language")}>

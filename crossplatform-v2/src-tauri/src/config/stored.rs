@@ -1,7 +1,7 @@
 //! `config.json` exactly as it sits on disk. The model can change freely; this shape only
 //! changes through a migration.
 
-use super::model::{Config, Slot, TrayMode, DEFAULT_PORT};
+use super::model::{Config, Slot, Theme, TrayMode, DEFAULT_PORT};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -19,6 +19,10 @@ pub struct StoredConfig {
     pub port: u16,
     #[serde(default = "default_lang")]
     pub lang: String,
+    /// Absent means "system", and "system" is never written: a config that never chose a theme
+    /// saves byte for byte as before
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub theme: Option<String>,
     #[serde(default = "default_notch_y")]
     pub notch_y: f64,
     #[serde(default = "default_scale")]
@@ -68,6 +72,7 @@ impl From<StoredConfig> for Config {
         Config {
             port: s.port,
             lang: s.lang,
+            theme: s.theme.as_deref().map(Theme::parse).unwrap_or_default(),
             notch_y: s.notch_y,
             scale: s.scale,
             tray_mode: TrayMode::parse(&s.tray_mode),
@@ -86,6 +91,7 @@ impl From<Config> for StoredConfig {
         StoredConfig {
             port: c.port,
             lang: c.lang,
+            theme: (c.theme != Theme::System).then(|| c.theme.as_str().into()),
             notch_y: c.notch_y,
             scale: c.scale,
             tray_mode: c.tray_mode.as_str().into(),

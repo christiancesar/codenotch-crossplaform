@@ -38,6 +38,8 @@ export default function Settings() {
               onFlags={actions.setFlags}
               lang={data.lang}
               onLang={actions.setLang}
+              theme={data.theme}
+              onTheme={actions.setTheme}
             />
           ),
           hooks: <HooksPane platform={platform} installed={data.hooks} onInstalled={actions.setHooks} />,

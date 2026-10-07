@@ -1,4 +1,5 @@
 use crate::app::state::AppState;
+use crate::config::Theme;
 use crate::platform::{Autostart, Platform};
 use serde::Serialize;
 use specta::Type;
@@ -29,6 +30,19 @@ pub fn get_lang(state: State<AppState>) -> LangInfo {
 #[specta::specta]
 pub fn set_lang(app: AppHandle, lang: String) {
     crate::app::ui::apply_lang(&app, lang);
+}
+
+/// The settings window's theme; the notch is always dark.
+#[tauri::command]
+#[specta::specta]
+pub fn get_theme(state: State<AppState>) -> Theme {
+    state.config.lock().unwrap().theme
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn set_theme(state: State<AppState>, theme: Theme) {
+    state.update_config(|c| c.theme = theme);
 }
 
 #[tauri::command]
