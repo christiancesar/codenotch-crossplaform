@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Pane, Block, Row, Note, Path } from "./Pane";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { inPane } from "../story-helpers";
+import { inPane } from "../storyHelpers";
 
 const meta = {
   title: "Settings/Pane",

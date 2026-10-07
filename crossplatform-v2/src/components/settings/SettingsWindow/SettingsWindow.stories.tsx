@@ -11,7 +11,7 @@ import { slotReading, trayNumbers, trayOptions } from "@/fixtures/settings";
 import { Toaster } from "@/components/ui/sonner";
 import i18n, { toLang } from "@/libs/i18n";
 import logo from "../../../../src-tauri/icons/tray/tray-color.png";
-import { inWindow, maximized } from "../story-helpers";
+import { inWindow, maximized } from "../storyHelpers";
 
 /**
  * The whole window with every control live, as the app will compose it. State is local here; the

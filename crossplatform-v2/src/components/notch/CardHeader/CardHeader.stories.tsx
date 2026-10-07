@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { CardHeader } from "./CardHeader";
 import { glyphs } from "@/fixtures/glyphs";
-import { onNotch } from "../story-helpers";
+import { onNotch } from "../storyHelpers";
 
 const meta = { title: "Notch/Card/CardHeader", component: CardHeader, parameters: { layout: "centered" }, decorators: [onNotch], args: { name: "Codex", glyph: glyphs.codex, fallback: "C", note: "Plus · via Codex" } } satisfies Meta<typeof CardHeader>;
 export default meta;

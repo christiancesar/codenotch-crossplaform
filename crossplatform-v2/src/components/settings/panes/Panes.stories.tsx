@@ -6,7 +6,7 @@ import { normalizeTray } from "@/libs/settings";
 import { trayPreview } from "@/fixtures/trayPreview";
 import { slotReading, trayBars, trayNumbers, trayOff, trayOptions, trayOptionsDegraded } from "@/fixtures/settings";
 import logo from "../../../../src-tauri/icons/tray/tray-color.png";
-import { inPane } from "../story-helpers";
+import { inPane } from "../storyHelpers";
 
 /** Each pane alone, with local state so every control works. The app wires the same props to IPC. */
 function Tray({ platform, options, initial, repairNote }: { platform: Platform; options: TrayOption[]; initial: TrayConfig; repairNote?: string }) {

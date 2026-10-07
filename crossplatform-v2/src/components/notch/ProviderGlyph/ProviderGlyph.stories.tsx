@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ProviderGlyph } from "./ProviderGlyph";
 import { glyphs } from "@/fixtures/glyphs";
-import { onNotch } from "../story-helpers";
+import { onNotch } from "../storyHelpers";
 
 const meta = {
   title: "Notch/ProviderGlyph",

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { ScaleSlider } from "./ScaleSlider";
-import { onNotch } from "../story-helpers";
+import { onNotch } from "../storyHelpers";
 
 const meta = { title: "Notch/Card/ScaleSlider", component: ScaleSlider, parameters: { layout: "centered" }, decorators: [onNotch, (S) => <div className="w-52"><S /></div>], args: { value: 75, onChange: () => {} } } satisfies Meta<typeof ScaleSlider>;
 export default meta;

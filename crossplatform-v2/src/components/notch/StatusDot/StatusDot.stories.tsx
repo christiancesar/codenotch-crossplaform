@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { StatusDot } from "./StatusDot";
-import { onNotch } from "../story-helpers";
+import { onNotch } from "../storyHelpers";
 
 const meta = { title: "Notch/Card/StatusDot", component: StatusDot, parameters: { layout: "centered" }, decorators: [onNotch], args: { state: "running" } } satisfies Meta<typeof StatusDot>;
 export default meta;

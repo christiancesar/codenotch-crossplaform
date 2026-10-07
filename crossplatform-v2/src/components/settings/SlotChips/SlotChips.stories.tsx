@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
 import { SlotChips } from "./SlotChips";
-import { onSurface } from "../story-helpers";
+import { onSurface } from "../storyHelpers";
 
 const chips = [
   { name: "Column 1", provider: "Claude", window: "Whichever is fullest", pct: 73 },

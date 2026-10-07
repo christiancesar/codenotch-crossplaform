@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
 import { SlotPicker } from "./SlotPicker";
 import { trayOptions, trayOptionsDegraded } from "@/fixtures/settings";
-import { onSurface } from "../story-helpers";
+import { onSurface } from "../storyHelpers";
 
 const meta = {
   title: "Settings/SlotPicker",

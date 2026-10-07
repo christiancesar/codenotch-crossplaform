@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useArgs } from "storybook/preview-api";
 import { TrayModePicker } from "./TrayModePicker";
-import { onSurface } from "../story-helpers";
+import { onSurface } from "../storyHelpers";
 
 const meta = {
   title: "Settings/TrayModePicker",

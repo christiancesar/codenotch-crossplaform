@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { ProviderCell } from "./ProviderCell";
 import { glyphs } from "@/fixtures/glyphs";
 import { countSnapshot, snapshots } from "@/fixtures/usage";
-import { onNotch } from "../story-helpers";
+import { onNotch } from "../storyHelpers";
 
 const meta = {
   title: "Notch/ProviderCell",

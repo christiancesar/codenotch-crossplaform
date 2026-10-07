@@ -7,7 +7,7 @@ import { trayPreview } from "@/fixtures/trayPreview";
 import { slotReading, trayBars, trayNumbers, trayOptions } from "@/fixtures/settings";
 import type { TrayConfig } from "@/libs/ipc";
 import logo from "../../../../src-tauri/icons/tray/tray-color.png";
-import { onSurface } from "../story-helpers";
+import { onSurface } from "../storyHelpers";
 
 const props = (cfg: TrayConfig) => ({
   preview: trayPreview(cfg, (p, w) => slotReading(trayOptions, p, w)),
