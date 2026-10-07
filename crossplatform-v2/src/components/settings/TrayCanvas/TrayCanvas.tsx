@@ -18,9 +18,14 @@ export interface TrayCanvasProps {
 }
 
 /** One panel colour for the actual-size strip */
+/**
+ * The light panel is a mid-light grey, not white: in a dark window a near-white block becomes the
+ * brightest thing on screen and pulls the eye off the icon. It is still light enough to show what
+ * white digits do on a light panel.
+ */
 const PANELS = [
-  { bg: "bg-neutral-900", label: "text-neutral-400", name: "darkPanel" },
-  { bg: "bg-neutral-200", label: "text-neutral-600", name: "lightPanel" },
+  { bg: "bg-neutral-900 ring-1 ring-white/5", label: "text-neutral-500", name: "darkPanel" },
+  { bg: "bg-neutral-400/90", label: "text-neutral-800", name: "lightPanel" },
 ] as const;
 
 /**
@@ -87,13 +92,16 @@ export function TrayCanvas({ preview, logo, regions, regionNames, selected, onSe
         </div>
         <div className="grid gap-2 @xl:grid-cols-2">
           {PANELS.map((p) => (
-            <div key={p.name} title={t(`settings.tray.${p.name}`)} className={cn("flex items-end justify-around gap-2 rounded-md px-3 py-4", p.bg)}>
-              {sizes.map((s) => (
-                <div key={s} className="flex flex-col items-center gap-1">
-                  <img src={preview ?? logo ?? ""} alt="" style={{ width: s, height: s }} className={cn(!(preview ?? logo) && "invisible")} />
-                  <span className={cn("text-[9px] tabular-nums", p.label)}>{s}</span>
-                </div>
-              ))}
+            <div key={p.name} className={cn("flex flex-col gap-2 rounded-md px-3 pt-2 pb-3", p.bg)}>
+              <span className={cn("text-[10px] font-medium", p.label)}>{t(`settings.tray.${p.name}`)}</span>
+              <div className="flex items-end justify-around gap-2">
+                {sizes.map((s) => (
+                  <div key={s} className="flex flex-col items-center gap-1">
+                    <img src={preview ?? logo ?? ""} alt="" style={{ width: s, height: s }} className={cn(!(preview ?? logo) && "invisible")} />
+                    <span className={cn("text-[9px] tabular-nums", p.label)}>{s}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
