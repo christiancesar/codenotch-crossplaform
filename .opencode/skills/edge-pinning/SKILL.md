@@ -5,15 +5,19 @@ description: How the Codenotch notch attaches to a Linux screen edge — X11 str
 
 # Edge pinning on Linux
 
-The macOS app welds itself to the physical screen edge with an `NSPanel` at status-bar level
-(joins all spaces, floats over fullscreen apps). Linux has no single equivalent — the answer
-is per display server.
+The notch has to stay welded to the physical screen edge, over other windows. Linux has no
+single mechanism for that; the answer is per display server.
+
+Current state: GNOME (Ubuntu 26.04, GNOME 50) is Wayland-only and has no layer-shell, so the
+app forces `GDK_BACKEND=x11` and runs under XWayland. There the pointer position freezes
+while the cursor is over a Wayland surface, so hover works by shaping the X input region to
+the notch's hot rectangles, not by polling the cursor.
 
 ## X11 — exact, panel-like
 
 - `_NET_WM_STRUT_PARTIAL` (EWMH) *reserves* the edge: maximized windows tile around the notch
   exactly like a panel. This is the system-tray mechanism.
-- Combined with always-on-top, undecorated, skip-taskbar, this gives macOS parity on X.
+- Combined with always-on-top, undecorated, skip-taskbar, this pins the notch on X.
 - Implement with `x11rb`/`xcb`, or a small GTK helper that sets the strut on the window's XID.
 
 ## Wayland
@@ -40,7 +44,7 @@ A Wayland client cannot position or raise its own window. Two routes:
   tray without the extension → the notch itself must stay the guaranteed entry point
   (right-click menu + settings reachable from the notch). The app must work with no tray at all.
 - **Notifications**: `org.freedesktop.Notifications` via `notify-rust`; notification sound is
-  unreliable across shells (like macOS `NSSound` silently no-op'ing) — keep the chime optional
+  unreliable across shells (it can silently no-op) — keep the chime optional
   and non-critical.
 - **"Keychain"** = Secret Service (`org.freedesktop.secrets`) — not always present (headless
   hosts, X11 without gnome-keyring, CI). Cache aggressively, degrade to `needsAuth`, never

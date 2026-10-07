@@ -1,0 +1,24 @@
+{
+  "status": "ok",
+  "windows": [
+    {
+      "id": "Gemini Models Weekly Limit",
+      "label": "Gemini · Weekly",
+      "used": 0.0,
+      "resets_at": 1791921186000,
+      "count": null,
+      "derived": false
+    },
+    {
+      "id": "Claude and GPT models Weekly Limit",
+      "label": "Claude/GPT · Weekly",
+      "used": 0.0,
+      "resets_at": 1791921186000,
+      "count": null,
+      "derived": false
+    }
+  ],
+  "fetched_at": 1791316386810,
+  "note": "via Antigravity CLI",
+  "backoff_until": 0
+}

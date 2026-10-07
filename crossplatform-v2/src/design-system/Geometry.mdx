@@ -1,0 +1,37 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { Measure } from "./Tokens";
+
+<Meta title="Design System/Geometry" />
+
+# Geometry
+
+Measured in the official frame and converted with `px(n) = n × 44 / 117`. The provider ring
+(44 px) is the anchor; the notch size slider scales the pill only.
+
+## Notch body
+
+<Measure token="--notch-depth" note="70" />
+<Measure token="--notch-curl-radius" note="38.7, inverse corner at the edge" />
+<Measure token="--notch-corner" note="29.6" />
+<Measure token="--notch-pad-top" note="26.1" />
+<Measure token="--notch-pad-bottom" note="18.8" />
+<Measure token="--notch-cell-gap" note="31.4" />
+
+## Provider cell
+
+<Measure token="--ring-size" note="44, the anchor" />
+<Measure token="--ring-track-stroke" note="5.8" />
+<Measure token="--ring-progress-stroke" note="3.0" />
+<Measure token="--glyph-size" note="17.3" />
+<Measure token="--ring-label-gap" note="10.1" />
+<Measure token="--activity-size" note="27.1" />
+
+## Hover card
+
+<Measure token="--card-width" note="225.6" />
+<Measure token="--card-radius" note="18.6" />
+<Measure token="--card-padding" note="12" />
+<Measure token="--card-tail-length" note="28.2" />
+<Measure token="--card-tail-gap" note="10.5" />
+<Measure token="--card-bar-height" note="3.9" />
+<Measure token="--status-dot" note="6.4" />

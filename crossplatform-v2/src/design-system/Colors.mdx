@@ -1,0 +1,61 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+import { SwatchGrid, Surface } from "./Tokens";
+
+<Meta title="Design System/Colors" />
+
+# Colors
+
+## Usage bands
+
+The ring and the bar of a window share its band. Dark values on the notch, light values in a
+light settings window.
+
+<SwatchGrid
+  items={[
+    { name: "band-ample", cls: "bg-band-ample", note: "0 to 49 % used · green-400 / green-600" },
+    { name: "band-watch", cls: "bg-band-watch", note: "50 to 79 % · yellow-300 / yellow-600" },
+    { name: "band-critical", cls: "bg-band-critical", note: "80 to 100 % · orange-500 / orange-600" },
+  ]}
+/>
+
+## Session and activity states
+
+<SwatchGrid
+  items={[
+    { name: "state-running", cls: "bg-state-running", note: "running / busy · emerald-400" },
+    { name: "state-attention", cls: "bg-state-attention", note: "attention / waiting · amber-400" },
+    { name: "state-done", cls: "bg-state-done", note: "done · sky-400" },
+    { name: "state-idle", cls: "bg-state-idle", note: "idle · neutral-500" },
+  ]}
+/>
+
+## Notch surfaces and tracks
+
+Shown on the notch's own black. Tracks are translucent so they follow what is behind them.
+
+<Surface>
+  <SwatchGrid
+    items={[
+      { name: "notch", cls: "bg-notch", note: "black in every theme" },
+      { name: "notch-outline", cls: "bg-notch-outline", note: "1 px cue on black wallpapers · neutral-800" },
+      { name: "ring-track", cls: "bg-ring-track", note: "white 19 %" },
+      { name: "bar-track", cls: "bg-bar-track", note: "white 18 %" },
+    ]}
+  />
+</Surface>
+
+## shadcn theme (neutral)
+
+<SwatchGrid
+  items={[
+    { name: "background", cls: "bg-background" },
+    { name: "foreground", cls: "bg-foreground" },
+    { name: "card", cls: "bg-card" },
+    { name: "muted", cls: "bg-muted" },
+    { name: "muted-foreground", cls: "bg-muted-foreground" },
+    { name: "primary", cls: "bg-primary" },
+    { name: "border", cls: "bg-border" },
+    { name: "ring", cls: "bg-ring" },
+    { name: "destructive", cls: "bg-destructive" },
+  ]}
+/>

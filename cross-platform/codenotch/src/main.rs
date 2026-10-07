@@ -129,8 +129,9 @@ pub fn place_notch(app: &AppHandle) {
         let _ = std::fs::write(
             log,
             format!(
-                "notch placed build={BUILD}: pos=({x},{y}) size=({ww}x{wh}) inner={:?} win_scale={scale} mon_scale={ms} monitor=({},{} {}x{})\n",
+                "notch placed build={BUILD}: pos=({x},{y}) size=({ww}x{wh}) inner={:?} win_scale={scale} mon_scale={ms} gdk={} monitor=({},{} {}x{})\n",
                 w.inner_size().map(|s| (s.width, s.height)).unwrap_or((0, 0)),
+                std::env::var("GDK_BACKEND").unwrap_or_default(),
                 mon.position().x,
                 mon.position().y,
                 mon.size().width,
@@ -518,7 +519,11 @@ static HOT: Mutex<Vec<[f64; 4]>> = Mutex::new(Vec::new());
 static EXPANDED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 #[tauri::command]
-fn set_hot(rects: Vec<[f64; 4]>, expanded: bool) {
+fn set_hot(app: AppHandle, rects: Vec<[f64; 4]>, expanded: bool) {
+    #[cfg(not(windows))]
+    apply_input_shape(&app, hot_region(&rects));
+    #[cfg(windows)]
+    let _ = &app;
     *HOT.lock().unwrap() = rects;
     EXPANDED.store(expanded, std::sync::atomic::Ordering::Relaxed);
     if expanded {
@@ -536,6 +541,56 @@ fn set_click_through(app: &AppHandle, on: bool) {
         return;
     };
     let _ = w.set_ignore_cursor_events(on);
+}
+
+/// The rectangles (physical px, x,y,w,h) that should take input: each hot rect padded by HOT_PAD,
+/// plus their bounding box when the card is up so the gap to the pill does not drop the hover.
+/// Mirrors cursor_in_hot, which is the test the watchdog applies on Windows.
+#[cfg(any(not(windows), test))]
+fn hot_region(rects: &[[f64; 4]]) -> Vec<[f64; 4]> {
+    let mut out: Vec<[f64; 4]> = rects
+        .iter()
+        .map(|r| [r[0] - HOT_PAD, r[1] - HOT_PAD, r[2] + 2.0 * HOT_PAD, r[3] + 2.0 * HOT_PAD])
+        .collect();
+    if rects.len() > 1 {
+        let x0 = rects.iter().map(|r| r[0]).fold(f64::MAX, f64::min);
+        let y0 = rects.iter().map(|r| r[1]).fold(f64::MAX, f64::min);
+        let x1 = rects.iter().map(|r| r[0] + r[2]).fold(f64::MIN, f64::max);
+        let y1 = rects.iter().map(|r| r[1] + r[3]).fold(f64::MIN, f64::max);
+        out.push([x0, y0, x1 - x0, y1 - y0]);
+    }
+    out
+}
+
+/// Linux replacement for toggling set_click_through from the watchdog. Under XWayland (the only
+/// session Ubuntu 26.04 ships, see pick_gdk_backend) the X pointer position freezes whenever the
+/// cursor is over a native Wayland surface, so a fully click-through notch never learns the cursor
+/// arrived and never expands. Shaping the X input region to the hot rectangles lets the compositor
+/// route the pointer to the pill itself; the page's own mousemove/mouseout then drive the card.
+/// An empty region is fully click-through, same as before the page reports.
+#[cfg(not(windows))]
+fn apply_input_shape(app: &AppHandle, rects: Vec<[f64; 4]>) {
+    let Some(w) = app.get_webview_window("notch") else {
+        return;
+    };
+    let _ = app.run_on_main_thread(move || {
+        use gtk::prelude::WidgetExt;
+        let Ok(gtk_window) = w.gtk_window() else {
+            return;
+        };
+        // Hot rects are physical px; GDK works in logical px
+        let k = gtk_window.scale_factor().max(1) as f64;
+        let cells: Vec<gtk::cairo::RectangleInt> = rects
+            .iter()
+            .map(|r| {
+                let x = (r[0] / k).floor().max(0.0) as i32;
+                let y = (r[1] / k).floor().max(0.0) as i32;
+                gtk::cairo::RectangleInt::new(x, y, (r[2] / k).ceil() as i32, (r[3] / k).ceil() as i32)
+            })
+            .collect();
+        let region = gtk::cairo::Region::create_rectangles(&cells);
+        gtk_window.input_shape_combine_region(Some(&region));
+    });
 }
 
 /// The WebView zoom currently applied (1.0 = uncorrected)
@@ -677,7 +732,8 @@ fn start_pointer_watchdog(app: AppHandle) {
             // Cursor position relative to the window's top-left, in physical pixels; the hot rectangles are physical too, so no scale conversion
             let inside = cursor_in_hot(&rects, lx, ly, size);
 
-            if click_through != Some(!inside) {
+            // Linux shapes the input region in set_hot instead: its X cursor goes stale off-window
+            if cfg!(windows) && click_through != Some(!inside) {
                 set_click_through(&app, !inside);
                 click_through = Some(!inside);
                 applog(&format!(
@@ -1279,6 +1335,19 @@ fn report(r: Result<String, String>) {
     let _ = std::fs::write(log, &msg);
 }
 
+/// Native Wayland ignores set_position (mutter centres the window, and outer_size reads 0x0 until
+/// mapped), GNOME has no layer-shell to anchor an edge window, and the edge-drag/focus code talks
+/// X11 through x11rb. Ubuntu 26.04 dropped the Xorg session and exports GDK_BACKEND=wayland, which
+/// left the notch in the middle of the screen. So run under XWayland whenever an X display exists.
+/// CODENOTCH_WAYLAND=1 opts out, for trying native Wayland.
+#[cfg(any(target_os = "linux", test))]
+fn pick_gdk_backend(display: Option<&str>, opt_out: Option<&str>) -> Option<&'static str> {
+    if opt_out == Some("1") {
+        return None;
+    }
+    display.filter(|d| !d.is_empty()).map(|_| "x11")
+}
+
 fn main() {
     attach_console();
     let args: Vec<String> = std::env::args().collect();
@@ -1315,6 +1384,18 @@ fn main() {
             _ => {}
         }
     }
+
+    // Must run before GTK initialises and before any thread exists (set_var is not thread-safe).
+    #[cfg(target_os = "linux")]
+    if let Some(backend) = pick_gdk_backend(
+        std::env::var("DISPLAY").ok().as_deref(),
+        std::env::var("CODENOTCH_WAYLAND").ok().as_deref(),
+    ) {
+        std::env::set_var("GDK_BACKEND", backend);
+    }
+
+    // A manual launch (menu, autostart, terminal) lifts the tray "Quit": hooks may relaunch again.
+    let _ = std::fs::remove_file(config::user_quit_path());
 
     let cfg = config::load();
     let port = cfg.port;
@@ -1384,6 +1465,9 @@ fn main() {
             noactivate(&handle);
             if let Some(w) = handle.get_webview_window("notch") {
                 let _ = w.show();
+                // Click-through until the page reports its pill
+                #[cfg(not(windows))]
+                apply_input_shape(&handle, Vec::new());
                 let app_handle = handle.clone();
                 w.on_window_event(move |_e| {
                     #[cfg(not(windows))]
@@ -1462,7 +1546,31 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{cursor_in_hot, HOT_PAD};
+    use super::{cursor_in_hot, hot_region, pick_gdk_backend, HOT_PAD};
+
+    #[test]
+    fn input_region_pads_each_rect_and_bridges_pill_to_card() {
+        assert!(hot_region(&[]).is_empty());
+        let pill = [322.0, 170.0, 18.0, 120.0];
+        assert_eq!(hot_region(&[pill]), vec![[312.0, 160.0, 38.0, 140.0]]);
+        let card = [21.0, 142.5, 300.0, 262.0];
+        let r = hot_region(&[pill, card]);
+        assert_eq!(r.len(), 3);
+        assert_eq!(r[2], [21.0, 142.5, 319.0, 262.0]);
+    }
+
+    #[test]
+    fn xwayland_is_forced_when_an_x_display_exists() {
+        assert_eq!(pick_gdk_backend(Some(":0"), None), Some("x11"));
+        assert_eq!(pick_gdk_backend(Some(":0"), Some("0")), Some("x11"));
+    }
+
+    #[test]
+    fn backend_is_left_alone_without_x_or_when_opted_out() {
+        assert_eq!(pick_gdk_backend(None, None), None);
+        assert_eq!(pick_gdk_backend(Some(""), None), None);
+        assert_eq!(pick_gdk_backend(Some(":0"), Some("1")), None);
+    }
 
     /// Real values from the run.log in #106: a 2560×1600 display at 150 %.
     const PILL: [f64; 4] = [405.0, 183.5, 105.0, 323.0];

@@ -1,0 +1,32 @@
+{
+  "status": "ok",
+  "windows": [
+    {
+      "id": "rolling",
+      "label": "5 hour (Go)",
+      "used": 0.0,
+      "resets_at": 1791335445099,
+      "count": null,
+      "derived": false
+    },
+    {
+      "id": "weekly",
+      "label": "Weekly (Go)",
+      "used": 0.0,
+      "resets_at": 1791763200000,
+      "count": null,
+      "derived": false
+    },
+    {
+      "id": "monthly",
+      "label": "Monthly (Go)",
+      "used": 0.27,
+      "resets_at": 1791391901000,
+      "count": null,
+      "derived": false
+    }
+  ],
+  "fetched_at": 1791317445283,
+  "note": "OpenCode Go",
+  "backoff_until": 0
+}

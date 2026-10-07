@@ -129,6 +129,12 @@ pub fn config_path() -> PathBuf {
         .join("config.json")
 }
 
+/// Present while the user has quit from the tray; codenotch-hook reads it and stops relaunching.
+/// Same name is hardcoded in codenotch-hook (it has no dependency on this crate).
+pub fn user_quit_path() -> PathBuf {
+    config_path().with_file_name("user-quit")
+}
+
 pub fn load() -> Config {
     let path = config_path();
     let raw = std::fs::read_to_string(&path).ok();

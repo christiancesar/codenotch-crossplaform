@@ -1,0 +1,78 @@
+[package]
+name = "codenotch"
+version = "0.4.0"
+description = "Usage notch for Claude, Codex, Cursor, Antigravity and OpenCode"
+license = "MIT"
+edition = "2021"
+# Two binaries: `cargo run` and `tauri dev` start the app
+default-run = "codenotch"
+
+[lib]
+# The `_lib` suffix keeps the lib name distinct from the `codenotch` binary (cargo#8519 on Windows)
+name = "codenotch_lib"
+# rlib only: the scaffold's staticlib and cdylib are for Android and iOS, which this app does not
+# target, and linking them made every build and `cargo test` link the whole of Tauri two extra times
+crate-type = ["rlib"]
+
+[[bin]]
+name = "codenotch"
+path = "src/main.rs"
+
+# The client Claude Code's hooks call: std only, its own small binary next to the app (the
+# installers ship both, and the hooks switch points Claude Code at it). It lives outside src/ so
+# the app's OS code stays in platform/; this file is self-contained by design.
+[[bin]]
+name = "codenotch-hook"
+path = "hook/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+dirs = "5"
+# native-tls: the Antigravity local bridge's self-signed certificate is accepted for 127.0.0.1 only
+ureq = { version = "2", features = ["json", "native-tls"] }
+native-tls = "0.2"
+# Cursor and OpenCode keep their state in SQLite; bundled compiles SQLite with the crate
+rusqlite = { version = "0.32", features = ["bundled"] }
+tiny_http = "0.12"
+notify = "6"
+png = "0.17" # the tray preview and provider marks as PNG data URLs
+chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
+# Release candidates: pinned with `=` so an rc bump never changes the generated bindings unasked
+specta = { version = "=2.0.0-rc.25", features = ["derive"] }
+specta-typescript = "=0.0.12"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+x11rb = "0.13" # EWMH queries and requests: active window, client list, raise-and-focus
+gtk = "0.18" # reaches through Tauri's window for accept-focus and the X input shape
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_System_Diagnostics_ToolHelp",
+  "Win32_Globalization",
+  "Win32_Security_Credentials",
+  "Win32_System_Console",
+  "Win32_System_JobObjects",
+  "Win32_System_Pipes",
+  "Win32_System_Threading",
+  "Win32_UI_Input_KeyboardAndMouse",
+] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true
