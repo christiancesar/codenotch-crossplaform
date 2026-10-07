@@ -44,10 +44,13 @@ jobs:
 
       - name: Install Linux Tauri build deps
         if: runner.os == 'Linux'
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
-          version: "1"
+        # Plain apt with a fresh index: a cached package list went stale and 404'd, which left
+        # the GTK headers out and failed glib-sys at build time
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
 
       - uses: actions/setup-node@v4
         with:
@@ -77,7 +80,14 @@ jobs:
       - name: Run the tests
         working-directory: crossplatform-v2/src-tauri
         timeout-minutes: 10
-        run: cargo nextest run --profile ci
+        # On Linux a runaway test (a fork loop, a memory leak) hits these limits and fails by name
+        # instead of starving the runner: twice the job lost its runner with no log at all
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            ulimit -u 4096      # processes for this user
+            ulimit -v 8388608   # 8 GB of address space per process
+          fi
+          cargo nextest run --profile ci
 
       # nextest skips doctests; the crate has none, but keep them honest if one is added
       - name: Doctests
