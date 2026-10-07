@@ -7,6 +7,24 @@ use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 
+extern "C" {
+    // libc's kill(2); std has no process-group kill and the crate takes no libc dependency for one call
+    fn kill(pid: i32, sig: i32) -> i32;
+}
+const SIGKILL: i32 = 9;
+
+/// Kills the process group `pgid` (the child's own, from `process_group(0)`). A direct syscall,
+/// not the `kill` program: no argument parsing between us and which processes die. Never for
+/// pgid 0 or 1, which would mean our own group or every process we may signal.
+fn kill_group(pgid: u32) {
+    if pgid > 1 {
+        if let Ok(pid) = i32::try_from(pgid) {
+            // Negative pid: the whole group
+            unsafe { kill(-pid, SIGKILL) };
+        }
+    }
+}
+
 pub fn run_captured(program: &Path, args: &[&str], cwd: Option<&Path>, timeout: Duration) -> Result<String, String> {
     if !program.is_file() {
         return Err(format!("Program not found: {}", program.display()));
@@ -33,8 +51,7 @@ pub fn run_captured(program: &Path, args: &[&str], cwd: Option<&Path>, timeout: 
         match child.try_wait() {
             Ok(Some(status)) => break status,
             Ok(None) if Instant::now() >= deadline => {
-                // Negative pid: the whole group
-                let _ = Command::new("kill").args(["-KILL", &format!("-{}", child.id())]).status();
+                kill_group(child.id());
                 let _ = child.kill();
                 let _ = child.wait();
                 return Err(format!("{} timed out after {timeout:?}", program.display()));
@@ -67,5 +84,19 @@ mod tests {
         assert!(err.contains("timed out"));
         assert!(t.elapsed() < Duration::from_secs(5));
         assert!(run_captured(sh, &["-c", "exit 3"], None, Duration::from_secs(5)).unwrap_err().contains("exit code 3"));
+    }
+
+    #[test]
+    fn a_timeout_kills_the_grandchildren_too() {
+        // `sh` starts a `sleep` of its own; the group kill must take it down with the shell
+        let dir = tempfile::tempdir().unwrap();
+        let pidfile = dir.path().join("pid");
+        let script = format!("sleep 30 & echo $! > {}; wait", pidfile.display());
+        assert!(run_captured(Path::new("/bin/sh"), &["-c", &script], None, Duration::from_millis(500)).is_err());
+        let pid = std::fs::read_to_string(&pidfile).unwrap().trim().to_string();
+        std::thread::sleep(Duration::from_millis(100));
+        // Gone, or a zombie awaiting its reaper
+        let state = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default();
+        assert!(state.is_empty() || state.split_whitespace().nth(2) == Some("Z"), "{state}");
     }
 }
