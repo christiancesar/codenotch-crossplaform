@@ -16,63 +16,82 @@ export interface TrayCanvasProps {
   sizes?: number[];
 }
 
+/** One panel colour for the actual-size strip */
+const PANELS = [
+  { bg: "bg-neutral-900", label: "text-neutral-400", name: "Dark panel" },
+  { bg: "bg-neutral-200", label: "text-neutral-600", name: "Light panel" },
+];
+
 /**
  * The tray icon magnified with nearest-neighbour scaling, so what is edited is literally the
- * pixels the panel will draw, with each part of it clickable. Beside it, the same image at the
+ * pixels the panel will draw, with each part of it clickable. The icon is drawn edge to edge, so
+ * it sits inset in its frame and the part numbers live in the margin: beside the rows in
+ * Numbers, above the columns in Bars, never on top of a digit. Beside it, the same image at the
  * sizes the panel really uses, on a dark and a light panel.
  */
 export function TrayCanvas({ preview, logo, regions, regionNames, selected, onSelect, sizes = [16, 22, 24, 32] }: TrayCanvasProps) {
   return (
     <div className="flex flex-wrap items-start gap-6">
-      <div className="relative size-40 shrink-0 overflow-hidden rounded-xl bg-neutral-900 ring-1 ring-border @3xl:size-48">
-        {preview ? (
-          <img src={preview} alt="Tray icon preview" className="size-full [image-rendering:pixelated]" />
-        ) : (
-          <div className="flex size-full flex-col items-center justify-center gap-3 p-4 text-center">
-            {logo && <img src={logo} alt="Codenotch" className="size-12" />}
-            <p className="text-[11px]/snug text-neutral-400">The plain Codenotch logo. No numbers are drawn.</p>
-          </div>
-        )}
-        {regions.map((b, i) => (
-          <button
-            key={i}
-            type="button"
-            title={regionNames[i]}
-            aria-label={regionNames[i]}
-            aria-pressed={i === selected}
-            onClick={() => onSelect(i)}
-            className={cn(
-              "group absolute flex items-start justify-start rounded-sm outline-none transition-[box-shadow,background-color]",
-              "hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring",
-              i === selected ? "ring-2 ring-white ring-inset" : "ring-1 ring-white/15 ring-inset",
-            )}
-            style={{ left: `${b.left}%`, top: `${b.top}%`, width: `${b.width}%`, height: `${b.height}%` }}
-          >
-            <span
-              className={cn(
-                "m-1 rounded-sm px-1 text-[10px] font-semibold tabular-nums",
-                i === selected ? "bg-white text-black" : "bg-black/60 text-white/80",
-              )}
-            >
-              {i + 1}
-            </span>
-          </button>
-        ))}
+      <div className="relative size-44 shrink-0 rounded-xl bg-neutral-950 ring-1 ring-border @3xl:size-52">
+        {/* The 32 x 32 art, inset so the frame's rounded corners never cut into it */}
+        <div className="absolute inset-7 bg-neutral-900">
+          {preview ? (
+            <img src={preview} alt="Tray icon preview" className="size-full [image-rendering:pixelated]" />
+          ) : (
+            <div className="flex size-full flex-col items-center justify-center gap-2 text-center">
+              {logo && <img src={logo} alt="Codenotch" className="size-10" />}
+              <p className="text-[10px]/snug text-neutral-400">Plain logo, no numbers drawn.</p>
+            </div>
+          )}
+          {regions.map((b, i) => {
+            const on = i === selected;
+            // Full-width parts are rows (label to the left), full-height parts are columns (label above)
+            const row = b.width >= 100;
+            return (
+              <button
+                key={i}
+                type="button"
+                title={regionNames[i]}
+                aria-label={regionNames[i]}
+                aria-pressed={on}
+                onClick={() => onSelect(i)}
+                className={cn(
+                  "group absolute outline-none transition-[box-shadow,background-color]",
+                  "hover:bg-white/5 focus-visible:ring-2 focus-visible:ring-ring",
+                  on ? "z-10 ring-2 ring-white" : "ring-1 ring-white/15",
+                )}
+                style={{ left: `${b.left}%`, top: `${b.top}%`, width: `${b.width}%`, height: `${b.height}%` }}
+              >
+                <span
+                  className={cn(
+                    "absolute flex size-4 items-center justify-center rounded-full text-[9px] font-semibold tabular-nums transition-colors",
+                    row ? "top-1/2 -left-6 -translate-y-1/2" : "-top-6 left-1/2 -translate-x-1/2",
+                    on ? "bg-white text-black" : "bg-neutral-800 text-neutral-300 group-hover:bg-neutral-700",
+                  )}
+                >
+                  {i + 1}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="flex min-w-48 flex-1 flex-col gap-2">
+      <div className="flex min-w-60 flex-1 flex-col gap-2">
         <h3 className="text-xs font-medium">Actual size</h3>
         <p className="text-[11px]/relaxed text-muted-foreground">How big it really is on the panel. If a number is unreadable here, it is unreadable there too.</p>
-        {(["bg-neutral-900", "bg-neutral-200"] as const).map((bg) => (
-          <div key={bg} className={cn("flex w-fit items-end gap-3 rounded-md px-3 py-2", bg)}>
-            {sizes.map((s) => (
-              <div key={s} className="flex flex-col items-center gap-1">
-                <img src={preview ?? logo ?? ""} alt="" style={{ width: s, height: s }} className={cn(!(preview ?? logo) && "invisible")} />
-                <span className={cn("text-[9px] tabular-nums", bg === "bg-neutral-900" ? "text-neutral-400" : "text-neutral-600")}>{s}</span>
-              </div>
-            ))}
-          </div>
-        ))}
+        <div className="grid gap-2 @xl:grid-cols-2">
+          {PANELS.map((p) => (
+            <div key={p.name} title={p.name} className={cn("flex items-end justify-around gap-2 rounded-md px-3 py-3", p.bg)}>
+              {sizes.map((s) => (
+                <div key={s} className="flex flex-col items-center gap-1">
+                  <img src={preview ?? logo ?? ""} alt="" style={{ width: s, height: s }} className={cn(!(preview ?? logo) && "invisible")} />
+                  <span className={cn("text-[9px] tabular-nums", p.label)}>{s}</span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
