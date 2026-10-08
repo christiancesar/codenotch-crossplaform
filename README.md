@@ -11,13 +11,15 @@ still contains them is tagged `archive/pre-rebuild-cleanup`.
 
 ## Layout
 
-- `crossplatform-v2/` is the app, from 0.4.0 on: a stock `create-tauri-app` layout with
-  `src-tauri/` (Rust, Tauri 2) and `src/` (React + TypeScript + Vite), a generated, typed IPC
-  contract (`src/libs/ipc/bindings.ts`), and a Storybook workshop for every component. Its docs
-  are in `crossplatform-v2/docs/` (`progress.md`, `design-system.md`).
-  It also builds `codenotch-hook` (`src-tauri/hook/`), the client Claude Code's hooks call,
-  which the installers ship next to the app.
-- `cross-platform/` is the v0.3 app, kept as the reference the rebuild was checked against.
+`crossplatform/` is the app: a stock `create-tauri-app` layout with `src-tauri/` (Rust,
+Tauri 2) and `src/` (React + TypeScript + Vite), a generated, typed IPC contract
+(`src/libs/ipc/bindings.ts`), and a Storybook workshop for every component. Its docs are in
+`crossplatform/docs/` (`progress.md`, `design-system.md`, `phase0-compat-gate.md`). It also
+builds `codenotch-hook` (`src-tauri/hook/`), the client Claude Code's hooks call, which the
+installers ship next to the app.
+
+The v0.3 app the rebuild was checked against, with its architecture spec, plans and notes, was
+removed at 0.4.1; the last commit that has it is tagged `archive/v0.3-reference`.
 
 ## Build
 
@@ -26,7 +28,7 @@ Linux needs the WebKitGTK toolchain and Node 24:
 ```sh
 sudo apt install libwebkit2gtk-4.1-dev libgtk-3-dev \
   libayatana-appindicator3-dev librsvg2-dev patchelf
-cd crossplatform-v2
+cd crossplatform
 npm ci
 npm run tauri dev                              # run it
 npm run storybook                              # the component workshop
