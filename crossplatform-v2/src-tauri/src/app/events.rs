@@ -60,6 +60,11 @@ pub struct LangChanged {
 #[tauri_specta(event_name = "theme")]
 pub struct ThemeChanged(pub crate::config::Theme);
 
+/// The fold-when-idle switch changed in Settings: the notch follows it at once
+#[derive(Debug, Clone, Serialize, Type, Event)]
+#[tauri_specta(event_name = "notch_collapse")]
+pub struct NotchCollapseChanged(pub bool);
+
 /// Something the user should read on the notch (a refused second instance, say)
 #[derive(Debug, Clone, Serialize, Type, Event)]
 #[tauri_specta(event_name = "notice")]

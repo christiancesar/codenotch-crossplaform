@@ -11,7 +11,7 @@ export interface NotchData {
   slots: Slot[];
   /** Percent, 40 to 100 */
   scale: number;
-  /** The idle tab on Linux */
+  /** Idle, fold to the thin tab on the edge (a Settings switch) */
   startsCollapsed: boolean;
 }
 
@@ -60,6 +60,7 @@ export function useNotchData(onNotice: (msg: string) => void) {
       events.activity.listen((e) => patch({ activity: e.payload })),
       events.glyphs.listen((e) => patch({ glyphs: e.payload })),
       events.notchSlots.listen((e) => patch({ slots: e.payload })),
+      events.notchCollapse.listen((e) => patch({ startsCollapsed: e.payload })),
       events.notice.listen((e) => onNotice(e.payload)),
     ];
     return () => {

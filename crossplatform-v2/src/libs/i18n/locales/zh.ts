@@ -109,6 +109,8 @@ const zh: Messages = {
       onScreenSub: "两者至少保留一个。隐藏刘海时，{{tray}}会为你保持开启，否则就没有任何可以点击的地方了。",
       showNotch: "显示刘海",
       showNotchWhy: "屏幕右边缘的黑色胶囊，每个工具一个圆环。无论是否显示，Codenotch 都会继续统计用量。",
+      collapseNotch: "空闲时收起刘海",
+      collapseNotchWhy: "胶囊收成边缘的一条细标签，指针移到上面时展开。启动时先显示胶囊。",
       showTray: "显示{{tray}}",
       showTrayWhy: "{{where}}。它的菜单可以打开此窗口、刷新读数或退出 Codenotch。",
       trayHeld: "保持开启：刘海已隐藏，这个图标是回到 Codenotch 的唯一途径。请先打开刘海再隐藏它。",

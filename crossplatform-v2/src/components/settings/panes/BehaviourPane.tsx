@@ -56,7 +56,13 @@ export function BehaviourPane({ platform, autostart, onAutostart, flags, onFlags
           htmlFor="sw-notch"
           name={t("settings.behaviour.showNotch")}
           why={t("settings.behaviour.showNotchWhy")}
-          control={<Switch id="sw-notch" checked={flags.notch_visible} onCheckedChange={(v) => onFlags({ notch_visible: v, tray_visible: v ? flags.tray_visible : true })} />}
+          control={<Switch id="sw-notch" checked={flags.notch_visible} onCheckedChange={(v) => onFlags({ ...flags, notch_visible: v, tray_visible: v ? flags.tray_visible : true })} />}
+        />
+        <Row
+          htmlFor="sw-collapse"
+          name={t("settings.behaviour.collapseNotch")}
+          why={t("settings.behaviour.collapseNotchWhy")}
+          control={<Switch id="sw-collapse" checked={flags.notch_collapse} disabled={!flags.notch_visible} onCheckedChange={(v) => onFlags({ ...flags, notch_collapse: v })} />}
         />
         <Row
           htmlFor="sw-tray"

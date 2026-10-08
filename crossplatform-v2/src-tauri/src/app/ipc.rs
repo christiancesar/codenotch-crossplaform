@@ -56,6 +56,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             super::events::NotchSlotsChanged,
             super::events::LangChanged,
             super::events::ThemeChanged,
+            super::events::NotchCollapseChanged,
             super::events::Notice,
         ])
         // Epoch-ms timestamps and counters, all far below 2^53, so `number` is exact for them

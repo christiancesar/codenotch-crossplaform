@@ -109,6 +109,8 @@ const ko: Messages = {
       onScreenSub: "둘 중 하나는 항상 켜져 있습니다. 노치를 숨기면 {{tray}}이(가) 켜진 상태로 유지됩니다. 둘 다 없으면 누를 곳이 남지 않기 때문입니다.",
       showNotch: "노치 표시",
       showNotchWhy: "화면 오른쪽 가장자리의 검은 알약, 도구마다 링 하나. 표시하지 않아도 Codenotch는 사용량을 계속 셉니다.",
+      collapseNotch: "사용하지 않을 때 노치 접기",
+      collapseNotchWhy: "알약이 가장자리의 얇은 탭으로 접히고 포인터가 닿으면 열립니다. 시작할 때는 먼저 알약을 보여 줍니다.",
       showTray: "{{tray}} 표시",
       showTrayWhy: "{{where}}. 메뉴에서 이 창을 열거나, 값을 새로 고치거나, Codenotch를 종료합니다.",
       trayHeld: "유지됨: 노치가 숨겨져 있어 이 아이콘이 Codenotch로 돌아오는 유일한 방법입니다. 숨기려면 먼저 노치를 켜세요.",

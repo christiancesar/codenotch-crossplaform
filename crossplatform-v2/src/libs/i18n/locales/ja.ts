@@ -109,6 +109,8 @@ const ja: Messages = {
       onScreenSub: "どちらか一方は常にオンです。ノッチを隠すと{{tray}}はオンのまま固定されます。両方なくなるとクリックできるものが残らないためです。",
       showNotch: "ノッチを表示",
       showNotchWhy: "画面右端の黒いピルで、ツールごとにリングが 1 つ。表示しなくても Codenotch は使用量を数え続けます。",
+      collapseNotch: "使っていないときはノッチをたたむ",
+      collapseNotchWhy: "ピルが端の細いタブにたたまれ、ポインターが来ると開きます。起動時はまずピルを表示します。",
       showTray: "{{tray}}を表示",
       showTrayWhy: "{{where}}。メニューからこのウィンドウを開く、値を更新する、Codenotch を終了することができます。",
       trayHeld: "固定中: ノッチが隠れているため、このアイコンが Codenotch に戻る唯一の手段です。隠すには先にノッチをオンにしてください。",

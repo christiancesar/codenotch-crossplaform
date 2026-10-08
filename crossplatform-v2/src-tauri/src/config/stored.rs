@@ -35,6 +35,10 @@ pub struct StoredConfig {
     pub notch_slots: Vec<StoredSlot>,
     #[serde(default = "yes")]
     pub notch_visible: bool,
+    /// Absent means on, and on is never written: a config that never turned it off saves byte
+    /// for byte as before
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notch_collapse: Option<bool>,
     #[serde(default = "yes")]
     pub tray_visible: bool,
     #[serde(flatten)]
@@ -79,6 +83,7 @@ impl From<StoredConfig> for Config {
             tray_slots: slots_in(s.tray_slots),
             notch_slots: slots_in(s.notch_slots),
             notch_visible: s.notch_visible,
+            notch_collapse: s.notch_collapse.unwrap_or(true),
             tray_visible: s.tray_visible,
             extra: s.extra,
         }
@@ -98,6 +103,7 @@ impl From<Config> for StoredConfig {
             tray_slots: slots_out(c.tray_slots),
             notch_slots: slots_out(c.notch_slots),
             notch_visible: c.notch_visible,
+            notch_collapse: (!c.notch_collapse).then_some(false),
             tray_visible: c.tray_visible,
             extra: c.extra,
         }

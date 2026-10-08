@@ -18,6 +18,8 @@ const DESIGN_W = 340;
 const GRACE_MS = 250;
 /** Press and move further than this and it is a drag, not a click */
 const DRAG_PX = 4;
+/** At launch the pill is shown this long before it folds, so you see where it went */
+const INTRO_MS = 2500;
 
 /** Which rings to draw: the stored slots that still exist, or every provider that is installed. */
 function cells(data: NotchData): Slot[] {
@@ -78,8 +80,15 @@ export default function Notch() {
     if (ready) first.current = false;
   }, [ready]);
 
+  const [intro, setIntro] = useState(true);
+  useEffect(() => {
+    if (!ready) return;
+    const t = window.setTimeout(() => setIntro(false), INTRO_MS);
+    return () => window.clearTimeout(t);
+  }, [ready]);
+
   const open = hover !== null;
-  const collapsed = data.startsCollapsed && !atShell && !open;
+  const collapsed = data.startsCollapsed && !intro && !atShell && !open;
 
   // ---- hot rectangles --------------------------------------------------------------------------
   const reportHot = useCallback(() => {

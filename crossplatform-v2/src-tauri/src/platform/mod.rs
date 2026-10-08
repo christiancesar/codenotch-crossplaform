@@ -86,8 +86,6 @@ pub trait Window {
     /// Input region as window-relative physical rectangles `[x, y, w, h]`; empty is fully
     /// click-through. Only called when `shapes_input`.
     fn set_input_region(&self, w: &tauri::WebviewWindow, rects: Vec<[f64; 4]>);
-    /// Whether the page starts collapsed to the small nub (Linux) or shows the pill (Windows).
-    fn starts_collapsed(&self) -> bool;
 }
 
 pub trait Input {

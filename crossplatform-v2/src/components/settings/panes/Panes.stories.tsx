@@ -67,10 +67,10 @@ export const TrayRepaired: Story = {
 };
 export const NotchAll: Story = { render: () => <Notch options={trayOptions} initial={[]} /> };
 export const NotchCustom: Story = { render: () => <Notch options={trayOptions} initial={[{ provider: "claude", window: "session" }, { provider: "gemini", window: "" }]} /> };
-export const BehaviourLinux: Story = { render: () => <Behaviour platform="linux" flags={{ notch_visible: true, tray_visible: true }} /> };
-export const BehaviourWindows: Story = { render: () => <Behaviour platform="windows" flags={{ notch_visible: true, tray_visible: true }} /> };
+export const BehaviourLinux: Story = { render: () => <Behaviour platform="linux" flags={{ notch_visible: true, tray_visible: true, notch_collapse: true }} /> };
+export const BehaviourWindows: Story = { render: () => <Behaviour platform="windows" flags={{ notch_visible: true, tray_visible: true, notch_collapse: true }} /> };
 /** Notch hidden: the tray switch is held on and explains why. */
-export const BehaviourTrayHeld: Story = { render: () => <Behaviour platform="linux" flags={{ notch_visible: false, tray_visible: true }} /> };
+export const BehaviourTrayHeld: Story = { render: () => <Behaviour platform="linux" flags={{ notch_visible: false, tray_visible: true, notch_collapse: true }} /> };
 export const ClaudeCode: Story = { render: () => <Hooks platform="linux" /> };
 export const ClaudeCodeError: Story = { render: () => <Hooks platform="windows" error="settings.json could not be parsed, so nothing was written. Fix the file and try again." /> };
 export const About: Story = { render: () => <AboutPane platform="linux" version="0.4.0" logo={logo} onOpenData={() => {}} onResetPosition={() => {}} /> };

@@ -109,6 +109,8 @@ const pt: Messages = {
       onScreenSub: "Um dos dois sempre fica ligado. Ao esconder o notch, o {{tray}} fica ligado para você, porque sem os dois não sobraria nada para clicar.",
       showNotch: "Mostrar o notch",
       showNotchWhy: "A pílula preta na borda direita da tela, um anel por ferramenta. O Codenotch continua contando seu uso de qualquer forma.",
+      collapseNotch: "Recolher o notch quando ocioso",
+      collapseNotchWhy: "A pílula vira uma aba fina na borda e se abre quando o ponteiro chega nela. Ao iniciar, mostra a pílula primeiro.",
       showTray: "Mostrar o {{tray}}",
       showTrayWhy: "{{where}}. O menu dele abre esta janela, atualiza as leituras ou fecha o Codenotch.",
       trayHeld: "Mantido ligado: o notch está escondido, então este ícone é o único caminho de volta ao Codenotch. Ligue o notch antes para escondê-lo.",

@@ -18,6 +18,8 @@ pub struct LangInfo {
 pub struct UiFlags {
     pub notch_visible: bool,
     pub tray_visible: bool,
+    /// The idle notch folds to a tab and opens under the pointer
+    pub notch_collapse: bool,
 }
 
 #[tauri::command]
@@ -51,20 +53,22 @@ pub fn set_theme(app: AppHandle, state: State<AppState>, theme: Theme) {
 #[specta::specta]
 pub fn get_ui_flags(state: State<AppState>) -> UiFlags {
     let c = state.config.lock().unwrap();
-    UiFlags { notch_visible: c.notch_visible, tray_visible: c.tray_visible }
+    UiFlags { notch_visible: c.notch_visible, tray_visible: c.tray_visible, notch_collapse: c.notch_collapse }
 }
 
 /// Hiding both would leave the app with nothing to click, so the tray stays whenever the notch
 /// is off. The answer is what was stored, so the window shows the corrected state.
 #[tauri::command]
 #[specta::specta]
-pub fn set_ui_flags(app: AppHandle, state: State<AppState>, notch_visible: bool, tray_visible: bool) -> UiFlags {
+pub fn set_ui_flags(app: AppHandle, state: State<AppState>, notch_visible: bool, tray_visible: bool, notch_collapse: bool) -> UiFlags {
     let flags = state.update_config(|c| {
         c.notch_visible = notch_visible;
         c.tray_visible = tray_visible || !notch_visible;
-        UiFlags { notch_visible: c.notch_visible, tray_visible: c.tray_visible }
+        c.notch_collapse = notch_collapse;
+        UiFlags { notch_visible: c.notch_visible, tray_visible: c.tray_visible, notch_collapse: c.notch_collapse }
     });
     crate::app::ui::apply_visibility(&app);
+    let _ = crate::app::events::NotchCollapseChanged(flags.notch_collapse).emit(&app);
     flags
 }
 

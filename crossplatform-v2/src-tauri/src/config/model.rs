@@ -89,6 +89,8 @@ pub struct Config {
     /// Empty means every provider with something to report
     pub notch_slots: Vec<Slot>,
     pub notch_visible: bool,
+    /// Idle, the pill folds to a thin tab on the edge and opens under the pointer
+    pub notch_collapse: bool,
     pub tray_visible: bool,
     /// Keys this version does not use (v0.3's `bar_*`, `drag_enabled`, `*_providers`, or anything
     /// a newer build wrote). Kept so saving never deletes someone else's setting.
@@ -113,6 +115,7 @@ impl Default for Config {
                 .collect(),
             notch_slots: Vec::new(),
             notch_visible: true,
+            notch_collapse: true,
             tray_visible: true,
             extra: Map::new(),
         }

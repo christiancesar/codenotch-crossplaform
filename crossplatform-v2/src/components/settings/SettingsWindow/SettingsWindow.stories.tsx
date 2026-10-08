@@ -28,7 +28,7 @@ function Harness({ platform, tab, strip }: { platform: Platform; tab?: SettingsT
   const [slots, setSlots] = useState<Slot[]>([]);
   const [scale, setScale] = useState(100);
   const [autostart, setAutostart] = useState(true);
-  const [flags, setFlags] = useState<UiFlags>({ notch_visible: true, tray_visible: true });
+  const [flags, setFlags] = useState<UiFlags>({ notch_visible: true, tray_visible: true, notch_collapse: true });
   const [lang, setLang] = useState("auto");
   const [hooks, setHooks] = useState(true);
   const [theme, setTheme] = useState<Theme>("system");

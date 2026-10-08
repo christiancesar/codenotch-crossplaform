@@ -114,9 +114,9 @@ pub fn reset_notch_position(app: AppHandle, state: State<AppState>) {
     }
 }
 
-/// The page starts collapsed to the nub (Linux) or shows the pill (Windows).
+/// Whether the idle notch folds to the thin tab on the edge (Settings, on by default).
 #[tauri::command]
 #[specta::specta]
-pub fn starts_collapsed() -> bool {
-    Platform.starts_collapsed()
+pub fn starts_collapsed(state: State<AppState>) -> bool {
+    state.config.lock().unwrap().notch_collapse
 }

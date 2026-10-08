@@ -31,7 +31,7 @@ const EMPTY: SettingsData = {
   logo: null,
   notchSlots: [],
   scale: 100,
-  flags: { notch_visible: true, tray_visible: true },
+  flags: { notch_visible: true, tray_visible: true, notch_collapse: true },
   autostart: false,
   lang: "auto",
   theme: "system",
@@ -157,7 +157,7 @@ export function useSettings() {
     setFlags: (flags: UiFlags) => {
       patch({ flags });
       // The backend enforces the one-stays-on rule too; its answer is the truth
-      commands.setUiFlags(flags.notch_visible, flags.tray_visible).then((f) => {
+      commands.setUiFlags(flags.notch_visible, flags.tray_visible, flags.notch_collapse).then((f) => {
         patch({ flags: f });
         saved();
       }, (e) => fail("set_ui_flags", e));

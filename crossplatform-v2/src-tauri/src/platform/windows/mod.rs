@@ -114,9 +114,6 @@ impl Window for Platform {
         false
     }
     fn set_input_region(&self, _w: &tauri::WebviewWindow, _rects: Vec<[f64; 4]>) {}
-    fn starts_collapsed(&self) -> bool {
-        false
-    }
 }
 
 impl Input for Platform {

@@ -39,7 +39,7 @@ export const commands = {
 	getNotchSlots: () => __TAURI_INVOKE<Slot[]>("get_notch_slots"),
 	setNotchSlots: (slots: Slot[]) => __TAURI_INVOKE<void>("set_notch_slots", { slots }),
 	resetNotchPosition: () => __TAURI_INVOKE<void>("reset_notch_position"),
-	/**  The page starts collapsed to the nub (Linux) or shows the pill (Windows). */
+	/**  Whether the idle notch folds to the thin tab on the edge (Settings, on by default). */
 	startsCollapsed: () => __TAURI_INVOKE<boolean>("starts_collapsed"),
 	getTrayOptions: () => __TAURI_INVOKE<TrayOption[]>("get_tray_options"),
 	getTrayConfig: () => __TAURI_INVOKE<TrayConfig>("get_tray_config"),
@@ -60,7 +60,7 @@ export const commands = {
 	 *  Hiding both would leave the app with nothing to click, so the tray stays whenever the notch
 	 *  is off. The answer is what was stored, so the window shows the corrected state.
 	 */
-	setUiFlags: (notchVisible: boolean, trayVisible: boolean) => __TAURI_INVOKE<UiFlags>("set_ui_flags", { notchVisible, trayVisible }),
+	setUiFlags: (notchVisible: boolean, trayVisible: boolean, notchCollapse: boolean) => __TAURI_INVOKE<UiFlags>("set_ui_flags", { notchVisible, trayVisible, notchCollapse }),
 	getAutostart: () => __TAURI_INVOKE<boolean>("get_autostart"),
 	setAutostart: (on: boolean) => typedError<string, string>(__TAURI_INVOKE("set_autostart", { on })),
 	getHooksInstalled: () => __TAURI_INVOKE<boolean>("get_hooks_installed"),
@@ -82,6 +82,7 @@ export const events = {
 	dragEnd: makeEvent<DragEnded>("drag_end"),
 	glyphs: makeEvent<GlyphsChanged>("glyphs"),
 	lang: makeEvent<LangChanged>("lang"),
+	notchCollapse: makeEvent<NotchCollapseChanged>("notch_collapse"),
 	notchSlots: makeEvent<NotchSlotsChanged>("notch_slots"),
 	notice: makeEvent<Notice>("notice"),
 	pointerLeft: makeEvent<PointerLeft>("pointer_left"),
@@ -157,6 +158,9 @@ export type LimitWindow = {
 	/**  The number is ours, not the vendor's; the card prefixes it with ~ */
 	derived: boolean,
 };
+
+/**  The fold-when-idle switch changed in Settings: the notch follows it at once */
+export type NotchCollapseChanged = boolean;
 
 export type NotchSlotsChanged = Slot[];
 
@@ -269,6 +273,8 @@ export type TrayWindowOption = {
 export type UiFlags = {
 	notch_visible: boolean,
 	tray_visible: boolean,
+	/**  The idle notch folds to a tab and opens under the pointer */
+	notch_collapse: boolean,
 };
 
 export type UsageChanged = {

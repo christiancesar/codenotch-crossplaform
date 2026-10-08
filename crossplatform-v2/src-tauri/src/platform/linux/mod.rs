@@ -109,9 +109,6 @@ impl Window for Platform {
     fn set_input_region(&self, w: &tauri::WebviewWindow, rects: Vec<[f64; 4]>) {
         window::set_input_region(w, rects);
     }
-    fn starts_collapsed(&self) -> bool {
-        true
-    }
 }
 
 thread_local! {

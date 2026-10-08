@@ -110,6 +110,8 @@ const en = {
       onScreenSub: "One of these two always stays on. Hide the notch and the {{tray}} is held on for you, because with both gone there would be nothing left to click.",
       showNotch: "Show the notch",
       showNotchWhy: "The black pill against the right-hand edge of the screen, one ring per tool. Codenotch keeps counting your usage either way.",
+      collapseNotch: "Fold the notch when idle",
+      collapseNotchWhy: "The pill folds to a thin tab on the edge and opens when the pointer reaches it. At launch it shows the pill first.",
       showTray: "Show the {{tray}}",
       showTrayWhy: "{{where}}. Its menu opens this window, refreshes the readings, or quits Codenotch.",
       trayHeld: "Held on: the notch is hidden, so this icon is the only way back to Codenotch. Switch the notch on first to hide it.",
