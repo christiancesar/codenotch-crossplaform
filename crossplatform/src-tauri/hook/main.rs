@@ -1,5 +1,5 @@
 //! codenotch-hook: the minimal client Claude Code's hooks call. Moved unchanged from v0.3
-//! (cross-platform/codenotch-hook); the route, port lookup and quit marker are frozen contracts
+//! (cross-platform/codenotch-hook, tag archive/v0.3-reference); the route, port lookup and quit marker are frozen contracts
 //! with the app (sessions/hook_server.rs, storage/paths.rs).
 //! Duties: 1) report the event plus stdin JSON to the main app; 2) launch the main app if it is not running.
 //! Iron rule: never block Claude Code — ~2 s total budget, and every failure exits 0 silently.

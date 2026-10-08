@@ -3,7 +3,7 @@ name: Release (Windows + Linux)
 # Follows the project's GitFlow: `release` stabilizes a version, merges into `main`
 # (production) AND back into `development`, then a `v*` tag pushed on `main` is what
 # actually cuts a public GitHub Release, never a raw push to `release` itself. This
-# builds crossplatform-v2 (0.4.0 onwards; cross-platform/ is the v0.3 reference) for both
+# builds crossplatform/ for both
 # OSes and publishes the installers as a draft release for review before anyone can
 # download them.
 on:
@@ -42,26 +42,26 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: crossplatform-v2/package-lock.json
+          cache-dependency-path: crossplatform/package-lock.json
 
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: crossplatform-v2/src-tauri
+          workspaces: crossplatform/src-tauri
           key: release
 
       # tauri-action runs `tauri build`, which runs beforeBuildCommand (npm run build); that
       # needs the frontend's dependencies installed first
       - name: Install frontend dependencies
-        working-directory: crossplatform-v2
+        working-directory: crossplatform
         run: npm ci
 
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          projectPath: crossplatform-v2
+          projectPath: crossplatform
           # tauri-action does not derive the tag from the triggering push event: without this
           # it silently skips all uploads ("No releaseId or tagName provided"), which is what
           # happened on the first v0.3.0 attempt.
@@ -71,11 +71,14 @@ jobs:
           args: ${{ runner.os == 'Linux' && '--bundles deb,appimage' || '' }}
           releaseName: "Codenotch ${{ github.ref_name }}"
           releaseBody: |
-            Codenotch 0.4.0 is the rebuild in crossplatform-v2/: a new Rust backend on the stock
-            Tauri 2 layout, a React + TypeScript interface, a typed IPC contract, the whole UI
-            translated (en, pt-BR, zh, ja, ko), a light/dark/system theme and a resizable
-            settings window. Settings and readings from 0.3 load unchanged. The installers now
-            ship codenotch-hook next to the app, so the Claude Code hooks switch works out of the
-            box.
+            Codenotch 0.4.1 makes sessions and Claude usage work on Windows:
+            - The Claude Code hooks are wired at start and removed by the uninstaller; the
+              Settings switch-off is remembered.
+            - A desktop-app session that finishes while you are in Claude stays "done".
+            - The Claude token is renewed with the standalone `claude` CLI before it expires,
+              and an expired one is never sent (it read as an hour-long rate limit).
+            - The idle notch folds to a tab on any OS (Settings > On screen to turn it off).
+            - Double-clicking the tray icon opens Settings.
+            The v0.3 reference app is gone from the repository (tag archive/v0.3-reference).
           releaseDraft: true
           prerelease: false

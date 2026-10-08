@@ -42,5 +42,5 @@ Providers that are not installed simply have no cell.
 - Current app (`cross-platform/codenotch/src/`): `usage.rs` (engine/aggregation), `codex.rs`,
   `cursor.rs`, `antigravity.rs`, `agy_cli.rs` (official CLI path), plus `state.rs` and
   `watcher.rs` around them.
-- Rebuild (`crossplatform-v2/src-tauri/src/providers/<id>/`): one directory per
+- Rebuild (`crossplatform/src-tauri/src/providers/<id>/`): one directory per
   provider behind the `UsageProvider` trait, see the architecture spec.

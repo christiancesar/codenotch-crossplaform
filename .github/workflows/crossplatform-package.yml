@@ -1,12 +1,12 @@
 name: Package (preview)
 
-# Builds the installers of the app in crossplatform-v2/ on every push to development, so they are
+# Builds the installers of the app in crossplatform/ on every push to development, so they are
 # downloadable from the workflow run itself (Actions artifacts, need a GitHub login, expire after
 # 90 days) without waiting for a tagged release. See release-publish.yml for the public release.
 on:
   push:
     branches: [development]
-    paths: ["crossplatform-v2/**", ".github/workflows/cross-platform-package.yml"]
+    paths: ["crossplatform/**", ".github/workflows/crossplatform-package.yml"]
   workflow_dispatch: {}
 
 concurrency:
@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 45
     defaults:
       run:
-        working-directory: crossplatform-v2
+        working-directory: crossplatform
     steps:
       - uses: actions/checkout@v7
 
@@ -44,13 +44,13 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: crossplatform-v2/package-lock.json
+          cache-dependency-path: crossplatform/package-lock.json
 
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: crossplatform-v2/src-tauri
+          workspaces: crossplatform/src-tauri
           key: release
 
       - run: npm ci
@@ -70,8 +70,8 @@ jobs:
         with:
           name: codenotch-linux
           path: |
-            crossplatform-v2/src-tauri/target/release/bundle/deb/*.deb
-            crossplatform-v2/src-tauri/target/release/bundle/appimage/*.AppImage
+            crossplatform/src-tauri/target/release/bundle/deb/*.deb
+            crossplatform/src-tauri/target/release/bundle/appimage/*.AppImage
 
       - name: Upload Windows installers
         if: runner.os == 'Windows'
@@ -79,5 +79,5 @@ jobs:
         with:
           name: codenotch-windows
           path: |
-            crossplatform-v2/src-tauri/target/release/bundle/nsis/*.exe
-            crossplatform-v2/src-tauri/target/release/bundle/msi/*.msi
+            crossplatform/src-tauri/target/release/bundle/nsis/*.exe
+            crossplatform/src-tauri/target/release/bundle/msi/*.msi

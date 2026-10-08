@@ -1,6 +1,6 @@
-name: crossplatform-v2 CI
+name: crossplatform CI
 
-# The rebuild in crossplatform-v2/ (see cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md).
+# The app in crossplatform/ (Tauri 2: src-tauri/ backend, src/ frontend).
 # Builds the frontend, runs the Rust tests (which regenerate src/libs/ipc/bindings.ts) and fails
 # if the committed bindings no longer match the Rust commands.
 on:
@@ -9,9 +9,9 @@ on:
   # run and warms a cache the PR cannot use
   push:
     branches: [development, main]
-    paths: ["crossplatform-v2/**", ".github/workflows/crossplatform-v2-ci.yml"]
+    paths: ["crossplatform/**", ".github/workflows/crossplatform-ci.yml"]
   pull_request:
-    paths: ["crossplatform-v2/**", ".github/workflows/crossplatform-v2-ci.yml"]
+    paths: ["crossplatform/**", ".github/workflows/crossplatform-ci.yml"]
   workflow_dispatch: {}
 
 # A newer push to the same branch or PR cancels the run it supersedes
@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 25
     defaults:
       run:
-        working-directory: crossplatform-v2
+        working-directory: crossplatform
     steps:
       - uses: actions/checkout@v7
 
@@ -56,13 +56,13 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: crossplatform-v2/package-lock.json
+          cache-dependency-path: crossplatform/package-lock.json
 
       - uses: dtolnay/rust-toolchain@stable
 
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: crossplatform-v2/src-tauri
+          workspaces: crossplatform/src-tauri
           # Saved from development and main only; pull requests restore it
           save-if: ${{ github.event_name == 'push' }}
 
@@ -74,11 +74,11 @@ jobs:
       - run: npm run build
 
       - name: Build the tests
-        working-directory: crossplatform-v2/src-tauri
+        working-directory: crossplatform/src-tauri
         run: cargo nextest run --no-run --profile ci
 
       - name: Run the tests
-        working-directory: crossplatform-v2/src-tauri
+        working-directory: crossplatform/src-tauri
         timeout-minutes: 10
         # On Linux a runaway test (a fork loop, a memory leak) hits these limits and fails by name
         # instead of starving the runner: twice the job lost its runner with no log at all. Bash on
@@ -93,7 +93,7 @@ jobs:
 
       # nextest skips doctests; the crate has none, but keep them honest if one is added
       - name: Doctests
-        working-directory: crossplatform-v2/src-tauri
+        working-directory: crossplatform/src-tauri
         run: cargo test --doc
 
       - name: IPC bindings are up to date

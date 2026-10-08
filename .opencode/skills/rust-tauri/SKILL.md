@@ -15,7 +15,7 @@ description: How the Codenotch Rust/Tauri 2 codebase works — workspace layout,
 
 `codenotch/` is the v0.3 reference implementation. The rebuild described in
 `docs/specs/2026-09-15-cross-platform-architecture-spec.md` goes to
-`../crossplatform-v2/` (stock Tauri layout: `src-tauri/` + `src/`), outside this workspace
+`../crossplatform/` (stock Tauri layout: `src-tauri/` + `src/`), outside this workspace
 until cutover. Keep both Windows and Linux
 compiling.
 

@@ -20,7 +20,7 @@ produce a verdict.
 2. **Guardrails** — `cross-platform/codenotch` changed only for a bug fix ticket; no `git add`/`commit`; no new deps outside the ticket;
    no invented numbers, no zero-defaults, every failure maps to a renderable status.
 3. **Platform behavior** — builds on Windows and Linux; in the new tree no `cfg` for an OS
-   outside `crossplatform-v2/src-tauri/src/platform/`; no duplicate spawn/invocation.
+   outside `crossplatform/src-tauri/src/platform/`; no duplicate spawn/invocation.
 4. **Conventions** — comments explain why; Rust/tray strings use the same i18n keys as the page;
    no frozen `static let` lookups; no premature abstraction.
 5. **Tests** — recorded-body pins present for provider parser changes; failures map to

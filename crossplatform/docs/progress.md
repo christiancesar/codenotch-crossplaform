@@ -1,7 +1,7 @@
 # Rebuild progress
 
 Branch `feat/codenotch-next`. Phases from
-`cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md`.
+the architecture spec (`cross-platform/docs/specs/`, tag `archive/v0.3-reference`).
 
 ## Phase 0: compatibility gate (done)
 
@@ -17,7 +17,7 @@ See `phase0-compat-gate.md`.
 - Dependencies: only what phase 1 uses (tauri with `tray-icon`/`image-png`, opener,
   single-instance, serde, specta trio). The rest arrive with the module that needs them.
 - `src/main.tsx` picks the React tree from the window label.
-- CI: `.github/workflows/crossplatform-v2-ci.yml` (Ubuntu + Windows, npm build, cargo test,
+- CI: `.github/workflows/crossplatform-ci.yml` (Ubuntu + Windows, npm build, cargo test,
   bindings diff).
 - Smoke run on Ubuntu 26.04: starts and stays up 8 s with no panic. Visual check of both
   windows still to be done by the user.
@@ -146,7 +146,7 @@ re-places the window around the saved centre.
 ## 0.4.0
 
 The rebuild becomes the released app: `package.json` at 0.4.0 (Cargo and tauri.conf already
-were), the package and release workflows build `crossplatform-v2/`, and CI runs the tests
+were), the package and release workflows build `crossplatform/`, and CI runs the tests
 through cargo-nextest with a per-test limit (the PR's Ubuntu runner had starved twice). Checked
 locally before the PR: the CI steps, and `npm run tauri build -- --bundles deb,appimage`
 (3 min, deb 5.4 MB, AppImage 87 MB).
@@ -156,6 +156,23 @@ locally before the PR: the CI steps, and `npm run tauri build -- --bundles deb,a
 deb), where the hooks switch looks for it. v0.3 never packaged it: its hooks pointed at a debug
 build in the repository.
 
+## 0.4.1: Windows fixes and the cutover
+
+Checked on Windows 11, where 0.4.0 showed no sessions and no Claude usage:
+
+- The hooks had never been wired (opt-in, and nothing said so). The app now wires them at
+  start, the NSIS uninstaller removes them, and a Settings switch-off is remembered. They do
+  fire from the Claude desktop app, contrary to the old note in `sessions/watcher.rs`.
+- Seen-clears-it hid every desktop session the moment it finished, since you work inside the
+  Claude app; it now needs a switch to the app after the finish.
+- Usage needs `~/.claude/.credentials.json`, which only the standalone `claude` CLI writes. The
+  provider renews it with that CLI and never sends an expired token (the endpoint answers it
+  with an hour-long 429). Ported from upstream's Windows port, #192 and #228.
+- The idle notch folds to a tab on both OSes, switchable in Settings (`notch_collapse`).
+- The tray icon opens Settings on a double-click.
+- Cutover: `crossplatform-v2/` became `crossplatform/`, and `cross-platform/` (the v0.3
+  reference app, the spec, plans and notes) was removed; tag `archive/v0.3-reference` has it.
+
 ## Open decisions
 
 - Design-system open table (`design-system.md`, end): frame sizes vs v0.3 web sizes, card
@@ -164,4 +181,4 @@ build in the repository.
 ## Next
 
 1. Run v2 on the desktop (v0.3 closed) and check the notch and settings against the stories.
-2. Phase 7 cutover: parity checklist on Linux and Windows.
+2. Parity checklist (`phase0-compat-gate.md`) on Linux.

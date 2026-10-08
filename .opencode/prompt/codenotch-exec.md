@@ -18,8 +18,8 @@ Leia, nesta ordem:
 ## Regras de código (não negociáveis)
 
 - Não reestruture `cross-platform/codenotch` (referência v0.3) fora de um ticket de bugfix.
-  Trabalho novo vai para `crossplatform-v2/` (`src-tauri/` backend, `src/` frontend).
-- No projeto novo, código de SO só em `crossplatform-v2/src-tauri/src/platform/`, com
+  Trabalho novo vai para `crossplatform/` (`src-tauri/` backend, `src/` frontend).
+- No projeto novo, código de SO só em `crossplatform/src-tauri/src/platform/`, com
   `target_os = "linux"`; **nunca** `#[cfg(linux)]`.
 - Comentários explicam **por quê** (uma restrição escondida, um bug contornado), não **o
   quê** o código faz.

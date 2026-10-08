@@ -1,12 +1,12 @@
 # Phase 0: compatibility gate
 
-Phase 0 of `cross-platform/docs/specs/2026-09-15-cross-platform-architecture-spec.md`.
+Phase 0 of the architecture spec (`cross-platform/docs/specs/`, tag `archive/v0.3-reference`).
 Nothing on `feat/codenotch-next` merges into `development` until every item here holds
-for the new app in `crossplatform-v2/`.
+for the new app in `crossplatform/`.
 
 ## Golden fixtures
 
-`crossplatform-v2/src-tauri/tests/fixtures/persisted/`:
+`crossplatform/src-tauri/tests/fixtures/persisted/`:
 
 | Directory | Content |
 | --- | --- |

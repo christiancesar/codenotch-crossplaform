@@ -1,9 +1,9 @@
 # Codenotch design system
 
 The visual language of the notch and the settings window, for the React rewrite in
-`crossplatform-v2/src/`. It carries over the official macOS app's design system
+`crossplatform/src/`. It carries over the official macOS app's design system
 (`Sources/DesignSystem/*.swift`, `Sources/Notch/NotchLayout.swift` at tag
-`archive/pre-rebuild-cleanup`). Where the v0.3 web UI (`cross-platform/codenotch/ui/`)
+`archive/pre-rebuild-cleanup`). Where the v0.3 web UI (`cross-platform/codenotch/ui/` at tag `archive/v0.3-reference`)
 drifted from it, the difference is listed under [Open decisions](#open-decisions).
 
 Implementation: Tailwind CSS v4 with shadcn/ui (Radix base, `neutral` preset). Geometry,
@@ -250,7 +250,7 @@ Rules:
 
 ## Components (notch)
 
-All of them are in Storybook (`npm run storybook` in `crossplatform-v2/`), one story per state,
+All of them are in Storybook (`npm run storybook` in `crossplatform/`), one story per state,
 plus `Notch/Notch`, the whole window composed with hover. Provider marks are the official ones
 (`src-tauri/assets/glyphs/NOTICE.md`).
 
