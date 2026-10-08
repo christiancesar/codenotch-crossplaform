@@ -4,6 +4,7 @@
 
 pub mod drag;
 pub mod hit_test;
+pub mod monitors;
 pub mod placement;
 pub mod watchdog;
 

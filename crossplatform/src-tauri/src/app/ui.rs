@@ -14,15 +14,34 @@ use tauri_specta::Event;
 pub const NOTCH: &str = "notch";
 pub const SETTINGS: &str = "settings";
 
+/// The screen the notch is on now: the chosen one while connected, the primary otherwise.
+pub fn notch_monitor(app: &AppHandle) -> Option<tauri::Monitor> {
+    let stored = app.state::<AppState>().config.lock().unwrap().notch_monitor.clone();
+    crate::notch::monitors::chosen(app, stored.as_deref())
+}
+
 pub fn place_notch(app: &AppHandle) {
     let st = app.state::<AppState>();
     let (edge, ratio) = {
         let c = st.config.lock().unwrap();
         (c.notch_edge, c.notch_y)
     };
-    if let Some(w) = app.get_webview_window(NOTCH) {
-        crate::notch::placement::place(&w, edge, ratio, st.notch.length(edge));
+    if let (Some(w), Some(mon)) = (app.get_webview_window(NOTCH), notch_monitor(app)) {
+        crate::notch::placement::place(&w, &mon, edge, ratio, st.notch.length(edge));
     }
+}
+
+/// Moves the notch to another screen (Settings). The length the page asked for is kept within the
+/// new screen's side by the placement; the card closes, since it was laid out for the old spot.
+pub fn set_notch_monitor(app: &AppHandle, id: String) {
+    let st = app.state::<AppState>();
+    let changed = st.update_config(|c| c.notch_monitor.replace(id.clone()).as_deref() != Some(id.as_str()));
+    if !changed {
+        return;
+    }
+    st.notch.expanded.store(false, Ordering::Relaxed);
+    let _ = PointerLeft.emit(app);
+    place_notch(app);
 }
 
 /// Moves the notch to another screen edge, from Settings or the tray. The length the page asked

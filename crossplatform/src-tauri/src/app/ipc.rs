@@ -17,6 +17,9 @@ pub fn builder() -> Builder<tauri::Wry> {
             notch::drag_begin,
             notch::report_dpr,
             notch::set_notch_length,
+            notch::get_monitors,
+            notch::get_notch_monitor,
+            notch::set_notch_monitor,
             notch::get_notch_edge,
             notch::set_notch_edge,
             notch::get_scale,
@@ -60,6 +63,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             super::events::ThemeChanged,
             super::events::NotchCollapseChanged,
             super::events::NotchEdgeChanged,
+            super::events::MonitorsChanged,
             super::events::Notice,
         ])
         // Epoch-ms timestamps and counters, all far below 2^53, so `number` is exact for them

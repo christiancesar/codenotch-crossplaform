@@ -31,6 +31,11 @@ export const commands = {
 	 *  saved centre.
 	 */
 	setNotchLength: (length: number | null) => __TAURI_INVOKE<void>("set_notch_length", { length }),
+	/**  The connected screens, as the OS arranges them */
+	getMonitors: () => __TAURI_INVOKE<MonitorInfo[]>("get_monitors"),
+	/**  The stored screen; null until one is chosen (the primary stands in) */
+	getNotchMonitor: () => __TAURI_INVOKE<string | null>("get_notch_monitor"),
+	setNotchMonitor: (id: string) => __TAURI_INVOKE<void>("set_notch_monitor", { id }),
 	getNotchEdge: () => __TAURI_INVOKE<NotchEdge>("get_notch_edge"),
 	/**  Moves the notch to another screen edge (Settings; the tray menu does the same) */
 	setNotchEdge: (edge: NotchEdge) => __TAURI_INVOKE<void>("set_notch_edge", { edge }),
@@ -86,6 +91,7 @@ export const events = {
 	dragEnd: makeEvent<DragEnded>("drag_end"),
 	glyphs: makeEvent<GlyphsChanged>("glyphs"),
 	lang: makeEvent<LangChanged>("lang"),
+	monitors: makeEvent<MonitorsChanged>("monitors"),
 	notchCollapse: makeEvent<NotchCollapseChanged>("notch_collapse"),
 	notchEdge: makeEvent<NotchEdgeChanged>("notch_edge"),
 	notchSlots: makeEvent<NotchSlotsChanged>("notch_slots"),
@@ -163,6 +169,22 @@ export type LimitWindow = {
 	/**  The number is ours, not the vendor's; the card prefixes it with ~ */
 	derived: boolean,
 };
+
+/**  A connected screen, in physical pixels on the virtual desktop, the way the OS arranges them. */
+export type MonitorInfo = {
+	/**  The OS's name for it (\\.\DISPLAY2 on Windows, the output name on Linux): what is stored */
+	id: string,
+	x: number,
+	y: number,
+	width: number,
+	height: number,
+	/**  Display scaling, 1 = 100 % */
+	scale: number | null,
+	primary: boolean,
+};
+
+/**  A screen was connected, removed or rearranged: the settings window redraws its picker */
+export type MonitorsChanged = MonitorInfo[];
 
 /**  The fold-when-idle switch changed in Settings: the notch follows it at once */
 export type NotchCollapseChanged = boolean;

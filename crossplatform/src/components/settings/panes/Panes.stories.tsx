@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { TrayPane, NotchPane, BehaviourPane, HooksPane, AboutPane, type Platform } from ".";
 import type { NotchEdge } from "@/libs/notch-edge";
+import type { MonitorInfo } from "@/libs/monitors";
+import { dual, single, triple } from "@/fixtures/monitors";
 import type { Slot, Theme, TrayConfig, TrayOption, UiFlags } from "@/libs/ipc";
 import { normalizeTray } from "@/libs/settings";
 import { trayPreview } from "@/fixtures/trayPreview";
@@ -15,12 +17,25 @@ function Tray({ platform, options, initial, repairNote }: { platform: Platform; 
   const preview = trayPreview(config, (p, w) => slotReading(options, p, w));
   return <TrayPane platform={platform} options={options} config={config} onConfig={setConfig} preview={preview} logo={logo} repairNote={repairNote} />;
 }
-function Notch({ options, initial, edge: startEdge = "right", collapse: startCollapse = true }: { options: TrayOption[]; initial: Slot[]; edge?: NotchEdge; collapse?: boolean }) {
+function Notch({
+  options,
+  initial,
+  edge: startEdge = "right",
+  collapse: startCollapse = true,
+  monitors = dual,
+}: {
+  options: TrayOption[];
+  initial: Slot[];
+  edge?: NotchEdge;
+  collapse?: boolean;
+  monitors?: MonitorInfo[];
+}) {
+  const [monitor, setMonitor] = useState<string | null>(null);
   const [slots, setSlots] = useState(initial);
   const [scale, setScale] = useState(100);
   const [edge, setEdge] = useState<NotchEdge>(startEdge);
   const [collapse, setCollapse] = useState(startCollapse);
-  return <NotchPane options={options} slots={slots} onSlots={setSlots} scale={scale} onScale={setScale} edge={edge} onEdge={setEdge} collapse={collapse} onCollapse={setCollapse} />;
+  return <NotchPane options={options} slots={slots} onSlots={setSlots} scale={scale} onScale={setScale} monitors={monitors} monitor={monitor} onMonitor={setMonitor} edge={edge} onEdge={setEdge} collapse={collapse} onCollapse={setCollapse} />;
 }
 function Behaviour({ platform, flags: initial }: { platform: Platform; flags: UiFlags }) {
   const [autostart, setAutostart] = useState(true);
@@ -72,6 +87,10 @@ export const NotchAll: Story = { render: () => <Notch options={trayOptions} init
 export const NotchCustom: Story = { render: () => <Notch options={trayOptions} initial={[{ provider: "claude", window: "session" }, { provider: "gemini", window: "" }]} /> };
 /** Moved to the top edge, folding turned off. */
 export const NotchTopAlwaysOpen: Story = { render: () => <Notch options={trayOptions} initial={[]} edge="top" collapse={false} /> };
+/** Three screens to choose from. */
+export const NotchThreeScreens: Story = { render: () => <Notch options={trayOptions} initial={[]} monitors={triple} /> };
+/** One screen: the block is there but says there is nothing to choose. */
+export const NotchOneScreen: Story = { render: () => <Notch options={trayOptions} initial={[]} monitors={single} /> };
 export const BehaviourLinux: Story = { render: () => <Behaviour platform="linux" flags={{ notch_visible: true, tray_visible: true, notch_collapse: true }} /> };
 export const BehaviourWindows: Story = { render: () => <Behaviour platform="windows" flags={{ notch_visible: true, tray_visible: true, notch_collapse: true }} /> };
 /** Notch hidden: the tray switch is held on and explains why. */

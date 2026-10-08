@@ -11,13 +11,14 @@ use std::sync::Arc;
 use std::time::Duration;
 
 /// `on_end(Some(ratio))` after a real move, `on_end(None)` for a press that never moved.
-pub fn begin(w: tauri::WebviewWindow, state: Arc<NotchState>, edge: NotchEdge, on_end: impl FnOnce(Option<f64>) + Send + 'static) {
+/// `mon` is the screen the notch is on: the drag stays on it.
+pub fn begin(w: tauri::WebviewWindow, mon: tauri::Monitor, state: Arc<NotchState>, edge: NotchEdge, on_end: impl FnOnce(Option<f64>) + Send + 'static) {
     if state.dragging.swap(true, Ordering::SeqCst) {
         return;
     }
     std::thread::spawn(move || {
-        let start = (w.cursor_position(), w.outer_position(), w.outer_size(), w.primary_monitor());
-        let (Ok(start_cur), Ok(start_pos), Ok(size), Ok(Some(mon))) = start else {
+        let start = (w.cursor_position(), w.outer_position(), w.outer_size());
+        let (Ok(start_cur), Ok(start_pos), Ok(size)) = start else {
             state.dragging.store(false, Ordering::SeqCst);
             return;
         };

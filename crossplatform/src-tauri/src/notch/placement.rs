@@ -1,4 +1,4 @@
-//! Pinned to the chosen edge of the primary monitor at the saved ratio along it.
+//! Pinned to the chosen edge of the chosen screen at the saved ratio along it.
 
 use super::window_size;
 use crate::config::NotchEdge;
@@ -33,11 +33,10 @@ pub fn ratio_after_drag(edge: NotchEdge, pos: (i32, i32), win: (u32, u32), mon_p
     ((lead + len as i32 / 2 - start) as f64 / side as f64).clamp(0.0, 1.0)
 }
 
-/// Sizes the window from the monitor's scale and places it. The physical size is pinned straight
-/// from the monitor's scale factor: with two monitors at different scales the window could end up
+/// Sizes the window from `mon`'s scale and places it on `mon`. The physical size is pinned straight
+/// from that monitor's scale factor: with two monitors at different scales the window could end up
 /// converted with the other monitor's factor, leaving the WebView ~256 logical px wide.
-pub fn place(w: &tauri::WebviewWindow, edge: NotchEdge, ratio: f64, length: f64) -> Option<(i32, i32)> {
-    let mon = w.primary_monitor().ok().flatten()?;
+pub fn place(w: &tauri::WebviewWindow, mon: &tauri::Monitor, edge: NotchEdge, ratio: f64, length: f64) -> (i32, i32) {
     let s = mon.scale_factor();
     let (lw, lh) = window_size(edge, length);
     let target = tauri::PhysicalSize::new((lw * s).round() as u32, (lh * s).round() as u32);
@@ -48,17 +47,18 @@ pub fn place(w: &tauri::WebviewWindow, edge: NotchEdge, ratio: f64, length: f64)
     let (x, y) = position(edge, (mon.position().x, mon.position().y), (mon.size().width, mon.size().height), (size.width, size.height), ratio);
     let _ = w.set_position(tauri::PhysicalPosition::new(x, y));
     crate::diagnostics::log(&format!(
-        "notch placed: edge={} pos=({x},{y}) size=({}x{}) scale={s} monitor=({},{} {}x{}) gdk={}",
+        "notch placed: edge={} pos=({x},{y}) size=({}x{}) scale={s} monitor={} ({},{} {}x{}) gdk={}",
         edge.as_str(),
         size.width,
         size.height,
+        mon.name().map(String::as_str).unwrap_or("?"),
         mon.position().x,
         mon.position().y,
         mon.size().width,
         mon.size().height,
         std::env::var("GDK_BACKEND").unwrap_or_default()
     ));
-    Some((x, y))
+    (x, y)
 }
 
 #[cfg(test)]

@@ -35,6 +35,9 @@ export default function Settings() {
               onSlots={actions.setNotchSlots}
               scale={data.scale}
               onScale={actions.setScale}
+              monitors={data.monitors}
+              monitor={data.monitor}
+              onMonitor={actions.setMonitor}
               edge={data.edge}
               onEdge={actions.setEdge}
               collapse={data.flags.notch_collapse}

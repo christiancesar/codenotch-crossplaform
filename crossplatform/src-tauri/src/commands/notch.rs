@@ -1,6 +1,7 @@
 use crate::app::events::{DragEnded, NotchSlotsChanged, ScaleChanged};
 use crate::app::state::AppState;
 use crate::config::{NotchEdge, Slot, SCALE_MAX, SCALE_MIN};
+use crate::notch::monitors::MonitorInfo;
 use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Manager, State};
 use tauri_specta::Event;
@@ -25,9 +26,10 @@ pub fn set_hot(app: AppHandle, state: State<AppState>, rects: Vec<[f64; 4]>, exp
 #[specta::specta]
 pub fn drag_begin(app: AppHandle, state: State<AppState>) {
     let Some(w) = app.get_webview_window(crate::app::ui::NOTCH) else { return };
+    let Some(mon) = crate::app::ui::notch_monitor(&app) else { return };
     let a = app.clone();
     let edge = state.config.lock().unwrap().notch_edge;
-    crate::notch::drag::begin(w, state.notch.clone(), edge, move |ratio| {
+    crate::notch::drag::begin(w, mon, state.notch.clone(), edge, move |ratio| {
         if let Some(r) = ratio {
             a.state::<AppState>().update_config(|c| c.notch_y = r);
         }
@@ -41,13 +43,9 @@ pub fn drag_begin(app: AppHandle, state: State<AppState>) {
 #[tauri::command]
 #[specta::specta]
 pub fn set_notch_length(app: AppHandle, state: State<AppState>, length: f64) {
-    let Some(w) = app.get_webview_window(crate::app::ui::NOTCH) else { return };
     let edge = state.config.lock().unwrap().notch_edge;
     let min = crate::notch::min_length(edge);
-    let side = w
-        .primary_monitor()
-        .ok()
-        .flatten()
+    let side = crate::app::ui::notch_monitor(&app)
         .map(|m| if edge.is_horizontal() { m.size().width } else { m.size().height } as f64 / m.scale_factor())
         .unwrap_or(min);
     let l = crate::notch::clamp_length(length, side, min);
@@ -56,6 +54,26 @@ pub fn set_notch_length(app: AppHandle, state: State<AppState>, length: f64) {
     }
     *state.notch.length.lock().unwrap() = l;
     crate::app::ui::place_notch(&app);
+}
+
+/// The connected screens, as the OS arranges them
+#[tauri::command]
+#[specta::specta]
+pub fn get_monitors(app: AppHandle) -> Vec<MonitorInfo> {
+    crate::notch::monitors::list(&app)
+}
+
+/// The stored screen; null until one is chosen (the primary stands in)
+#[tauri::command]
+#[specta::specta]
+pub fn get_notch_monitor(state: State<AppState>) -> Option<String> {
+    state.config.lock().unwrap().notch_monitor.clone()
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn set_notch_monitor(app: AppHandle, id: String) {
+    crate::app::ui::set_notch_monitor(&app, id);
 }
 
 #[tauri::command]
@@ -78,7 +96,7 @@ pub fn set_notch_edge(app: AppHandle, edge: NotchEdge) {
 #[specta::specta]
 pub fn report_dpr(app: AppHandle, state: State<AppState>, dpr: f64, width: f64, height: f64) {
     let Some(win) = app.get_webview_window(crate::app::ui::NOTCH) else { return };
-    let want = win.primary_monitor().ok().flatten().map(|m| m.scale_factor()).unwrap_or_else(|| win.scale_factor().unwrap_or(1.0));
+    let want = crate::app::ui::notch_monitor(&app).map(|m| m.scale_factor()).unwrap_or_else(|| win.scale_factor().unwrap_or(1.0));
     let mut z = state.notch.zoom.lock().unwrap();
     if *z <= 0.0 {
         *z = 1.0;

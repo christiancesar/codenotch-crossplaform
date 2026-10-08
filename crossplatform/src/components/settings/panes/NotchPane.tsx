@@ -2,12 +2,14 @@ import { useTranslation } from "react-i18next";
 import { PanelBottomIcon, PanelLeftIcon, PanelRightIcon, PanelTopIcon } from "lucide-react";
 import type { Slot, TrayOption } from "@/libs/ipc";
 import { NOTCH_EDGES, type NotchEdge } from "@/libs/notch-edge";
+import type { MonitorInfo } from "@/libs/monitors";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { notchOn, provLabel, providerList, winLabel } from "@/libs/settings";
 import { Slider } from "@/components/ui/slider";
 import { Block, Note, Pane, Row } from "../Pane";
 import { NotchRings } from "../NotchRings";
+import { MonitorPicker } from "../MonitorPicker";
 
 export interface NotchPaneProps {
   options: TrayOption[];
@@ -17,6 +19,11 @@ export interface NotchPaneProps {
   /** Percent, 40 to 100 (`get_scale` × 100) */
   scale: number;
   onScale: (scale: number) => void;
+  /** Connected screens; the Screen block is left out while the list is empty */
+  monitors: MonitorInfo[];
+  /** The stored screen; null means the primary */
+  monitor: string | null;
+  onMonitor: (id: string) => void;
   /** The screen edge the pill sits on */
   edge: NotchEdge;
   onEdge: (edge: NotchEdge) => void;
@@ -27,8 +34,8 @@ export interface NotchPaneProps {
 
 const edgeIcon = { top: PanelTopIcon, left: PanelLeftIcon, right: PanelRightIcon, bottom: PanelBottomIcon };
 
-/** Appearance: which rings the pill draws, where, how big, and whether it folds when idle. */
-export function NotchPane({ options, slots, onSlots, scale, onScale, edge, onEdge, collapse, onCollapse }: NotchPaneProps) {
+/** Appearance: which rings the pill draws, on which screen and edge, how big, and whether it folds when idle. */
+export function NotchPane({ options, slots, onSlots, scale, onScale, monitors, monitor, onMonitor, edge, onEdge, collapse, onCollapse }: NotchPaneProps) {
   const { t } = useTranslation();
   const providers = providerList(options);
   const list = notchOn(options, slots)
@@ -43,6 +50,12 @@ export function NotchPane({ options, slots, onSlots, scale, onScale, edge, onEdg
           {shown} {t("settings.notch.neverEmpty")}
         </Note>
       </Block>
+
+      {monitors.length > 0 && (
+        <Block title={t("settings.notch.screen")} sub={t("settings.notch.screenSub")}>
+          <MonitorPicker monitors={monitors} selected={monitor} onSelect={onMonitor} edge={edge} />
+        </Block>
+      )}
 
       <Block title={t("settings.notch.position")} sub={t("settings.notch.positionSub")}>
         <ToggleGroup

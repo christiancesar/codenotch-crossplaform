@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import i18n from "@/libs/i18n";
-import { commands, events, type NotchEdge, type Slot, type Theme, type TrayConfig, type TrayOption, type UiFlags } from "@/libs/ipc";
+import { commands, events, type MonitorInfo, type NotchEdge, type Slot, type Theme, type TrayConfig, type TrayOption, type UiFlags } from "@/libs/ipc";
 import { applyTheme } from "@/libs/theme";
 import { normalizeTray, repairText } from "@/libs/settings";
 
@@ -17,6 +17,9 @@ export interface SettingsData {
   scale: number;
   /** The screen edge the notch is on */
   edge: NotchEdge;
+  /** Connected screens, and the stored one (null: the primary) */
+  monitors: MonitorInfo[];
+  monitor: string | null;
   flags: UiFlags;
   autostart: boolean;
   lang: string;
@@ -34,6 +37,8 @@ const EMPTY: SettingsData = {
   notchSlots: [],
   scale: 100,
   edge: "right",
+  monitors: [],
+  monitor: null,
   flags: { notch_visible: true, tray_visible: true, notch_collapse: true },
   autostart: false,
   lang: "auto",
@@ -96,8 +101,10 @@ export function useSettings() {
       commands.appVersion(),
       commands.getTheme(),
       commands.getNotchEdge(),
+      commands.getMonitors(),
+      commands.getNotchMonitor(),
     ])
-      .then(([options, stored, logo, notchSlots, scale, flags, autostart, lang, hooks, version, theme, edge]) => {
+      .then(([options, stored, logo, notchSlots, scale, flags, autostart, lang, hooks, version, theme, edge, monitors, monitor]) => {
         if (!alive) return;
         const { config, repair } = normalizeTray(options, stored);
         setData({
@@ -109,6 +116,8 @@ export function useSettings() {
           notchSlots,
           scale: pct(scale),
           edge,
+          monitors,
+          monitor,
           flags,
           autostart,
           lang: lang.lang,
@@ -127,6 +136,8 @@ export function useSettings() {
       events.notchSlots.listen((e) => patch({ notchSlots: e.payload })),
       // The tray menu moves the notch too
       events.notchEdge.listen((e) => patch({ edge: e.payload })),
+      // A screen plugged in or out while the window is open
+      events.monitors.listen((e) => patch({ monitors: e.payload })),
       events.lang.listen((e) => patch({ lang: e.payload.lang })),
       events.usage.listen(() => refreshOptions()),
     ];
@@ -160,6 +171,10 @@ export function useSettings() {
       patch({ scale });
       window.clearTimeout(scaleTimer.current);
       scaleTimer.current = window.setTimeout(() => commands.setScale(scale / 100).catch((e) => fail("set_scale", e)), 150);
+    },
+    setMonitor: (monitor: string) => {
+      patch({ monitor });
+      commands.setNotchMonitor(monitor).then(saved, (e) => fail("set_notch_monitor", e));
     },
     setEdge: (edge: NotchEdge) => {
       patch({ edge });

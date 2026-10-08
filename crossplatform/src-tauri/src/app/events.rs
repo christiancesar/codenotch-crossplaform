@@ -70,6 +70,11 @@ pub struct NotchCollapseChanged(pub bool);
 #[tauri_specta(event_name = "notch_edge")]
 pub struct NotchEdgeChanged(pub crate::config::NotchEdge);
 
+/// A screen was connected, removed or rearranged: the settings window redraws its picker
+#[derive(Debug, Clone, Serialize, Type, Event)]
+#[tauri_specta(event_name = "monitors")]
+pub struct MonitorsChanged(pub Vec<crate::notch::monitors::MonitorInfo>);
+
 /// Something the user should read on the notch (a refused second instance, say)
 #[derive(Debug, Clone, Serialize, Type, Event)]
 #[tauri_specta(event_name = "notice")]

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { SettingsWindow, type SettingsTab } from "./SettingsWindow";
 import { TrayPane, NotchPane, BehaviourPane, HooksPane, AboutPane, type Platform } from "../panes";
 import type { NotchEdge } from "@/libs/notch-edge";
+import { dual } from "@/fixtures/monitors";
 import type { Slot, Theme, TrayConfig, UiFlags } from "@/libs/ipc";
 import { applyTheme } from "@/libs/theme";
 import { normalizeTray } from "@/libs/settings";
@@ -29,6 +30,7 @@ function Harness({ platform, tab, strip }: { platform: Platform; tab?: SettingsT
   const [slots, setSlots] = useState<Slot[]>([]);
   const [scale, setScale] = useState(100);
   const [edge, setEdge] = useState<NotchEdge>("right");
+  const [monitor, setMonitor] = useState<string | null>(null);
   const [autostart, setAutostart] = useState(true);
   const [flags, setFlags] = useState<UiFlags>({ notch_visible: true, tray_visible: true, notch_collapse: true });
   const [lang, setLang] = useState("auto");
@@ -67,6 +69,9 @@ function Harness({ platform, tab, strip }: { platform: Platform; tab?: SettingsT
               onSlots={after(setSlots)}
               scale={scale}
               onScale={setScale}
+              monitors={dual}
+              monitor={monitor}
+              onMonitor={after(setMonitor)}
               edge={edge}
               onEdge={after(setEdge)}
               collapse={flags.notch_collapse}

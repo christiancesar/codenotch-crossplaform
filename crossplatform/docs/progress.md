@@ -171,6 +171,9 @@ Checked on Windows 11, where 0.4.0 showed no sessions and no Claude usage:
 - The idle notch folds to a tab on both OSes, switchable in Settings (`notch_collapse`).
 - The notch sits on any screen edge (`notch_edge`, right by default), chosen in Settings or the
   tray menu; on the top and bottom edges the rings form a row and the card hangs under or over it.
+- The notch can sit on any connected screen (`notch_monitor`, the primary until one is chosen),
+  picked in Settings from a drawing of the screens as arranged; a chosen screen that is away
+  leaves the notch on the primary until it returns. One screen at a time for now.
 - The tray icon opens Settings on a double-click.
 - Cutover: `crossplatform-v2/` became `crossplatform/`, and `cross-platform/` (the v0.3
   reference app, the spec, plans and notes) was removed; tag `archive/v0.3-reference` has it.

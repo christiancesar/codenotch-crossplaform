@@ -124,6 +124,8 @@ pub struct Config {
     /// right edges) or width (top and bottom), 0 = top or left. Named for the right edge it began on.
     pub notch_y: f64,
     pub notch_edge: NotchEdge,
+    /// The OS's name for the screen the notch is on; None (or a screen not connected) is the primary
+    pub notch_monitor: Option<String>,
     pub scale: f64,
     pub tray_mode: TrayMode,
     pub tray_slots: Vec<Slot>,
@@ -148,6 +150,7 @@ impl Default for Config {
             theme: Theme::System,
             notch_y: 0.5,
             notch_edge: NotchEdge::Right,
+            notch_monitor: None,
             scale: 1.0,
             // A fresh install shows readings straight away; upgrades keep their mark (migrate.rs)
             tray_mode: TrayMode::Numbers,

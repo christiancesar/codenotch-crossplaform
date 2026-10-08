@@ -135,5 +135,6 @@ fn setup(app: &AppHandle, dir: std::path::PathBuf) -> tauri::Result<()> {
     workers::start_sessions(app, port);
     workers::start_activity(app);
     workers::start_watchdog(app);
+    workers::start_monitor_watch(app);
     Ok(())
 }

@@ -1,6 +1,6 @@
 //! Starts every background loop and wires its callback to state and events.
 
-use super::events::{ActivityChanged, GlyphsChanged, PointerLeft, SessionsChanged, UsageChanged};
+use super::events::{ActivityChanged, GlyphsChanged, MonitorsChanged, PointerLeft, SessionsChanged, UsageChanged};
 use super::state::{AppState, ProviderSlot};
 use crate::providers::{scheduler, UsageProvider};
 use crate::sessions::{hook_server, sweep, watcher, HookEvent};
@@ -76,6 +76,31 @@ pub fn reload_glyphs(app: &AppHandle) {
         *a.state::<AppState>().glyphs.lock().unwrap() = m.clone();
         let _ = GlyphsChanged(m).emit(&a);
     });
+}
+
+/// Screens come and go (a dock, a projector) and the OS sends no event the app could listen to on
+/// both platforms, so the list is compared every couple of seconds. A change moves the notch
+/// (back to the chosen screen, or to the primary while it is away) and redraws the picker.
+pub fn start_monitor_watch(app: &AppHandle) {
+    let a = app.clone();
+    std::thread::Builder::new()
+        .name("monitor-watch".into())
+        .spawn(move || {
+            use crate::platform::{Platform, Processes};
+            Platform.lower_current_thread_priority();
+            let mut last = crate::notch::monitors::list(&a);
+            loop {
+                std::thread::sleep(Duration::from_secs(2));
+                let now = crate::notch::monitors::list(&a);
+                if now != last {
+                    crate::diagnostics::log(&format!("monitors changed: {}", now.iter().map(|m| m.id.as_str()).collect::<Vec<_>>().join(", ")));
+                    super::ui::place_notch(&a);
+                    let _ = MonitorsChanged(now.clone()).emit(&a);
+                    last = now;
+                }
+            }
+        })
+        .expect("failed to start the monitor watch");
 }
 
 pub fn start_watchdog(app: &AppHandle) {
