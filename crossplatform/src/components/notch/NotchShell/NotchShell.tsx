@@ -37,15 +37,16 @@ const INSET = 0.5;
  * A mirror reverses the arcs' sweep. When the body is too shallow for both corners side by side
  * (the tab), every arc is squeezed in depth by the same factor, so the curve stays one smooth S
  * instead of two shapes overlapping. `closed` adds the screen edge for the fill; the outline
- * leaves it open, the edge is the bezel.
+ * leaves it open, the edge is the bezel. `bleed` is the room before the body for the first fillet:
+ * the SVG box starts that far before it.
  */
-function silhouette(edge: NotchEdge, w: number, h: number, r: number, f: number, closed: boolean) {
+export function silhouette(edge: NotchEdge, w: number, h: number, r: number, f: number, closed: boolean, bleed = BLEED) {
   const k = Math.min(1, (w - INSET) / (r + f));
   const rd = r * k;
   const fd = f * k;
   const ra = Math.min(r, h / 2);
-  const start = BLEED;
-  const end = BLEED + h;
+  const start = bleed;
+  const end = bleed + h;
   const flip = edge === "left" || edge === "bottom";
   const turned = isHorizontal(edge);
   const at = (d: number, a: number) => {

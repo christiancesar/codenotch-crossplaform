@@ -47,6 +47,7 @@ const ja: Messages = {
     resettingNow: "リセット中",
     you: "あなた: {{prompt}}",
     size: "ノッチのサイズ",
+    move: "ノッチを移動",
   },
   settings: {
     sections: "設定のセクション",
@@ -107,9 +108,11 @@ const ja: Messages = {
       screenMissing: "以前選んだ画面が接続されていません。戻るまでノッチはメイン画面にあります。",
       position: "位置",
       positionSub: "ピルを置く画面の端。上端と下端ではリングが横一列に並びます。トレイメニューでも同じ選択ができます。",
-      edges: { top: "上", left: "左", right: "右", bottom: "下" },
+      edges: { top: "上", left: "左", center: "中央", right: "右", bottom: "下" },
       collapse: "使っていないときはノッチをたたむ",
       collapseWhy: "ピルが端の細いタブにたたまれ、ポインターが来ると開きます。起動時はまずピルを表示します。",
+      collapseCenter: "中央では使えません。ウィジェットは開いたまま、ウィンドウの後ろで邪魔になりません。",
+      centerNote: "中央ではノッチはウィジェットになります。ウィンドウの上ではなく後ろに表示され、たたまれず、下のつまみをドラッグした場所に移動します。置いた場所に留まります。",
       visibility: "ピルを画面に表示するかどうかは、一般 › 動作 の別のスイッチで設定します。",
     },
     behaviour: {

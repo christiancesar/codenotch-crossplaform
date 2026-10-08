@@ -47,6 +47,7 @@ const zh: Messages = {
     resettingNow: "正在重置",
     you: "你：{{prompt}}",
     size: "刘海大小",
+    move: "移动刘海",
   },
   settings: {
     sections: "设置分区",
@@ -107,9 +108,11 @@ const zh: Messages = {
       screenMissing: "之前选择的屏幕未连接；在它重新连接前，刘海位于主屏幕。",
       position: "位置",
       positionSub: "胶囊所在的屏幕边缘。在顶部和底部时，圆环排成一行。托盘菜单里也有同样的选项。",
-      edges: { top: "顶部", left: "左侧", right: "右侧", bottom: "底部" },
+      edges: { top: "顶部", left: "左侧", center: "居中", right: "右侧", bottom: "底部" },
       collapse: "空闲时收起刘海",
       collapseWhy: "胶囊收成边缘的一条细标签，指针移到上面时展开。启动时先显示胶囊。",
+      collapseCenter: "居中时不适用：小组件保持展开，在窗口之后不打扰你。",
+      centerNote: "居中时刘海是一个小组件：它位于窗口之后而不是之上，不会收起，并可通过下方的把手拖到任意位置。它会留在你放下的地方。",
       visibility: "胶囊是否显示在屏幕上是另一个开关，位于 通用 › 行为。",
     },
     behaviour: {

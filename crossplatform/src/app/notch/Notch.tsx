@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { NotchShell } from "@/components/notch/NotchShell";
 import { ProviderCell } from "@/components/notch/ProviderCell";
 import { HoverCard } from "@/components/notch/HoverCard";
@@ -10,7 +11,8 @@ import { NoticeToast } from "@/components/notch/NoticeToast";
 import type { ActivityArcState } from "@/components/notch/ActivityArc";
 import { commands, events, type ProviderId, type Slot } from "@/libs/ipc";
 import { notchWindowLength, providerName } from "@/libs/usage";
-import { alongEdge, shellPlacement } from "@/libs/notch-edge";
+import { alongEdge, shellPlacement, type NotchEdge } from "@/libs/notch-edge";
+import { NotchWidget } from "@/components/notch/NotchWidget";
 import { useNotchData, type NotchData } from "./useNotchData";
 
 /** The window's designed depth away from the edge (notch/mod.rs COLUMN_DEPTH, ROW_DEPTH); a
@@ -26,6 +28,10 @@ const GRACE_MS = 250;
 const DRAG_PX = 4;
 /** At launch the pill is shown this long before it folds, so you see where it went */
 const INTRO_MS = 2500;
+/** The centre widget sits this far below its window's top; its body is 92 px (a cell and its
+ * padding) and its grip 16 px at full size, and the card hangs under them */
+const WIDGET_TOP = 8;
+const widgetCardOffset = (scale: number) => `calc(${WIDGET_TOP + (92 + 16) * scale}px + var(--card-tail-gap) + var(--card-tail-length) * 0.35)`;
 
 /** Which rings to draw: the stored slots that still exist, or every provider that is installed. */
 function cells(data: NotchData): Slot[] {
@@ -60,6 +66,7 @@ const physical = (r: DOMRect): [number, number, number, number] => {
  * click-through, so they are reported whenever the pill or the card moves or resizes.
  */
 export default function Notch() {
+  const { t } = useTranslation();
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimer = useRef<number>(undefined);
   const showNotice = useCallback((msg: string) => {
@@ -89,12 +96,15 @@ export default function Notch() {
   const [intro, setIntro] = useState(true);
   useEffect(() => {
     if (!ready) return;
-    const t = window.setTimeout(() => setIntro(false), INTRO_MS);
-    return () => window.clearTimeout(t);
+    const id = window.setTimeout(() => setIntro(false), INTRO_MS);
+    return () => window.clearTimeout(id);
   }, [ready]);
 
+  // The centre widget lays out like the top edge (a row, the card under it) but never folds
+  const widget = data.edge === "center";
+  const edge: NotchEdge = data.edge === "center" ? "top" : data.edge;
   const open = hover !== null;
-  const collapsed = data.startsCollapsed && !intro && !atShell && !open;
+  const collapsed = data.startsCollapsed && !widget && !intro && !atShell && !open;
 
   // ---- hot rectangles --------------------------------------------------------------------------
   const reportHot = useCallback(() => {
@@ -142,10 +152,10 @@ export default function Notch() {
       commands.reportDpr(window.devicePixelRatio || 1, window.innerWidth, window.innerHeight).catch(() => {});
     };
     fit();
-    let t: number | undefined;
+    let timer: number | undefined;
     const onResize = () => {
-      window.clearTimeout(t);
-      t = window.setTimeout(fit, 120);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(fit, 120);
     };
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -166,7 +176,7 @@ export default function Notch() {
     if (dragging) return;
     keep();
     if (!root.current) return;
-    setHover({ id, along: alongEdge(data.edge, el.getBoundingClientRect(), root.current.getBoundingClientRect()) });
+    setHover({ id, along: alongEdge(edge, el.getBoundingClientRect(), root.current.getBoundingClientRect()) });
   };
 
   // Rust's watchdog (cursor left, focus or workspace changed) collapses it from outside
@@ -190,7 +200,8 @@ export default function Notch() {
   useEffect(() => {
     const move = (e: PointerEvent) => {
       const p = press.current;
-      if (!p || dragging) return;
+      // The widget moves only by its grip; a press on its rings is a click
+      if (!p || dragging || widget) return;
       if (Math.abs(e.clientX - p.x) > DRAG_PX || Math.abs(e.clientY - p.y) > DRAG_PX) {
         setDragging(true);
         hide();
@@ -213,7 +224,16 @@ export default function Notch() {
       document.removeEventListener("pointermove", move);
       document.removeEventListener("pointerup", up);
     };
-  }, [dragging, hide, showNotice]);
+  }, [dragging, hide, showNotice, widget]);
+
+  const startDrag = () => {
+    setDragging(true);
+    hide();
+    commands.dragBegin().catch((err) => {
+      showNotice(`drag_begin failed: ${String(err)}`);
+      setDragging(false);
+    });
+  };
 
   // ---- scale -----------------------------------------------------------------------------------
   const setScale = (v: number) => {
@@ -228,13 +248,24 @@ export default function Notch() {
   const shown = cells(data);
   const snapshotOf = (id: string) => data.usage.find((u) => u.provider === id)?.snapshot;
   const card = hover && snapshotOf(hover.id);
+  const rings = shown.map((s) => {
+    const id = s.provider as ProviderId;
+    const snapshot = snapshotOf(id);
+    if (!snapshot) return null;
+    return (
+      <div key={id} onPointerEnter={(e) => enterCell(id, e.currentTarget)}>
+        <ProviderCell provider={id} snapshot={snapshot} windowId={s.window} glyph={data.glyphs[id]} activity={activityOf(data, id)} active={hover?.id === id} />
+      </div>
+    );
+  });
   const now = Date.now();
 
   return (
     <div ref={root} className="fixed inset-0 overflow-hidden select-none" onPointerLeave={() => open && scheduleHide()}>
       <div
         ref={shell}
-        className={shellPlacement[data.edge]}
+        className={widget ? "absolute left-1/2 -translate-x-1/2" : shellPlacement[edge]}
+        style={widget ? { top: WIDGET_TOP } : undefined}
         onPointerEnter={() => {
           keep();
           setAtShell(true);
@@ -246,22 +277,28 @@ export default function Notch() {
           press.current = { x: e.clientX, y: e.clientY, id: (cell?.dataset.provider as ProviderId) ?? hover?.id ?? null };
         }}
       >
-        <NotchShell edge={data.edge} collapsed={collapsed} scale={data.scale / 100} instant={first.current}>
-          {shown.map((s) => {
-            const id = s.provider as ProviderId;
-            const snapshot = snapshotOf(id);
-            if (!snapshot) return null;
-            return (
-              <div key={id} onPointerEnter={(e) => enterCell(id, e.currentTarget)}>
-                <ProviderCell provider={id} snapshot={snapshot} windowId={s.window} glyph={data.glyphs[id]} activity={activityOf(data, id)} active={hover?.id === id} />
-              </div>
-            );
-          })}
-        </NotchShell>
+        {widget ? (
+          <NotchWidget
+            scale={data.scale / 100}
+            gripLabel={t("notch.move")}
+            onGripPointerDown={(e) => {
+              if (e.button !== 0) return;
+              // Not a press on a ring: nothing to open on release
+              e.stopPropagation();
+              startDrag();
+            }}
+          >
+            {rings}
+          </NotchWidget>
+        ) : (
+          <NotchShell edge={edge} collapsed={collapsed} scale={data.scale / 100} instant={first.current}>
+            {rings}
+          </NotchShell>
+        )}
       </div>
 
       <div ref={cardWrap} onPointerEnter={keep} onPointerLeave={() => scheduleHide()}>
-        <HoverCard open={!!card} edge={data.edge} anchor={hover?.along ?? 230}>
+        <HoverCard open={!!card} edge={edge} anchor={hover?.along ?? 230} offset={widget ? widgetCardOffset(data.scale / 100) : undefined}>
           {hover && card && (
             <>
               <CardHeader name={providerName[hover.id]} glyph={data.glyphs[hover.id]} fallback={hover.id === "gemini" ? "Ag" : hover.id[0].toUpperCase()} note={card.note} />

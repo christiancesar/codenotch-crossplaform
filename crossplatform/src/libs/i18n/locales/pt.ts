@@ -47,6 +47,7 @@ const pt: Messages = {
     resettingNow: "Renovando agora",
     you: "você: {{prompt}}",
     size: "Tamanho do notch",
+    move: "Mover o notch",
   },
   settings: {
     sections: "Seções das configurações",
@@ -107,9 +108,11 @@ const pt: Messages = {
       screenMissing: "A tela escolhida antes não está conectada; o notch fica na principal até ela voltar.",
       position: "Posição",
       positionSub: "A borda da tela onde a pílula fica. Em cima e embaixo os anéis ficam lado a lado. O menu da bandeja tem a mesma escolha.",
-      edges: { top: "Topo", left: "Esquerda", right: "Direita", bottom: "Embaixo" },
+      edges: { top: "Topo", left: "Esquerda", center: "Centro", right: "Direita", bottom: "Embaixo" },
       collapse: "Recolher o notch quando ocioso",
       collapseWhy: "A pílula vira uma aba fina na borda e se abre quando o ponteiro chega nela. Ao iniciar, mostra a pílula primeiro.",
+      collapseCenter: "Não no centro: o widget fica aberto, sem atrapalhar, atrás das janelas.",
+      centerNote: "No centro o notch vira um widget: fica atrás das janelas em vez de por cima delas, não recolhe e vai para onde você arrastá-lo pelo puxador embaixo dele. Ele fica onde você deixar.",
       visibility: "Se a pílula aparece ou não na tela é outro controle, em Geral, Comportamento.",
     },
     behaviour: {

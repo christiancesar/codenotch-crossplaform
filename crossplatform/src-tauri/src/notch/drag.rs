@@ -1,7 +1,8 @@
-//! Drag along the edge: up and down on the left and right edges, sideways on the top and bottom.
-//! The page calls drag_begin once a press on the pill moves more than 4 px; from then on this
-//! thread follows the system cursor (WebView mousemove is unreliable once the window itself moves)
-//! until the left button is released.
+//! Moving the notch. On an edge it slides along it: up and down on the left and right, sideways on
+//! the top and bottom. The centre widget goes anywhere on its screen. The page calls drag_begin
+//! once a press on the pill moves more than 4 px (on the widget, as soon as its grip is pressed);
+//! from then on this thread follows the system cursor (WebView mousemove is unreliable once the
+//! window itself moves) until the left button is released.
 
 use super::NotchState;
 use crate::config::NotchEdge;
@@ -10,9 +11,15 @@ use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
-/// `on_end(Some(ratio))` after a real move, `on_end(None)` for a press that never moved.
-/// `mon` is the screen the notch is on: the drag stays on it.
-pub fn begin(w: tauri::WebviewWindow, mon: tauri::Monitor, state: Arc<NotchState>, edge: NotchEdge, on_end: impl FnOnce(Option<f64>) + Send + 'static) {
+/// Where a drag left the window: its top-left and its size, both physical
+pub struct Moved {
+    pub pos: (i32, i32),
+    pub size: (u32, u32),
+}
+
+/// `mon` is the screen the notch is on: the drag stays on it. `on_end(Some(..))` after a real
+/// move, `on_end(None)` for a press that never moved.
+pub fn begin(w: tauri::WebviewWindow, mon: tauri::Monitor, state: Arc<NotchState>, edge: NotchEdge, on_end: impl FnOnce(Option<Moved>) + Send + 'static) {
     if state.dragging.swap(true, Ordering::SeqCst) {
         return;
     }
@@ -22,32 +29,34 @@ pub fn begin(w: tauri::WebviewWindow, mon: tauri::Monitor, state: Arc<NotchState
             state.dragging.store(false, Ordering::SeqCst);
             return;
         };
-        let row = edge.is_horizontal();
-        // The axis along the edge: where the window may start on it, and where it starts now
-        let (lo, hi, from) = if row {
-            (mon.position().x, mon.position().x + (mon.size().width as i32 - size.width as i32).max(0), start_pos.x)
-        } else {
-            (mon.position().y, mon.position().y + (mon.size().height as i32 - size.height as i32).max(0), start_pos.y)
+        let mon_pos = (mon.position().x, mon.position().y);
+        let mon_size = (mon.size().width, mon.size().height);
+        let win = (size.width, size.height);
+        let ((x0, x1), (y0, y1)) = super::placement::drag_bounds(edge, mon_pos, mon_size, win);
+        // Which axes follow the cursor: both for the widget, the one along the edge otherwise
+        let (free_x, free_y) = match edge {
+            NotchEdge::Center => (true, true),
+            NotchEdge::Top | NotchEdge::Bottom => (true, false),
+            NotchEdge::Left | NotchEdge::Right => (false, true),
         };
-        let mut last = from;
+        let mut last = (start_pos.x, start_pos.y);
         let mut moved = false;
         while Platform.left_button_down() {
             if let Ok(cur) = w.cursor_position() {
-                let delta = if row { cur.x - start_cur.x } else { cur.y - start_cur.y };
-                let n = ((from as f64 + delta).round() as i32).clamp(lo, hi);
-                if n != last {
-                    last = n;
+                let follow = |from: i32, delta: f64, lo: i32, hi: i32| ((from as f64 + delta).round() as i32).clamp(lo, hi);
+                let next = (
+                    if free_x { follow(start_pos.x, cur.x - start_cur.x, x0, x1) } else { start_pos.x },
+                    if free_y { follow(start_pos.y, cur.y - start_cur.y, y0, y1) } else { start_pos.y },
+                );
+                if next != last {
+                    last = next;
                     moved = true;
-                    let p = if row { (n, start_pos.y) } else { (start_pos.x, n) };
-                    let _ = w.set_position(tauri::PhysicalPosition::new(p.0, p.1));
+                    let _ = w.set_position(tauri::PhysicalPosition::new(next.0, next.1));
                 }
             }
             std::thread::sleep(Duration::from_millis(8));
         }
         state.dragging.store(false, Ordering::SeqCst);
-        let pos = if row { (last, start_pos.y) } else { (start_pos.x, last) };
-        let mon_pos = (mon.position().x, mon.position().y);
-        let mon_size = (mon.size().width, mon.size().height);
-        on_end(moved.then(|| super::placement::ratio_after_drag(edge, pos, (size.width, size.height), mon_pos, mon_size)));
+        on_end(moved.then_some(Moved { pos: last, size: win }));
     });
 }

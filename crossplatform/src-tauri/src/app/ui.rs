@@ -22,12 +22,32 @@ pub fn notch_monitor(app: &AppHandle) -> Option<tauri::Monitor> {
 
 pub fn place_notch(app: &AppHandle) {
     let st = app.state::<AppState>();
-    let (edge, ratio) = {
+    let (edge, ratio, spot) = {
         let c = st.config.lock().unwrap();
-        (c.notch_edge, c.notch_y)
+        (c.notch_edge, c.notch_y, c.notch_widget)
     };
     if let (Some(w), Some(mon)) = (app.get_webview_window(NOTCH), notch_monitor(app)) {
-        crate::notch::placement::place(&w, &mon, edge, ratio, st.notch.length(edge));
+        crate::notch::placement::place(&w, &mon, edge, ratio, spot, st.notch.length(edge));
+    }
+    apply_notch_layer(app);
+}
+
+/// On an edge the notch stays over every window. The centre widget stays under them, out of the
+/// way, and comes up only while its card is open, so the card can be read; it goes back down
+/// when the card closes.
+pub fn apply_notch_layer(app: &AppHandle) {
+    let st = app.state::<AppState>();
+    let widget = st.config.lock().unwrap().notch_edge.is_widget();
+    let behind = widget && !st.notch.expanded.load(Ordering::Relaxed);
+    if let Some(w) = app.get_webview_window(NOTCH) {
+        // Unset the other first: a window asked to be both keeps whichever the OS saw last
+        if behind {
+            let _ = w.set_always_on_top(false);
+            let _ = w.set_always_on_bottom(true);
+        } else {
+            let _ = w.set_always_on_bottom(false);
+            let _ = w.set_always_on_top(true);
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 import type { TFunction } from "i18next";
 import type { LimitWindow, ProviderId, UsageSnapshot } from "@/libs/ipc";
-import { isHorizontal, type NotchEdge } from "@/libs/notch-edge";
+import { isHorizontal, type NotchPosition } from "@/libs/notch-edge";
 
 /**
  * The colour band a fraction used falls in. Thresholds are the official app's (UsageBand.swift):
@@ -70,7 +70,7 @@ export function formatReset(resetsAt: number | null, now: number, t: TFunction, 
  * bottom edges) it is only the ring's width. Five rings at 100 % in a column need ~605 px, more
  * than the 460 px minimum, so the window grows (`set_notch_length`); a row fits the 520 px one.
  */
-export function notchWindowLength(edge: NotchEdge, cells: number, scale: number): number {
+export function notchWindowLength(edge: NotchPosition, cells: number, scale: number): number {
   const gaps = Math.max(0, cells - 1);
   const pill = isHorizontal(edge) ? 24 + 24 + cells * 44 + gaps * 22 : 26.1 + 18.8 + cells * (44 + 10.1 + 14) + gaps * 31.4;
   return Math.ceil((pill + 2 * 38.7) * scale + 16);

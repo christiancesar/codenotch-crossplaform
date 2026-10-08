@@ -14,6 +14,10 @@ pub fn set_hot(app: AppHandle, state: State<AppState>, rects: Vec<[f64; 4]>, exp
     crate::app::ui::apply_input_region(&app, &rects);
     *state.notch.hot.lock().unwrap() = rects;
     let was = state.notch.expanded.swap(expanded, Ordering::Relaxed);
+    // The widget comes up over the windows while its card is open, and back down after
+    if was != expanded {
+        crate::app::ui::apply_notch_layer(&app);
+    }
     // Opening the card asks providers whose read is cached (Antigravity's CLI) for a fresh one
     if expanded && !was {
         for p in state.providers.iter().filter(|p| p.provider.refresh_on_hover()) {
@@ -29,11 +33,19 @@ pub fn drag_begin(app: AppHandle, state: State<AppState>) {
     let Some(mon) = crate::app::ui::notch_monitor(&app) else { return };
     let a = app.clone();
     let edge = state.config.lock().unwrap().notch_edge;
-    crate::notch::drag::begin(w, mon, state.notch.clone(), edge, move |ratio| {
-        if let Some(r) = ratio {
-            a.state::<AppState>().update_config(|c| c.notch_y = r);
+    let (mon_pos, mon_size) = ((mon.position().x, mon.position().y), (mon.size().width, mon.size().height));
+    crate::notch::drag::begin(w, mon, state.notch.clone(), edge, move |moved| {
+        if let Some(m) = &moved {
+            // Stored relative to the screen, so the spot survives a change of resolution
+            a.state::<AppState>().update_config(|c| {
+                if edge.is_widget() {
+                    c.notch_widget = Some(crate::notch::placement::widget_after_drag(m.pos, m.size, mon_pos, mon_size));
+                } else {
+                    c.notch_y = crate::notch::placement::ratio_after_drag(edge, m.pos, m.size, mon_pos, mon_size);
+                }
+            });
         }
-        let _ = DragEnded { moved: ratio.is_some() }.emit(&a);
+        let _ = DragEnded { moved: moved.is_some() }.emit(&a);
     });
 }
 
@@ -146,7 +158,10 @@ pub fn set_notch_slots(app: AppHandle, state: State<AppState>, slots: Vec<Slot>)
 #[tauri::command]
 #[specta::specta]
 pub fn reset_notch_position(app: AppHandle, state: State<AppState>) {
-    state.update_config(|c| c.notch_y = 0.5);
+    state.update_config(|c| {
+        c.notch_y = 0.5;
+        c.notch_widget = None;
+    });
     crate::app::ui::place_notch(&app);
     if let Some(w) = app.get_webview_window(crate::app::ui::NOTCH) {
         let _ = w.show();

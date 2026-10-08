@@ -143,6 +143,19 @@ fn the_screen_is_only_written_once_chosen() {
 }
 
 #[test]
+fn the_widget_spot_is_written_once_dragged_and_kept_on_screen() {
+    let (cfg, dir) = load_fixture("v0.3.1/config.json");
+    assert_eq!(cfg.notch_widget, None);
+    save(dir.path(), &cfg).unwrap();
+    let doc: Value = serde_json::from_str(&std::fs::read_to_string(dir.path().join("config.json")).unwrap()).unwrap();
+    assert!(doc.get("notch_widget_x").is_none());
+    save(dir.path(), &Config { notch_edge: NotchEdge::Center, notch_widget: Some((0.25, 0.6)), ..cfg.clone() }).unwrap();
+    let back = load(dir.path()).config;
+    assert_eq!((back.notch_edge, back.notch_widget), (NotchEdge::Center, Some((0.25, 0.6))));
+    assert_eq!(Config { notch_widget: Some((3.0, -1.0)), ..cfg }.normalized().notch_widget, Some((1.0, 0.0)));
+}
+
+#[test]
 fn the_port_stays_a_top_level_key_the_hook_can_scan() {
     let dir = tempfile::tempdir().unwrap();
     save(dir.path(), &Config { port: 49001, ..Config::default() }).unwrap();

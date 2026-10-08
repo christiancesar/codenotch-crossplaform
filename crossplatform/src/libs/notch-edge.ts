@@ -1,13 +1,13 @@
-import type { NotchEdge } from "@/libs/ipc";
+import type { NotchEdge as StoredPosition } from "@/libs/ipc";
 
-/** The screen edge the notch is welded to (config.rs NotchEdge). Right is the default. */
-export type { NotchEdge };
+/** A screen edge the notch can be welded to. Right is the default. */
+export type NotchEdge = Exclude<StoredPosition, "center">;
 
 /** In the order the pickers show them */
 export const NOTCH_EDGES: NotchEdge[] = ["top", "left", "right", "bottom"];
 
-/** Top and bottom lay the rings out in a row instead of a column */
-export const isHorizontal = (edge: NotchEdge) => edge === "top" || edge === "bottom";
+/** Top, bottom and the centre widget lay the rings out in a row instead of a column */
+export const isHorizontal = (edge: NotchPosition) => edge === "top" || edge === "bottom" || edge === "center";
 
 /** Where the pill sits in the notch window: flush with the edge, centred along it */
 export const shellPlacement: Record<NotchEdge, string> = {
@@ -20,3 +20,12 @@ export const shellPlacement: Record<NotchEdge, string> = {
 /** Centre of a cell along the edge, relative to the window: what the card's tail points at */
 export const alongEdge = (edge: NotchEdge, cell: DOMRect, window: DOMRect) =>
   isHorizontal(edge) ? cell.left + cell.width / 2 - window.left : cell.top + cell.height / 2 - window.top;
+
+/**
+ * Where the notch lives: welded to an edge, always on top and folding when idle, or `center`, a
+ * widget behind the windows that stays open and is dragged anywhere by its grip.
+ */
+export type NotchPosition = StoredPosition;
+
+/** In the order the pickers show them: the centre between the edges, as on a screen */
+export const NOTCH_POSITIONS: NotchPosition[] = ["top", "left", "center", "right", "bottom"];

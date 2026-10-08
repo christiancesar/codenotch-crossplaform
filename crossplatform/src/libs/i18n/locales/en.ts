@@ -48,6 +48,7 @@ const en = {
     resettingNow: "Resetting now",
     you: "you: {{prompt}}",
     size: "Notch size",
+    move: "Move the notch",
   },
   settings: {
     sections: "Settings sections",
@@ -108,9 +109,11 @@ const en = {
       screenMissing: "The screen chosen before is not connected; the notch is on the primary until it comes back.",
       position: "Position",
       positionSub: "The screen edge the pill sits on. On the top and bottom edges the rings line up in a row. The tray menu has the same choice.",
-      edges: { top: "Top", left: "Left", right: "Right", bottom: "Bottom" },
+      edges: { top: "Top", left: "Left", center: "Centre", right: "Right", bottom: "Bottom" },
       collapse: "Fold the notch when idle",
       collapseWhy: "The pill folds to a thin tab on the edge and opens when the pointer reaches it. At launch it shows the pill first.",
+      collapseCenter: "Not in the centre: the widget stays open, out of the way behind your windows.",
+      centerNote: "In the centre the notch is a widget: it stays behind your windows instead of over them, never folds, and moves wherever you drag it by the grip under it. It stays where you leave it.",
       visibility: "Whether the pill is on screen at all is a separate switch, under General, Behaviour.",
     },
     behaviour: {

@@ -11,6 +11,9 @@ export interface HoverCardProps {
   /** Centre of the hovered cell along the edge, in px from the card container's top (left on
    * the top and bottom edges) */
   anchor: number;
+  /** Distance from the window's edge to the card, as CSS; the notch's depth plus the tail's gap
+   * by default. The widget (position center) is deeper than any edge's pill. */
+  offset?: string;
   children: React.ReactNode;
   className?: string;
 }
@@ -69,11 +72,11 @@ const slideFrom: Record<NotchEdge, { x?: number; y?: number }> = { right: { x: 8
  * than the window along the edge, nor deeper than the room left beside the notch: past that the
  * body scrolls.
  */
-export function HoverCard({ open, edge = "right", anchor, children, className }: HoverCardProps) {
+export function HoverCard({ open, edge = "right", anchor, offset, children, className }: HoverCardProps) {
   return (
     <AnimatePresence>
       {open && (
-        <Card edge={edge} anchor={anchor} className={className}>
+        <Card edge={edge} anchor={anchor} offset={offset} className={className}>
           {children}
         </Card>
       )}
@@ -81,7 +84,7 @@ export function HoverCard({ open, edge = "right", anchor, children, className }:
   );
 }
 
-function Card({ edge = "right", anchor, children, className }: Omit<HoverCardProps, "open">) {
+function Card({ edge = "right", anchor, offset: given, children, className }: Omit<HoverCardProps, "open">) {
   const row = isHorizontal(edge);
   const ref = useRef<HTMLDivElement>(null);
   // Sizes along the edge (card and window), and the window's depth for the scroll limit
@@ -116,7 +119,7 @@ function Card({ edge = "right", anchor, children, className }: Omit<HoverCardPro
   }, [box.card]);
 
   const along = row ? "left" : "top";
-  const offset = row ? ROW_OFFSET : OFFSET;
+  const offset = given ?? (row ? ROW_OFFSET : OFFSET);
   // On a row the window is shallow: the card's body scrolls within what is left beside the notch
   const maxBody = row ? (box.depth ? `calc(${box.depth}px - ${offset} - ${MARGIN}px)` : undefined) : box.window ? box.window - 2 * MARGIN : undefined;
   const from = slideFrom[edge];

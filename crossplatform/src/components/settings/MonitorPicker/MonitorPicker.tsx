@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { NotchEdge } from "@/libs/notch-edge";
+import type { NotchPosition } from "@/libs/notch-edge";
 import { effectiveMonitor, inReadingOrder, layOut, type MonitorInfo } from "@/libs/monitors";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ export interface MonitorPickerProps {
   selected: string | null;
   onSelect: (id: string) => void;
   /** Where the notch sits, drawn as a mark on the chosen screen */
-  edge: NotchEdge;
+  edge: NotchPosition;
 }
 
 /** Height of the drawing; the width follows the pane */
@@ -20,8 +20,9 @@ const BOX_H = 168;
 /** Below this a tile shows only its number */
 const ROOM_FOR_DETAILS = 92;
 
-/** The notch's mark on a tile: a short bar against the chosen edge, centred along it */
-const mark: Record<NotchEdge, string> = {
+/** The notch's mark on a tile: a short bar against the chosen edge, centred along it; a dot for the widget in the centre */
+const mark: Record<NotchPosition, string> = {
+  center: "top-1/2 left-1/2 size-1.5 -translate-1/2",
   right: "right-0.5 top-1/2 h-1/4 w-1 -translate-y-1/2",
   left: "left-0.5 top-1/2 h-1/4 w-1 -translate-y-1/2",
   top: "top-0.5 left-1/2 w-1/4 h-1 -translate-x-1/2",

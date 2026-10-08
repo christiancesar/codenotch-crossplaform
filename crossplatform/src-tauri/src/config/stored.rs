@@ -31,6 +31,11 @@ pub struct StoredConfig {
     /// Absent until a screen is chosen; the primary stands in meanwhile
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub notch_monitor: Option<String>,
+    /// The centre widget's spot (fractions of its screen); absent until it is first dragged
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notch_widget_x: Option<f64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notch_widget_y: Option<f64>,
     #[serde(default = "default_scale")]
     pub scale: f64,
     #[serde(default = "default_tray_mode")]
@@ -86,6 +91,7 @@ impl From<StoredConfig> for Config {
             notch_y: s.notch_y,
             notch_edge: s.notch_edge.as_deref().map(NotchEdge::parse).unwrap_or_default(),
             notch_monitor: s.notch_monitor.filter(|m| !m.is_empty()),
+            notch_widget: s.notch_widget_x.zip(s.notch_widget_y),
             scale: s.scale,
             tray_mode: TrayMode::parse(&s.tray_mode),
             tray_slots: slots_in(s.tray_slots),
@@ -108,6 +114,8 @@ impl From<Config> for StoredConfig {
             notch_y: c.notch_y,
             notch_edge: (c.notch_edge != NotchEdge::Right).then(|| c.notch_edge.as_str().into()),
             notch_monitor: c.notch_monitor,
+            notch_widget_x: c.notch_widget.map(|w| w.0),
+            notch_widget_y: c.notch_widget.map(|w| w.1),
             scale: c.scale,
             tray_mode: c.tray_mode.as_str().into(),
             tray_slots: slots_out(c.tray_slots),

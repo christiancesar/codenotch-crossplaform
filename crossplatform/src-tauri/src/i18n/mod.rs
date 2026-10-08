@@ -55,6 +55,11 @@ pub fn tr(lang: &str, key: &str) -> &'static str {
         ("ko", "bottom") => "아래",
         ("pt", "bottom") => "Embaixo",
         (_, "bottom") => "Bottom",
+        ("zh", "center") => "居中",
+        ("ja", "center") => "中央",
+        ("ko", "center") => "가운데",
+        ("pt", "center") => "Centro",
+        (_, "center") => "Centre",
         _ => "?",
     }
 }

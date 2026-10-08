@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { PanelBottomIcon, PanelLeftIcon, PanelRightIcon, PanelTopIcon } from "lucide-react";
+import { AppWindowIcon, PanelBottomIcon, PanelLeftIcon, PanelRightIcon, PanelTopIcon } from "lucide-react";
 import type { Slot, TrayOption } from "@/libs/ipc";
-import { NOTCH_EDGES, type NotchEdge } from "@/libs/notch-edge";
+import { NOTCH_POSITIONS, type NotchPosition } from "@/libs/notch-edge";
 import type { MonitorInfo } from "@/libs/monitors";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -24,15 +24,15 @@ export interface NotchPaneProps {
   /** The stored screen; null means the primary */
   monitor: string | null;
   onMonitor: (id: string) => void;
-  /** The screen edge the pill sits on */
-  edge: NotchEdge;
-  onEdge: (edge: NotchEdge) => void;
+  /** The screen edge the pill sits on, or the centre (a widget behind the windows) */
+  edge: NotchPosition;
+  onEdge: (edge: NotchPosition) => void;
   /** Idle, fold to the thin tab on the edge */
   collapse: boolean;
   onCollapse: (on: boolean) => void;
 }
 
-const edgeIcon = { top: PanelTopIcon, left: PanelLeftIcon, right: PanelRightIcon, bottom: PanelBottomIcon };
+const edgeIcon = { top: PanelTopIcon, left: PanelLeftIcon, center: AppWindowIcon, right: PanelRightIcon, bottom: PanelBottomIcon };
 
 /** Appearance: which rings the pill draws, on which screen and edge, how big, and whether it folds when idle. */
 export function NotchPane({ options, slots, onSlots, scale, onScale, monitors, monitor, onMonitor, edge, onEdge, collapse, onCollapse }: NotchPaneProps) {
@@ -41,6 +41,8 @@ export function NotchPane({ options, slots, onSlots, scale, onScale, monitors, m
   const list = notchOn(options, slots)
     .map((s) => `${provLabel(options, s.provider)} (${winLabel(t, options, s.provider, s.window).toLowerCase()})`)
     .join(", ");
+  // The centre is a widget behind the windows: it never folds, and the note says how it behaves
+  const widget = edge === "center";
   const shown = slots.length ? t("settings.notch.showing", { list }) : t("settings.notch.showingAll");
   return (
     <Pane title={t("settings.tabs.notch")} lede={t("settings.notch.lede")}>
@@ -64,11 +66,11 @@ export function NotchPane({ options, slots, onSlots, scale, onScale, monitors, m
           size="sm"
           value={edge}
           // Clicking the pressed one again answers "": keep the current edge
-          onValueChange={(v) => v && onEdge(v as NotchEdge)}
+          onValueChange={(v) => v && onEdge(v as NotchPosition)}
           aria-label={t("settings.notch.position")}
           className="w-full"
         >
-          {NOTCH_EDGES.map((e) => {
+          {NOTCH_POSITIONS.map((e) => {
             const Icon = edgeIcon[e];
             return (
               <ToggleGroupItem key={e} value={e} className="flex-1 gap-1.5 px-2.5 text-xs">
@@ -78,11 +80,12 @@ export function NotchPane({ options, slots, onSlots, scale, onScale, monitors, m
             );
           })}
         </ToggleGroup>
+        {widget && <Note>{t("settings.notch.centerNote")}</Note>}
         <Row
           htmlFor="sw-collapse"
           name={t("settings.notch.collapse")}
-          why={t("settings.notch.collapseWhy")}
-          control={<Switch id="sw-collapse" checked={collapse} onCheckedChange={onCollapse} />}
+          why={t(widget ? "settings.notch.collapseCenter" : "settings.notch.collapseWhy")}
+          control={<Switch id="sw-collapse" checked={collapse && !widget} disabled={widget} onCheckedChange={onCollapse} />}
         />
       </Block>
 

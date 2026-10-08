@@ -189,8 +189,11 @@ export type MonitorsChanged = MonitorInfo[];
 /**  The fold-when-idle switch changed in Settings: the notch follows it at once */
 export type NotchCollapseChanged = boolean;
 
-/**  The screen edge the notch is welded to. */
-export type NotchEdge = "right" | "left" | "top" | "bottom";
+/**
+ *  Where the notch lives: welded to a screen edge (always on top, folding when idle), or `Center`,
+ *  a widget behind the windows that stays open and is dragged anywhere by its grip.
+ */
+export type NotchEdge = "right" | "left" | "top" | "bottom" | "center";
 
 /**  The notch moved to another screen edge (Settings or the tray menu) */
 export type NotchEdgeChanged = NotchEdge;

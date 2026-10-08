@@ -47,6 +47,7 @@ const ko: Messages = {
     resettingNow: "지금 초기화 중",
     you: "나: {{prompt}}",
     size: "노치 크기",
+    move: "노치 옮기기",
   },
   settings: {
     sections: "설정 섹션",
@@ -107,9 +108,11 @@ const ko: Messages = {
       screenMissing: "전에 고른 화면이 연결되어 있지 않습니다. 다시 연결될 때까지 노치는 주 화면에 있습니다.",
       position: "위치",
       positionSub: "알약이 놓일 화면 가장자리. 위쪽과 아래쪽에서는 링이 한 줄로 늘어섭니다. 트레이 메뉴에서도 같은 선택을 할 수 있습니다.",
-      edges: { top: "위", left: "왼쪽", right: "오른쪽", bottom: "아래" },
+      edges: { top: "위", left: "왼쪽", center: "가운데", right: "오른쪽", bottom: "아래" },
       collapse: "사용하지 않을 때 노치 접기",
       collapseWhy: "알약이 가장자리의 얇은 탭으로 접히고 포인터가 닿으면 열립니다. 시작할 때는 먼저 알약을 보여 줍니다.",
+      collapseCenter: "가운데에서는 해당 없음: 위젯은 창 뒤에서 방해되지 않게 열린 채로 있습니다.",
+      centerNote: "가운데에서는 노치가 위젯이 됩니다. 창 위가 아니라 뒤에 있고, 접히지 않으며, 아래 손잡이로 끌어다 놓는 곳으로 옮겨집니다. 놓아 둔 자리에 그대로 있습니다.",
       visibility: "알약을 화면에 표시할지는 일반 › 동작의 별도 스위치에서 정합니다.",
     },
     behaviour: {

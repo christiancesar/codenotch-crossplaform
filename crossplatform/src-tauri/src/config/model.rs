@@ -48,7 +48,8 @@ impl Theme {
     }
 }
 
-/// The screen edge the notch is welded to.
+/// Where the notch lives: welded to a screen edge (always on top, folding when idle), or `Center`,
+/// a widget behind the windows that stays open and is dragged anywhere by its grip.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum NotchEdge {
@@ -57,10 +58,12 @@ pub enum NotchEdge {
     Left,
     Top,
     Bottom,
+    Center,
 }
 
 impl NotchEdge {
-    pub const ALL: [NotchEdge; 4] = [NotchEdge::Top, NotchEdge::Left, NotchEdge::Right, NotchEdge::Bottom];
+    /// In the order the menus show them: the centre between the edges, as on a screen
+    pub const ALL: [NotchEdge; 5] = [NotchEdge::Top, NotchEdge::Left, NotchEdge::Center, NotchEdge::Right, NotchEdge::Bottom];
 
     /// Unknown strings keep the notch where it always was
     pub fn parse(s: &str) -> NotchEdge {
@@ -68,6 +71,7 @@ impl NotchEdge {
             "left" => NotchEdge::Left,
             "top" => NotchEdge::Top,
             "bottom" => NotchEdge::Bottom,
+            "center" => NotchEdge::Center,
             _ => NotchEdge::Right,
         }
     }
@@ -78,12 +82,18 @@ impl NotchEdge {
             NotchEdge::Left => "left",
             NotchEdge::Top => "top",
             NotchEdge::Bottom => "bottom",
+            NotchEdge::Center => "center",
         }
     }
 
-    /// Top and bottom lay the pill out as a row, so the window is wide instead of tall
+    /// Top, bottom and the centre's widget lay the rings out as a row, so the window is wide instead of tall
     pub fn is_horizontal(self) -> bool {
-        matches!(self, NotchEdge::Top | NotchEdge::Bottom)
+        matches!(self, NotchEdge::Top | NotchEdge::Bottom | NotchEdge::Center)
+    }
+
+    /// The widget in the centre: behind the windows, never folding, dragged anywhere
+    pub fn is_widget(self) -> bool {
+        self == NotchEdge::Center
     }
 }
 
@@ -124,6 +134,9 @@ pub struct Config {
     /// right edges) or width (top and bottom), 0 = top or left. Named for the right edge it began on.
     pub notch_y: f64,
     pub notch_edge: NotchEdge,
+    /// The centre widget's spot as fractions of its screen: x is the window's middle, y its top.
+    /// None until it is first dragged, which reads as the middle of the screen.
+    pub notch_widget: Option<(f64, f64)>,
     /// The OS's name for the screen the notch is on; None (or a screen not connected) is the primary
     pub notch_monitor: Option<String>,
     pub scale: f64,
@@ -150,6 +163,7 @@ impl Default for Config {
             theme: Theme::System,
             notch_y: 0.5,
             notch_edge: NotchEdge::Right,
+            notch_widget: None,
             notch_monitor: None,
             scale: 1.0,
             // A fresh install shows readings straight away; upgrades keep their mark (migrate.rs)
@@ -188,6 +202,8 @@ impl Config {
         }
         self.scale = if self.scale.is_finite() { self.scale.clamp(SCALE_MIN, SCALE_MAX) } else { 1.0 };
         self.notch_y = if self.notch_y.is_finite() { self.notch_y.clamp(0.0, 1.0) } else { 0.5 };
+        // A hand-edited spot off the screen would leave the widget unreachable
+        self.notch_widget = self.notch_widget.filter(|(x, y)| x.is_finite() && y.is_finite()).map(|(x, y)| (x.clamp(0.0, 1.0), y.clamp(0.0, 1.0)));
         self
     }
 }
