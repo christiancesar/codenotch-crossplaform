@@ -5,7 +5,7 @@ import { ProviderCell } from "../ProviderCell";
 import { glyphs } from "@/fixtures/glyphs";
 import { snapshots } from "@/fixtures/usage";
 import type { ProviderId } from "@/libs/ipc";
-import { isHorizontal, NOTCH_EDGES, type NotchEdge } from "@/libs/notch-edge";
+import { isHorizontal, NOTCH_EDGES, shellPlacement, type NotchEdge } from "@/libs/notch-edge";
 import { cn } from "@/lib/utils";
 
 /** A screen corner around the chosen edge: the shell is welded to that side of this box. */
@@ -15,7 +15,9 @@ const screen: Record<NotchEdge, string> = {
   top: "items-start justify-center rounded-b-xl",
   bottom: "items-end justify-center rounded-t-xl",
 };
-const edge = (Story: () => React.ReactElement, { args }: { args: { edge?: NotchEdge } }) => {
+const edge = (Story: () => React.ReactElement, { args, parameters }: { args: { edge?: NotchEdge }; parameters: { ownScreen?: boolean } }) => {
+  // A story that lays out its own screen (one that moves the shell between edges) skips this one
+  if (parameters.ownScreen) return <Story />;
   const e = args.edge ?? "right";
   return (
     <div
@@ -83,4 +85,33 @@ export const OnBlack: Story = {
       </div>
     ),
   ],
+};
+/**
+ * The edge changing under a live shell, as Settings or the tray menu does it: right, top, left,
+ * bottom, over and over. Each must look exactly like its own story, nothing left over from the
+ * one before.
+ */
+export const SwitchingEdges: Story = {
+  parameters: { ownScreen: true },
+  decorators: [
+    (Story) => (
+      <div className="relative h-[480px] w-[520px] overflow-hidden rounded-xl bg-[radial-gradient(circle_at_30%_30%,#3b3b4f,#14141c)]">
+        <Story />
+      </div>
+    ),
+  ],
+  render: (args) => {
+    const order: NotchEdge[] = ["right", "top", "left", "bottom"];
+    const [i, setI] = useState(0);
+    useEffect(() => {
+      const id = setInterval(() => setI((v) => (v + 1) % order.length), 1600);
+      return () => clearInterval(id);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    const e = order[i];
+    return (
+      <div className={shellPlacement[e]}>
+        <NotchShell {...args} edge={e} />
+      </div>
+    );
+  },
 };

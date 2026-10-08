@@ -10,12 +10,15 @@ import { NoticeToast } from "@/components/notch/NoticeToast";
 import type { ActivityArcState } from "@/components/notch/ActivityArc";
 import { commands, events, type ProviderId, type Slot } from "@/libs/ipc";
 import { notchWindowLength, providerName } from "@/libs/usage";
-import { alongEdge, isHorizontal, shellPlacement } from "@/libs/notch-edge";
+import { alongEdge, shellPlacement } from "@/libs/notch-edge";
 import { useNotchData, type NotchData } from "./useNotchData";
 
 /** The window's designed depth away from the edge (notch/mod.rs COLUMN_DEPTH, ROW_DEPTH); a
  * WebView that picked another monitor's DPR is zoomed back to it. The length along the edge
- * grows with the pill, so only the depth says what the DPR did. */
+ * grows with the pill, so only the depth says what the DPR did. A column window is always taller
+ * than wide and a row window wider than tall, so the window's own shape says which depth applies:
+ * on an edge change it resizes before the page hears of the new edge, and judging by the edge
+ * then zoomed a row by 520/340. */
 const DESIGN_DEPTH = { column: 340, row: 480 };
 /** The grace for crossing the gap between card and cell (upstream motion rule) */
 const GRACE_MS = 250;
@@ -130,12 +133,11 @@ export default function Notch() {
   }, [ringCount, data.scale, data.edge]);
 
   // ---- DPR fit ---------------------------------------------------------------------------------
-  // The edge changes while the page lives (Settings, tray); the resize listener reads it from here
-  const edgeRef = useRef(data.edge);
-  edgeRef.current = data.edge;
   useLayoutEffect(() => {
     const fit = () => {
-      const z = isHorizontal(edgeRef.current) ? window.innerHeight / DESIGN_DEPTH.row : window.innerWidth / DESIGN_DEPTH.column;
+      // Zoom does not change innerWidth/innerHeight's ratio, only their scale
+      const row = window.innerWidth > window.innerHeight;
+      const z = row ? window.innerHeight / DESIGN_DEPTH.row : window.innerWidth / DESIGN_DEPTH.column;
       document.documentElement.style.zoom = Math.abs(z - 1) > 0.02 ? String(z) : "";
       commands.reportDpr(window.devicePixelRatio || 1, window.innerWidth, window.innerHeight).catch(() => {});
     };

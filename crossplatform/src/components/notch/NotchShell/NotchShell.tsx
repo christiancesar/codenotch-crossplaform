@@ -113,19 +113,27 @@ export function NotchShell({ edge = "right", collapsed = false, scale = 1, insta
     return () => ro.disconnect();
   }, [length, row]);
 
-  const pad = collapsed ? 0 : undefined;
+  // Every side and both limits, always: motion writes them straight onto the element and leaves a
+  // value it is no longer given in place, so a column's top padding would squeeze the row it
+  // became (and a row's side padding the column) when the edge changes under a live notch
+  const folded = (side: "start" | "end", along: boolean) => (along && !collapsed ? open[side] : 0);
   return (
     <motion.div
       ref={body}
       className={cn("relative flex items-center", row ? "flex-row" : "flex-col", className)}
       initial={false}
-      animate={
-        row
-          ? { maxWidth: collapsed ? TAB.length : 2000, paddingLeft: pad ?? open.start, paddingRight: pad ?? open.end }
-          : { maxHeight: collapsed ? TAB.length : 1000, paddingTop: pad ?? open.start, paddingBottom: pad ?? open.end }
-      }
+      animate={{
+        maxWidth: row && collapsed ? TAB.length : 2000,
+        maxHeight: !row && collapsed ? TAB.length : 2000,
+        paddingLeft: folded("start", row),
+        paddingRight: folded("end", row),
+        paddingTop: folded("start", !row),
+        paddingBottom: folded("end", !row),
+      }}
       transition={instant ? { duration: 0 } : notchMotion.unfold}
-      style={{ [row ? "height" : "width"]: depth, zoom: collapsed ? 1 : scale }}
+      // Both sides, always: motion keeps a motion value bound to a style key that disappears, so the
+      // column's width would stay pinned to the depth once the shell turned into a row
+      style={{ width: row ? "auto" : depth, height: row ? depth : "auto", zoom: collapsed ? 1 : scale }}
     >
       <svg aria-hidden className="pointer-events-none absolute overflow-visible" style={svgBox[edge]}>
         <motion.path d={fill} className="fill-notch" />
@@ -139,7 +147,8 @@ export function NotchShell({ edge = "right", collapsed = false, scale = 1, insta
         style={{
           gap: open.gap,
           pointerEvents: collapsed ? "none" : "auto",
-          [row ? "minWidth" : "minHeight"]: collapsed ? TAB.length : undefined,
+          minWidth: row && collapsed ? TAB.length : 0,
+          minHeight: !row && collapsed ? TAB.length : 0,
         }}
       >
         {children}
