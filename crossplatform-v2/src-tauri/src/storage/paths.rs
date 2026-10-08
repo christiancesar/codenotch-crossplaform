@@ -12,3 +12,5 @@ pub const CONFIG: &str = "config.json";
 /// Present while the user has quit from the tray; codenotch-hook stops relaunching the app.
 pub const USER_QUIT: &str = "user-quit";
 pub const RUN_LOG: &str = "run.log";
+/// Present while the user has switched the Claude Code hooks off; the app stops wiring them.
+pub const HOOKS_OFF: &str = "hooks-off";

@@ -7,7 +7,14 @@ use crate::platform::{Autostart, Platform};
 pub fn dispatch(args: &[String]) -> Option<()> {
     let dir = crate::storage::paths::config_dir();
     match args.get(1).map(String::as_str)? {
-        "install-hooks" => report(&dir, crate::sessions::hooks_install::install()),
+        "install-hooks" => {
+            let r = crate::sessions::hooks_install::install();
+            // Asking for the hooks by hand overrides an earlier switch-off
+            if r.is_ok() {
+                crate::sessions::hooks_install::set_declined(&dir, false);
+            }
+            report(&dir, r)
+        }
         "uninstall-hooks" => report(&dir, crate::sessions::hooks_install::uninstall()),
         "autostart" => report(
             &dir,

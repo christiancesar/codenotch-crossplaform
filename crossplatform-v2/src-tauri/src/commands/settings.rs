@@ -93,11 +93,14 @@ pub fn get_hooks_installed() -> bool {
 #[tauri::command]
 #[specta::specta]
 pub fn set_hooks_installed(on: bool) -> Result<String, String> {
-    if on {
-        crate::sessions::hooks_install::install()
-    } else {
-        crate::sessions::hooks_install::uninstall()
+    use crate::sessions::hooks_install;
+    let r = if on { hooks_install::install() } else { hooks_install::uninstall() };
+    // Remembered only once settings.json really changed, so a failed switch-off is not followed
+    // by the app quietly refusing to rewire later
+    if r.is_ok() {
+        hooks_install::set_declined(&crate::storage::paths::config_dir(), !on);
     }
+    r
 }
 
 #[tauri::command]

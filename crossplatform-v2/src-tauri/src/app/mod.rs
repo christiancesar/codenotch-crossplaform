@@ -63,6 +63,12 @@ fn setup(app: &AppHandle, dir: std::path::PathBuf) -> tauri::Result<()> {
             let _ = Notice(msg).emit(&a);
         });
     }
+    // A dev build would point the user's hooks at target/debug, so only an installed app wires them
+    if !cfg!(debug_assertions) {
+        if let Some(r) = crate::sessions::hooks_install::ensure(&dir) {
+            crate::diagnostics::log(&format!("hooks: {}", r.unwrap_or_else(|e| format!("not wired: {e}"))));
+        }
+    }
     let port = loaded.config.port;
     let lang = loaded.config.lang.clone();
     let sessions = Arc::new(Mutex::new(crate::sessions::Store::default()));
