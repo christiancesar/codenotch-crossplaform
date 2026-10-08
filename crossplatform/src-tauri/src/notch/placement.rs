@@ -78,18 +78,18 @@ mod tests {
     #[test]
     fn every_edge_is_flush_and_centred_along_it() {
         assert_eq!(position(NotchEdge::Left, (0, 0), (1920, 1080), (340, 460), 0.5), (0, 310));
-        assert_eq!(position(NotchEdge::Top, (0, 0), (1920, 1080), (520, 380), 0.5), (700, 0));
-        assert_eq!(position(NotchEdge::Bottom, (0, 0), (1920, 1080), (520, 380), 0.5), (700, 700));
+        assert_eq!(position(NotchEdge::Top, (0, 0), (1920, 1080), (520, 480), 0.5), (700, 0));
+        assert_eq!(position(NotchEdge::Bottom, (0, 0), (1920, 1080), (520, 480), 0.5), (700, 600));
         // Kept on the monitor at the ends
-        assert_eq!(position(NotchEdge::Top, (0, 0), (1920, 1080), (520, 380), 0.0), (0, 0));
-        assert_eq!(position(NotchEdge::Bottom, (100, 0), (1920, 1080), (520, 380), 1.0), (1500, 700));
+        assert_eq!(position(NotchEdge::Top, (0, 0), (1920, 1080), (520, 480), 0.0), (0, 0));
+        assert_eq!(position(NotchEdge::Bottom, (100, 0), (1920, 1080), (520, 480), 1.0), (1500, 600));
     }
 
     #[test]
     fn drag_ratio_round_trips_through_position() {
         let r = ratio_after_drag(NotchEdge::Right, (1580, 385), (340, 460), (0, 0), (1920, 1080));
         assert_eq!(position(NotchEdge::Right, (0, 0), (1920, 1080), (340, 460), r).1, 385);
-        let r = ratio_after_drag(NotchEdge::Top, (900, 0), (520, 380), (0, 0), (1920, 1080));
-        assert_eq!(position(NotchEdge::Top, (0, 0), (1920, 1080), (520, 380), r).0, 900);
+        let r = ratio_after_drag(NotchEdge::Top, (900, 0), (520, 480), (0, 0), (1920, 1080));
+        assert_eq!(position(NotchEdge::Top, (0, 0), (1920, 1080), (520, 480), r).0, 900);
     }
 }

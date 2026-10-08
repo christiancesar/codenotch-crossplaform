@@ -20,7 +20,7 @@ const corner: Record<NotchEdge, string> = { right: "rounded-l-xl", left: "rounde
 
 /**
  * The whole notch window as the app will compose it: a transparent window on the chosen edge
- * (340 x 460 beside a left or right notch, 520 x 380 under a top one or over a bottom one), the
+ * (340 x 460 beside a left or right notch, 520 x 480 under a top one or over a bottom one), the
  * shell flush with that edge, the card on the side away from it following the hovered cell.
  * Hover a ring.
  */
@@ -50,7 +50,7 @@ function NotchWindow({ ids, edge, collapsedAtRest }: { ids: ProviderId[]; edge: 
       ref={root}
       className={cn(
         "relative overflow-hidden bg-[radial-gradient(circle_at_25%_35%,#3d4058,#15161d)]",
-        isHorizontal(edge) ? "h-[380px] w-[520px]" : "h-[460px] w-[340px]",
+        isHorizontal(edge) ? "h-[480px] w-[520px]" : "h-[460px] w-[340px]",
         corner[edge],
       )}
       onMouseLeave={out}

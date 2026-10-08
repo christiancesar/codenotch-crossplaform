@@ -19,7 +19,7 @@ pub const COLUMN_DEPTH: f64 = 340.0;
 pub const COLUMN_LENGTH: f64 = 460.0;
 /// The same for the top and bottom edges: the pill row is deeper than the column and the card
 /// hangs under (or over) it, so the window is shallower than it is long.
-pub const ROW_DEPTH: f64 = 380.0;
+pub const ROW_DEPTH: f64 = 480.0;
 pub const ROW_LENGTH: f64 = 520.0;
 
 /// The smallest the window may be along `edge`.

@@ -16,7 +16,7 @@ import { useNotchData, type NotchData } from "./useNotchData";
 /** The window's designed depth away from the edge (notch/mod.rs COLUMN_DEPTH, ROW_DEPTH); a
  * WebView that picked another monitor's DPR is zoomed back to it. The length along the edge
  * grows with the pill, so only the depth says what the DPR did. */
-const DESIGN_DEPTH = { column: 340, row: 380 };
+const DESIGN_DEPTH = { column: 340, row: 480 };
 /** The grace for crossing the gap between card and cell (upstream motion rule) */
 const GRACE_MS = 250;
 /** Press and move further than this and it is a drag, not a click */
@@ -102,6 +102,15 @@ export default function Notch() {
     commands.setHot(rects, open).catch(() => {});
   }, [open]);
 
+  // The window resizes and moves when the edge changes, a moment after the page hears of it: the
+  // pill lands somewhere else in it, and a stale rectangle would leave the new spot click-through
+  const [resized, setResized] = useState(0);
+  useEffect(() => {
+    const onResize = () => setResized((n) => n + 1);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
   // While anything animates the rectangles move every frame: report for a while after a change
   useEffect(() => {
     let frame = 0;
@@ -112,7 +121,7 @@ export default function Notch() {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [reportHot, hover, collapsed, data.scale, data.usage, data.slots, data.sessions]);
+  }, [reportHot, hover, collapsed, data.scale, data.usage, data.slots, data.sessions, data.edge, resized]);
 
   // ---- window length: grows when the pill does not fit the minimum along its edge -------------
   const ringCount = ready ? cells(data).length : 0;

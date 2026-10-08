@@ -28,7 +28,7 @@ const meta = {
   decorators: [
     // The notch window: tall beside a left or right notch, wide under a top one or over a bottom one
     (Story, { args }) => (
-      <div className={cn("relative rounded-xl bg-[#202028]", isHorizontal(args.edge ?? "right") ? "h-[380px] w-[520px]" : "h-[460px] w-[340px]")}>
+      <div className={cn("relative rounded-xl bg-[#202028]", isHorizontal(args.edge ?? "right") ? "h-[480px] w-[520px]" : "h-[460px] w-[340px]")}>
         <Story />
       </div>
     ),
