@@ -7,21 +7,40 @@ use crate::support::time::now_ms;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-pub fn ack_scan(store: &Mutex<Store>, platform: &(impl Focus + Processes)) -> bool {
-    if !store.lock().unwrap().has_done() {
-        return false;
-    }
+/// What was in front at the previous scan.
+#[derive(Default)]
+pub struct Front {
+    pid: u32,
+    claude_desktop: bool,
+}
+
+pub fn ack_scan(store: &Mutex<Store>, platform: &(impl Focus + Processes), front: &mut Front) -> bool {
     let fg = platform.foreground_pid();
     if fg == 0 {
         return false;
     }
+    let has_done = store.lock().unwrap().has_done();
+    // The front is followed even with nothing done, or a session finishing while you are already
+    // in the Claude app would read as you having just switched to it
+    if !has_done && fg == front.pid {
+        return false;
+    }
     let maps = platform.proc_maps();
-    let fg_name = maps.name.get(&fg).cloned().unwrap_or_default();
-    let fg_is_claude_desktop = fg_name.contains("claude") && !fg_name.contains("codenotch");
+    let was_claude_desktop = front.claude_desktop;
+    if fg != front.pid {
+        let name = maps.name.get(&fg).cloned().unwrap_or_default();
+        *front = Front { pid: fg, claude_desktop: name.contains("claude") && !name.contains("codenotch") };
+    }
+    if !has_done {
+        return false;
+    }
+    // A desktop session has no process to match, and the Claude app's window does not say which
+    // conversation is open. Being in the app is not enough: on Windows you work inside it, and
+    // every session would vanish the moment it finished. Switching to it after it finished is.
+    let entered_claude_desktop = front.claude_desktop && !was_claude_desktop;
     store.lock().unwrap().ack_done(now_ms(), |s| {
-        // No ppid: a desktop-app session, inferred from its transcript
         if s.ppid == 0 {
-            fg_is_claude_desktop
+            entered_claude_desktop
         } else {
             pid_hits_chain(fg, &chain_of(s.ppid, &maps.ppid), &maps)
         }
@@ -32,10 +51,13 @@ pub fn start(store: Arc<Mutex<Store>>, on_change: Arc<dyn Fn() + Send + Sync>) {
     let (s, c) = (store.clone(), on_change.clone());
     std::thread::Builder::new()
         .name("sessions-ack".into())
-        .spawn(move || loop {
-            std::thread::sleep(Duration::from_millis(1500));
-            if ack_scan(&s, &Platform) {
-                c();
+        .spawn(move || {
+            let mut front = Front::default();
+            loop {
+                std::thread::sleep(Duration::from_millis(1500));
+                if ack_scan(&s, &Platform, &mut front) {
+                    c();
+                }
             }
         })
         .expect("failed to start the seen-clears-it scan");
@@ -95,16 +117,36 @@ mod tests {
         HookEvent { e: "done".into(), session_id: id.into(), ppid, cwd: "/p".into(), prompt: String::new(), message: String::new(), tool_name: String::new(), tool_cmd: String::new(), model: String::new(), src: Source::Hook }
     }
 
+    fn state_of(store: &Mutex<Store>, id: &str) -> SessionState {
+        store.lock().unwrap().snapshot().sessions.iter().find(|s| s.id == id).unwrap().state
+    }
+
     #[test]
     fn the_session_whose_terminal_is_in_front_is_acknowledged() {
         let store = Mutex::new(Store::default());
+        let mut front = Front::default();
         store.lock().unwrap().apply(done("cli", 100), 0);
         store.lock().unwrap().apply(done("desk", 0), 0);
-        assert!(!ack_scan(&store, &Fake { fg: 999 }));
-        assert!(ack_scan(&store, &Fake { fg: 10 }));
-        let snap = store.lock().unwrap().snapshot();
-        let state = |id: &str| snap.sessions.iter().find(|s| s.id == id).unwrap().state;
-        assert_eq!((state("cli"), state("desk")), (SessionState::Idle, SessionState::Done));
-        assert!(ack_scan(&store, &Fake { fg: 300 }));
+        assert!(!ack_scan(&store, &Fake { fg: 999 }, &mut front));
+        assert!(ack_scan(&store, &Fake { fg: 10 }, &mut front));
+        assert_eq!((state_of(&store, "cli"), state_of(&store, "desk")), (SessionState::Idle, SessionState::Done));
+        assert!(ack_scan(&store, &Fake { fg: 300 }, &mut front));
+        assert_eq!(state_of(&store, "desk"), SessionState::Idle);
+    }
+
+    #[test]
+    fn a_desktop_session_finishing_while_you_are_in_the_claude_app_stays_done() {
+        let store = Mutex::new(Store::default());
+        let mut front = Front::default();
+        // Working inside the Claude app, nothing done yet
+        assert!(!ack_scan(&store, &Fake { fg: 300 }, &mut front));
+        store.lock().unwrap().apply(done("desk", 0), 0);
+        assert!(!ack_scan(&store, &Fake { fg: 300 }, &mut front));
+        assert!(!ack_scan(&store, &Fake { fg: 300 }, &mut front));
+        assert_eq!(state_of(&store, "desk"), SessionState::Done);
+        // Away and back: now it was seen
+        assert!(!ack_scan(&store, &Fake { fg: 999 }, &mut front));
+        assert!(ack_scan(&store, &Fake { fg: 300 }, &mut front));
+        assert_eq!(state_of(&store, "desk"), SessionState::Idle);
     }
 }
