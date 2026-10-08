@@ -141,7 +141,7 @@ families differ, so sizes are set by role and checked against the frame visually
 | `--notch-pad-bottom` | 50.1 | 18.8 | Last label to body bottom |
 | `--notch-cell-gap` | 83.5 | 31.4 | Label bottom to next ring |
 
-### Collapsed tab (Linux idle state)
+### Collapsed tab (idle state, Settings > Notch > Position)
 
 | Token | Frame px | Value |
 | --- | --- | --- |

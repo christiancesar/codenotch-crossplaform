@@ -28,7 +28,19 @@ export default function Settings() {
               repairNote={data.repairNote}
             />
           ),
-          notch: <NotchPane options={data.options} slots={data.notchSlots} onSlots={actions.setNotchSlots} scale={data.scale} onScale={actions.setScale} />,
+          notch: (
+            <NotchPane
+              options={data.options}
+              slots={data.notchSlots}
+              onSlots={actions.setNotchSlots}
+              scale={data.scale}
+              onScale={actions.setScale}
+              edge={data.edge}
+              onEdge={actions.setEdge}
+              collapse={data.flags.notch_collapse}
+              onCollapse={(v) => actions.setFlags({ ...data.flags, notch_collapse: v })}
+            />
+          ),
           behaviour: (
             <BehaviourPane
               platform={platform}

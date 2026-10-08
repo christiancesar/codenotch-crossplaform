@@ -70,7 +70,6 @@ fn setup(app: &AppHandle, dir: std::path::PathBuf) -> tauri::Result<()> {
         }
     }
     let port = loaded.config.port;
-    let lang = loaded.config.lang.clone();
     let sessions = Arc::new(Mutex::new(crate::sessions::Store::default()));
     let providers = workers::start_providers(app, &dir, sessions.clone());
     app.manage(AppState {
@@ -103,7 +102,7 @@ fn setup(app: &AppHandle, dir: std::path::PathBuf) -> tauri::Result<()> {
     TrayIconBuilder::with_id(crate::tray::menu::TRAY_ID)
         .icon(crate::tray::render::app_mark().unwrap_or_else(|| app.default_window_icon().cloned().expect("an app icon")))
         .tooltip(concat!("Codenotch v", env!("CARGO_PKG_VERSION")))
-        .menu(&crate::tray::menu::build(app, &lang)?)
+        .menu(&crate::tray::menu::build(app)?)
         .show_menu_on_left_click(Platform.tray_menu_on_left_click())
         .on_tray_icon_event(|tray, ev| {
             if let tauri::tray::TrayIconEvent::DoubleClick { button: tauri::tray::MouseButton::Left, .. } = ev {
@@ -122,7 +121,11 @@ fn setup(app: &AppHandle, dir: std::path::PathBuf) -> tauri::Result<()> {
                 let _ = std::fs::write(st.dir.join(crate::storage::paths::USER_QUIT), b"");
                 app.exit(0);
             }
-            _ => {}
+            id => {
+                if let Some(edge) = crate::tray::menu::edge_of(id) {
+                    ui::set_notch_edge(app, edge);
+                }
+            }
         })
         .build(app)?;
 

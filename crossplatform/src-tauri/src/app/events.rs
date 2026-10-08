@@ -65,6 +65,11 @@ pub struct ThemeChanged(pub crate::config::Theme);
 #[tauri_specta(event_name = "notch_collapse")]
 pub struct NotchCollapseChanged(pub bool);
 
+/// The notch moved to another screen edge (Settings or the tray menu)
+#[derive(Debug, Clone, Serialize, Type, Event)]
+#[tauri_specta(event_name = "notch_edge")]
+pub struct NotchEdgeChanged(pub crate::config::NotchEdge);
+
 /// Something the user should read on the notch (a refused second instance, say)
 #[derive(Debug, Clone, Serialize, Type, Event)]
 #[tauri_specta(event_name = "notice")]

@@ -1,15 +1,17 @@
-//! Vertical drag along the edge. The page calls drag_begin once a press on the pill moves more
-//! than 4 px; from then on this thread follows the system cursor (WebView mousemove is unreliable
-//! once the window itself moves) until the left button is released.
+//! Drag along the edge: up and down on the left and right edges, sideways on the top and bottom.
+//! The page calls drag_begin once a press on the pill moves more than 4 px; from then on this
+//! thread follows the system cursor (WebView mousemove is unreliable once the window itself moves)
+//! until the left button is released.
 
 use super::NotchState;
+use crate::config::NotchEdge;
 use crate::platform::{Input, Platform};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 
 /// `on_end(Some(ratio))` after a real move, `on_end(None)` for a press that never moved.
-pub fn begin(w: tauri::WebviewWindow, state: Arc<NotchState>, on_end: impl FnOnce(Option<f64>) + Send + 'static) {
+pub fn begin(w: tauri::WebviewWindow, state: Arc<NotchState>, edge: NotchEdge, on_end: impl FnOnce(Option<f64>) + Send + 'static) {
     if state.dragging.swap(true, Ordering::SeqCst) {
         return;
     }
@@ -19,22 +21,32 @@ pub fn begin(w: tauri::WebviewWindow, state: Arc<NotchState>, on_end: impl FnOnc
             state.dragging.store(false, Ordering::SeqCst);
             return;
         };
-        let (my, mh) = (mon.position().y, mon.size().height);
-        let (lo, hi) = (my, my + (mh as i32 - size.height as i32).max(0));
-        let mut last_y = start_pos.y;
+        let row = edge.is_horizontal();
+        // The axis along the edge: where the window may start on it, and where it starts now
+        let (lo, hi, from) = if row {
+            (mon.position().x, mon.position().x + (mon.size().width as i32 - size.width as i32).max(0), start_pos.x)
+        } else {
+            (mon.position().y, mon.position().y + (mon.size().height as i32 - size.height as i32).max(0), start_pos.y)
+        };
+        let mut last = from;
         let mut moved = false;
         while Platform.left_button_down() {
             if let Ok(cur) = w.cursor_position() {
-                let ny = ((start_pos.y as f64 + (cur.y - start_cur.y)).round() as i32).clamp(lo, hi);
-                if ny != last_y {
-                    last_y = ny;
+                let delta = if row { cur.x - start_cur.x } else { cur.y - start_cur.y };
+                let n = ((from as f64 + delta).round() as i32).clamp(lo, hi);
+                if n != last {
+                    last = n;
                     moved = true;
-                    let _ = w.set_position(tauri::PhysicalPosition::new(start_pos.x, ny));
+                    let p = if row { (n, start_pos.y) } else { (start_pos.x, n) };
+                    let _ = w.set_position(tauri::PhysicalPosition::new(p.0, p.1));
                 }
             }
             std::thread::sleep(Duration::from_millis(8));
         }
         state.dragging.store(false, Ordering::SeqCst);
-        on_end(moved.then(|| super::placement::ratio_after_drag(last_y, size.height, my, mh)));
+        let pos = if row { (last, start_pos.y) } else { (start_pos.x, last) };
+        let mon_pos = (mon.position().x, mon.position().y);
+        let mon_size = (mon.size().width, mon.size().height);
+        on_end(moved.then(|| super::placement::ratio_after_drag(edge, pos, (size.width, size.height), mon_pos, mon_size)));
     });
 }

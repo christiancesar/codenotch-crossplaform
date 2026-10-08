@@ -120,6 +120,18 @@ fn collapsing_is_on_unless_turned_off_and_only_off_is_written() {
 }
 
 #[test]
+fn the_edge_is_right_unless_moved_and_only_a_move_is_written() {
+    let (cfg, dir) = load_fixture("v0.3.1/config.json");
+    assert_eq!(cfg.notch_edge, NotchEdge::Right);
+    save(dir.path(), &cfg).unwrap();
+    let doc: Value = serde_json::from_str(&std::fs::read_to_string(dir.path().join("config.json")).unwrap()).unwrap();
+    assert!(doc.get("notch_edge").is_none());
+    save(dir.path(), &Config { notch_edge: NotchEdge::Top, ..cfg }).unwrap();
+    assert_eq!(load(dir.path()).config.notch_edge, NotchEdge::Top);
+    assert_eq!(NotchEdge::parse("diagonal"), NotchEdge::Right);
+}
+
+#[test]
 fn the_port_stays_a_top_level_key_the_hook_can_scan() {
     let dir = tempfile::tempdir().unwrap();
     save(dir.path(), &Config { port: 49001, ..Config::default() }).unwrap();

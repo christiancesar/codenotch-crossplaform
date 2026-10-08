@@ -26,10 +26,14 @@ export const commands = {
 	 */
 	reportDpr: (dpr: number | null, width: number | null, height: number | null) => __TAURI_INVOKE<void>("report_dpr", { dpr, width, height }),
 	/**
-	 *  The page's pill no longer fits (five providers at full size): grow the window to `height`
-	 *  logical px, at least the minimum and at most the monitor, keeping the saved centre.
+	 *  The page's pill no longer fits (five providers at full size): grow the window to `length`
+	 *  logical px along its edge, at least the minimum and at most the monitor's side, keeping the
+	 *  saved centre.
 	 */
-	setNotchHeight: (height: number | null) => __TAURI_INVOKE<void>("set_notch_height", { height }),
+	setNotchLength: (length: number | null) => __TAURI_INVOKE<void>("set_notch_length", { length }),
+	getNotchEdge: () => __TAURI_INVOKE<NotchEdge>("get_notch_edge"),
+	/**  Moves the notch to another screen edge (Settings; the tray menu does the same) */
+	setNotchEdge: (edge: NotchEdge) => __TAURI_INVOKE<void>("set_notch_edge", { edge }),
 	getScale: () => __TAURI_INVOKE<number | null>("get_scale"),
 	/**
 	 *  Only the value is stored: the page scales the pill with CSS, so the window never resizes and
@@ -83,6 +87,7 @@ export const events = {
 	glyphs: makeEvent<GlyphsChanged>("glyphs"),
 	lang: makeEvent<LangChanged>("lang"),
 	notchCollapse: makeEvent<NotchCollapseChanged>("notch_collapse"),
+	notchEdge: makeEvent<NotchEdgeChanged>("notch_edge"),
 	notchSlots: makeEvent<NotchSlotsChanged>("notch_slots"),
 	notice: makeEvent<Notice>("notice"),
 	pointerLeft: makeEvent<PointerLeft>("pointer_left"),
@@ -161,6 +166,12 @@ export type LimitWindow = {
 
 /**  The fold-when-idle switch changed in Settings: the notch follows it at once */
 export type NotchCollapseChanged = boolean;
+
+/**  The screen edge the notch is welded to. */
+export type NotchEdge = "right" | "left" | "top" | "bottom";
+
+/**  The notch moved to another screen edge (Settings or the tray menu) */
+export type NotchEdgeChanged = NotchEdge;
 
 export type NotchSlotsChanged = Slot[];
 

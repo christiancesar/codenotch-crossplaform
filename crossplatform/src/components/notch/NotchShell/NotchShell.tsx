@@ -1,10 +1,13 @@
 import { animate, motion, useMotionValue, useTransform } from "motion/react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { notchMotion } from "@/libs/motion";
+import { isHorizontal, type NotchEdge } from "@/libs/notch-edge";
 import { cn } from "@/lib/utils";
 
 export interface NotchShellProps {
-  /** The idle tab (Linux): a thin bar on the edge, cells hidden */
+  /** The screen edge it is welded to */
+  edge?: NotchEdge;
+  /** The idle tab: a thin bar on the edge, cells hidden */
   collapsed?: boolean;
   /** The notch size slider, 0.4 to 1: scales the pill only, never the card */
   scale?: number;
@@ -14,103 +17,130 @@ export interface NotchShellProps {
   className?: string;
 }
 
-/** Frame geometry in px (tokens.css), needed as numbers for the spring */
-const OPEN = { width: 70, padTop: 26.1, padBottom: 18.8, radius: 29.6, fillet: 38.7 };
-const TAB = { width: 9.8, height: 79, radius: 9.8, fillet: 10.5 };
-/** Room above and below the body for the fillets, so the SVG box never has to move */
-const BLEED = OPEN.fillet;
-/** Half the outline, so the 1 px stroke sits inside the left edge instead of being clipped */
+/**
+ * Frame geometry in px (tokens.css), needed as numbers for the spring. `depth` is away from the
+ * screen edge, `start`/`end` the padding along it. A row of cells needs more depth than a column
+ * (ring and label stack across it) and no room for a label after the last cell.
+ */
+const COLUMN = { depth: 70, start: 26.1, end: 18.8, radius: 29.6, fillet: 38.7, gap: 31.4 };
+const ROW = { depth: 92, start: 24, end: 24, radius: 29.6, fillet: 38.7, gap: 22 };
+const TAB = { depth: 9.8, length: 79, radius: 9.8, fillet: 10.5 };
+/** Room before and after the body for the fillets, so the SVG box never has to move */
+const BLEED = COLUMN.fillet;
+/** Half the outline, so the 1 px stroke sits inside the outer side instead of being clipped */
 const INSET = 0.5;
 
 /**
  * The whole silhouette as one path: concave fillet out of the screen edge, convex corner, the
- * left side, convex corner, concave fillet back into the edge. When the body is too narrow for
- * both corners side by side (the tab), every arc is squeezed horizontally by the same factor, so
- * the curve stays one smooth S instead of two shapes overlapping. `closed` adds the screen edge
- * for the fill; the outline leaves it open, the edge is the bezel.
+ * outer side, convex corner, concave fillet back into the edge. Built as (depth, along-the-edge)
+ * points and then laid on the chosen edge: left mirrors right, top and bottom turn it a quarter.
+ * A mirror reverses the arcs' sweep. When the body is too shallow for both corners side by side
+ * (the tab), every arc is squeezed in depth by the same factor, so the curve stays one smooth S
+ * instead of two shapes overlapping. `closed` adds the screen edge for the fill; the outline
+ * leaves it open, the edge is the bezel.
  */
-function silhouette(w: number, h: number, r: number, f: number, closed: boolean) {
-  const span = w - INSET;
-  const k = Math.min(1, span / (r + f));
-  const rx = r * k;
-  const fx = f * k;
-  const ry = Math.min(r, h / 2);
-  const top = BLEED;
-  const bottom = BLEED + h;
-  const d =
-    `M ${w} ${top - f} ` +
-    `A ${fx} ${f} 0 0 1 ${w - fx} ${top} ` +
-    `L ${INSET + rx} ${top} ` +
-    `A ${rx} ${ry} 0 0 0 ${INSET} ${top + ry} ` +
-    `L ${INSET} ${bottom - ry} ` +
-    `A ${rx} ${ry} 0 0 0 ${INSET + rx} ${bottom} ` +
-    `L ${w - fx} ${bottom} ` +
-    `A ${fx} ${f} 0 0 1 ${w} ${bottom + f}`;
-  return closed ? `${d} Z` : d;
+function silhouette(edge: NotchEdge, w: number, h: number, r: number, f: number, closed: boolean) {
+  const k = Math.min(1, (w - INSET) / (r + f));
+  const rd = r * k;
+  const fd = f * k;
+  const ra = Math.min(r, h / 2);
+  const start = BLEED;
+  const end = BLEED + h;
+  const flip = edge === "left" || edge === "bottom";
+  const turned = isHorizontal(edge);
+  const at = (d: number, a: number) => {
+    const [x, y] = edge === "right" ? [w - d, a] : edge === "left" ? [d, a] : edge === "bottom" ? [a, w - d] : [a, d];
+    return `${x} ${y}`;
+  };
+  const arc = (radD: number, radA: number, sweep: 0 | 1, d: number, a: number) =>
+    `A ${turned ? radA : radD} ${turned ? radD : radA} 0 0 ${flip ? 1 - sweep : sweep} ${at(d, a)} `;
+  const p =
+    `M ${at(0, start - f)} ` +
+    arc(fd, f, 1, fd, start) +
+    `L ${at(w - INSET - rd, start)} ` +
+    arc(rd, ra, 0, w - INSET, start + ra) +
+    `L ${at(w - INSET, end - ra)} ` +
+    arc(rd, ra, 0, w - INSET - rd, end) +
+    `L ${at(fd, end)} ` +
+    arc(fd, f, 1, 0, end + f);
+  return closed ? `${p}Z` : p.trim();
 }
 
+/** Where the SVG box sits: flush with the screen edge, bleeding past both ends of the body. */
+const svgBox: Record<NotchEdge, React.CSSProperties> = {
+  right: { right: 0, top: -BLEED, width: "100%", height: `calc(100% + ${2 * BLEED}px)` },
+  left: { left: 0, top: -BLEED, width: "100%", height: `calc(100% + ${2 * BLEED}px)` },
+  top: { top: 0, left: -BLEED, height: "100%", width: `calc(100% + ${2 * BLEED}px)` },
+  bottom: { bottom: 0, left: -BLEED, height: "100%", width: `calc(100% + ${2 * BLEED}px)` },
+};
+
 /**
- * The body welded to the right screen edge (black in the dark theme, white in the light one):
- * inverse rounded corners top and bottom so it reads as part of the bezel, a 1 px outline so it
- * survives a wallpaper of its own colour. Painted as a
- * single SVG path, so fill and outline are one continuous shape at every size. Folds between the
- * cell column and the idle tab with the `unfold` spring; `max-height`, never a measured height,
- * so cells that arrive late are never clipped (the height is only read back to draw the path).
+ * The body welded to a screen edge (black in the dark theme, white in the light one): inverse
+ * rounded corners at both ends so it reads as part of the bezel, a 1 px outline so it survives a
+ * wallpaper of its own colour. Painted as a single SVG path, so fill and outline are one
+ * continuous shape at every size. A column of cells on the left and right edges, a row on the top
+ * and bottom. Folds between the cells and the idle tab with the `unfold` spring; `max-height`
+ * (`max-width` for a row), never a measured size, so cells that arrive late are never clipped
+ * (the length is only read back to draw the path).
  */
-export function NotchShell({ collapsed = false, scale = 1, instant = false, children, className }: NotchShellProps) {
-  const g = collapsed ? TAB : OPEN;
+export function NotchShell({ edge = "right", collapsed = false, scale = 1, instant = false, children, className }: NotchShellProps) {
+  const row = isHorizontal(edge);
+  const open = row ? ROW : COLUMN;
+  const g = collapsed ? TAB : open;
   const body = useRef<HTMLDivElement>(null);
-  const width = useMotionValue(g.width);
-  const height = useMotionValue(0);
+  const depth = useMotionValue(g.depth);
+  const length = useMotionValue(0);
   const radius = useMotionValue(g.radius);
   const fillet = useMotionValue(g.fillet);
-  const shape = [width, height, radius, fillet];
-  const fill = useTransform(shape, ([w, h, r, f]: number[]) => silhouette(w, h, r, f, true));
-  const outline = useTransform(shape, ([w, h, r, f]: number[]) => silhouette(w, h, r, f, false));
+  const shape = [depth, length, radius, fillet];
+  const fill = useTransform(shape, ([w, h, r, f]: number[]) => silhouette(edge, w, h, r, f, true));
+  const outline = useTransform(shape, ([w, h, r, f]: number[]) => silhouette(edge, w, h, r, f, false));
 
   useEffect(() => {
     const t = instant ? { duration: 0 } : notchMotion.unfold;
-    const runs = [animate(width, g.width, t), animate(radius, g.radius, t), animate(fillet, g.fillet, t)];
+    const runs = [animate(depth, g.depth, t), animate(radius, g.radius, t), animate(fillet, g.fillet, t)];
     return () => runs.forEach((r) => r.stop());
-  }, [collapsed, instant]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [collapsed, instant, row]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Layout px of the body, unaffected by `zoom` (the path is drawn inside the zoomed box)
+  // Layout px of the body along the edge, unaffected by `zoom` (the path is drawn inside the zoomed box)
   useLayoutEffect(() => {
     const el = body.current;
     if (!el) return;
-    height.set(el.offsetHeight);
-    const ro = new ResizeObserver(() => height.set(el.offsetHeight));
+    const read = () => length.set(row ? el.offsetWidth : el.offsetHeight);
+    read();
+    const ro = new ResizeObserver(read);
     ro.observe(el, { box: "border-box" });
     return () => ro.disconnect();
-  }, [height]);
+  }, [length, row]);
 
+  const pad = collapsed ? 0 : undefined;
   return (
     <motion.div
       ref={body}
-      className={cn("relative flex flex-col items-center", className)}
+      className={cn("relative flex items-center", row ? "flex-row" : "flex-col", className)}
       initial={false}
-      animate={{
-        maxHeight: collapsed ? TAB.height : 1000,
-        paddingTop: collapsed ? 0 : OPEN.padTop,
-        paddingBottom: collapsed ? 0 : OPEN.padBottom,
-      }}
+      animate={
+        row
+          ? { maxWidth: collapsed ? TAB.length : 2000, paddingLeft: pad ?? open.start, paddingRight: pad ?? open.end }
+          : { maxHeight: collapsed ? TAB.length : 1000, paddingTop: pad ?? open.start, paddingBottom: pad ?? open.end }
+      }
       transition={instant ? { duration: 0 } : notchMotion.unfold}
-      style={{ width, zoom: collapsed ? 1 : scale }}
+      style={{ [row ? "height" : "width"]: depth, zoom: collapsed ? 1 : scale }}
     >
-      <svg
-        aria-hidden
-        className="pointer-events-none absolute right-0 overflow-visible"
-        style={{ top: -BLEED, bottom: -BLEED, width: "100%", height: `calc(100% + ${2 * BLEED}px)` }}
-      >
+      <svg aria-hidden className="pointer-events-none absolute overflow-visible" style={svgBox[edge]}>
         <motion.path d={fill} className="fill-notch" />
         <motion.path d={outline} fill="none" className="stroke-notch-outline" strokeWidth={1} />
       </svg>
       <motion.div
-        className="relative flex flex-col items-center gap-(--notch-cell-gap)"
+        className={cn("relative flex items-center", row ? "flex-row" : "flex-col")}
         initial={false}
         animate={{ opacity: collapsed ? 0 : 1 }}
         transition={collapsed ? { duration: 0.12 } : notchMotion.contents}
-        style={{ pointerEvents: collapsed ? "none" : "auto", minHeight: collapsed ? TAB.height : undefined }}
+        style={{
+          gap: open.gap,
+          pointerEvents: collapsed ? "none" : "auto",
+          [row ? "minWidth" : "minHeight"]: collapsed ? TAB.length : undefined,
+        }}
       >
         {children}
       </motion.div>

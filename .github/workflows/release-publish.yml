@@ -77,7 +77,8 @@ jobs:
             - A desktop-app session that finishes while you are in Claude stays "done".
             - The Claude token is renewed with the standalone `claude` CLI before it expires,
               and an expired one is never sent (it read as an hour-long rate limit).
-            - The idle notch folds to a tab on any OS (Settings > On screen to turn it off).
+            - The idle notch folds to a tab on any OS (Settings > Notch > Position to turn it off).
+            - The notch can sit on the top, left, right or bottom edge (Settings or the tray menu).
             - Double-clicking the tray icon opens Settings.
             The v0.3 reference app is gone from the repository (tag archive/v0.3-reference).
           releaseDraft: true

@@ -169,6 +169,8 @@ Checked on Windows 11, where 0.4.0 showed no sessions and no Claude usage:
   provider renews it with that CLI and never sends an expired token (the endpoint answers it
   with an hour-long 429). Ported from upstream's Windows port, #192 and #228.
 - The idle notch folds to a tab on both OSes, switchable in Settings (`notch_collapse`).
+- The notch sits on any screen edge (`notch_edge`, right by default), chosen in Settings or the
+  tray menu; on the top and bottom edges the rings form a row and the card hangs under or over it.
 - The tray icon opens Settings on a double-click.
 - Cutover: `crossplatform-v2/` became `crossplatform/`, and `cross-platform/` (the v0.3
   reference app, the spec, plans and notes) was removed; tag `archive/v0.3-reference` has it.

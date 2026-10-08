@@ -1,7 +1,6 @@
 use crate::app::events::{DragEnded, NotchSlotsChanged, ScaleChanged};
 use crate::app::state::AppState;
-use crate::config::{Slot, SCALE_MAX, SCALE_MIN};
-use crate::platform::{Platform, Window};
+use crate::config::{NotchEdge, Slot, SCALE_MAX, SCALE_MIN};
 use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Manager, State};
 use tauri_specta::Event;
@@ -27,7 +26,8 @@ pub fn set_hot(app: AppHandle, state: State<AppState>, rects: Vec<[f64; 4]>, exp
 pub fn drag_begin(app: AppHandle, state: State<AppState>) {
     let Some(w) = app.get_webview_window(crate::app::ui::NOTCH) else { return };
     let a = app.clone();
-    crate::notch::drag::begin(w, state.notch.clone(), move |ratio| {
+    let edge = state.config.lock().unwrap().notch_edge;
+    crate::notch::drag::begin(w, state.notch.clone(), edge, move |ratio| {
         if let Some(r) = ratio {
             a.state::<AppState>().update_config(|c| c.notch_y = r);
         }
@@ -35,19 +35,40 @@ pub fn drag_begin(app: AppHandle, state: State<AppState>) {
     });
 }
 
-/// The page's pill no longer fits (five providers at full size): grow the window to `height`
-/// logical px, at least the minimum and at most the monitor, keeping the saved centre.
+/// The page's pill no longer fits (five providers at full size): grow the window to `length`
+/// logical px along its edge, at least the minimum and at most the monitor's side, keeping the
+/// saved centre.
 #[tauri::command]
 #[specta::specta]
-pub fn set_notch_height(app: AppHandle, state: State<AppState>, height: f64) {
+pub fn set_notch_length(app: AppHandle, state: State<AppState>, length: f64) {
     let Some(w) = app.get_webview_window(crate::app::ui::NOTCH) else { return };
-    let mon_h = w.primary_monitor().ok().flatten().map(|m| m.size().height as f64 / m.scale_factor()).unwrap_or(crate::notch::NOTCH_H);
-    let h = crate::notch::clamp_height(height, mon_h);
-    if (state.notch.height() - h).abs() < 1.0 {
+    let edge = state.config.lock().unwrap().notch_edge;
+    let min = crate::notch::min_length(edge);
+    let side = w
+        .primary_monitor()
+        .ok()
+        .flatten()
+        .map(|m| if edge.is_horizontal() { m.size().width } else { m.size().height } as f64 / m.scale_factor())
+        .unwrap_or(min);
+    let l = crate::notch::clamp_length(length, side, min);
+    if (state.notch.length(edge) - l).abs() < 1.0 {
         return;
     }
-    *state.notch.height.lock().unwrap() = h;
+    *state.notch.length.lock().unwrap() = l;
     crate::app::ui::place_notch(&app);
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn get_notch_edge(state: State<AppState>) -> NotchEdge {
+    state.config.lock().unwrap().notch_edge
+}
+
+/// Moves the notch to another screen edge (Settings; the tray menu does the same)
+#[tauri::command]
+#[specta::specta]
+pub fn set_notch_edge(app: AppHandle, edge: NotchEdge) {
+    crate::app::ui::set_notch_edge(&app, edge);
 }
 
 /// With two monitors at different scales the WebView can pick the other monitor's DPR, leaving

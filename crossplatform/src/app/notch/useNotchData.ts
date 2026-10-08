@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { commands, events, type Activity, type Glyph, type ProviderId, type SessionsSnapshot, type Slot, type UsageSnapshot } from "@/libs/ipc";
+import { commands, events, type Activity, type Glyph, type NotchEdge, type ProviderId, type SessionsSnapshot, type Slot, type UsageSnapshot } from "@/libs/ipc";
 
 export interface NotchData {
   /** Every provider's reading, in the backend's display order */
@@ -13,6 +13,8 @@ export interface NotchData {
   scale: number;
   /** Idle, fold to the thin tab on the edge (a Settings switch) */
   startsCollapsed: boolean;
+  /** The screen edge the window is on */
+  edge: NotchEdge;
 }
 
 const pct = (v: number | null) => (v === null || !Number.isFinite(v) ? 100 : Math.max(40, Math.min(100, Math.round(v * 100))));
@@ -30,6 +32,7 @@ export function useNotchData(onNotice: (msg: string) => void) {
     slots: [],
     scale: 100,
     startsCollapsed: false,
+    edge: "right",
   });
   const [ready, setReady] = useState(false);
 
@@ -38,9 +41,9 @@ export function useNotchData(onNotice: (msg: string) => void) {
     const patch = (p: Partial<NotchData>) => alive && setData((d) => ({ ...d, ...p }));
     const fail = (cmd: string) => (e: unknown) => onNotice(`${cmd} failed: ${e instanceof Error ? e.message : String(e)}`);
 
-    Promise.all([commands.getUsage(), commands.getSessions(), commands.getActivity(), commands.getGlyphs(), commands.getNotchSlots(), commands.getScale(), commands.startsCollapsed()])
-      .then(([usage, sessions, activity, glyphs, slots, scale, startsCollapsed]) => {
-        patch({ usage, sessions, activity, glyphs, slots, scale: pct(scale), startsCollapsed });
+    Promise.all([commands.getUsage(), commands.getSessions(), commands.getActivity(), commands.getGlyphs(), commands.getNotchSlots(), commands.getScale(), commands.startsCollapsed(), commands.getNotchEdge()])
+      .then(([usage, sessions, activity, glyphs, slots, scale, startsCollapsed, edge]) => {
+        patch({ usage, sessions, activity, glyphs, slots, scale: pct(scale), startsCollapsed, edge });
         if (alive) setReady(true);
       })
       .catch(fail("load"));
@@ -61,6 +64,7 @@ export function useNotchData(onNotice: (msg: string) => void) {
       events.glyphs.listen((e) => patch({ glyphs: e.payload })),
       events.notchSlots.listen((e) => patch({ slots: e.payload })),
       events.notchCollapse.listen((e) => patch({ startsCollapsed: e.payload })),
+      events.notchEdge.listen((e) => patch({ edge: e.payload })),
       events.notice.listen((e) => onNotice(e.payload)),
     ];
     return () => {

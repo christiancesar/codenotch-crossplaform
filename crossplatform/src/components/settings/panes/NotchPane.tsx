@@ -1,8 +1,12 @@
 import { useTranslation } from "react-i18next";
+import { PanelBottomIcon, PanelLeftIcon, PanelRightIcon, PanelTopIcon } from "lucide-react";
 import type { Slot, TrayOption } from "@/libs/ipc";
+import { NOTCH_EDGES, type NotchEdge } from "@/libs/notch-edge";
+import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { notchOn, provLabel, providerList, winLabel } from "@/libs/settings";
 import { Slider } from "@/components/ui/slider";
-import { Block, Note, Pane } from "../Pane";
+import { Block, Note, Pane, Row } from "../Pane";
 import { NotchRings } from "../NotchRings";
 
 export interface NotchPaneProps {
@@ -13,10 +17,18 @@ export interface NotchPaneProps {
   /** Percent, 40 to 100 (`get_scale` × 100) */
   scale: number;
   onScale: (scale: number) => void;
+  /** The screen edge the pill sits on */
+  edge: NotchEdge;
+  onEdge: (edge: NotchEdge) => void;
+  /** Idle, fold to the thin tab on the edge */
+  collapse: boolean;
+  onCollapse: (on: boolean) => void;
 }
 
-/** Appearance: which rings the pill draws, and how big. */
-export function NotchPane({ options, slots, onSlots, scale, onScale }: NotchPaneProps) {
+const edgeIcon = { top: PanelTopIcon, left: PanelLeftIcon, right: PanelRightIcon, bottom: PanelBottomIcon };
+
+/** Appearance: which rings the pill draws, where, how big, and whether it folds when idle. */
+export function NotchPane({ options, slots, onSlots, scale, onScale, edge, onEdge, collapse, onCollapse }: NotchPaneProps) {
   const { t } = useTranslation();
   const providers = providerList(options);
   const list = notchOn(options, slots)
@@ -30,6 +42,35 @@ export function NotchPane({ options, slots, onSlots, scale, onScale }: NotchPane
         <Note>
           {shown} {t("settings.notch.neverEmpty")}
         </Note>
+      </Block>
+
+      <Block title={t("settings.notch.position")} sub={t("settings.notch.positionSub")}>
+        <ToggleGroup
+          type="single"
+          variant="outline"
+          size="sm"
+          value={edge}
+          // Clicking the pressed one again answers "": keep the current edge
+          onValueChange={(v) => v && onEdge(v as NotchEdge)}
+          aria-label={t("settings.notch.position")}
+          className="w-full"
+        >
+          {NOTCH_EDGES.map((e) => {
+            const Icon = edgeIcon[e];
+            return (
+              <ToggleGroupItem key={e} value={e} className="flex-1 gap-1.5 px-2.5 text-xs">
+                <Icon className="size-3.5" />
+                {t(`settings.notch.edges.${e}`)}
+              </ToggleGroupItem>
+            );
+          })}
+        </ToggleGroup>
+        <Row
+          htmlFor="sw-collapse"
+          name={t("settings.notch.collapse")}
+          why={t("settings.notch.collapseWhy")}
+          control={<Switch id="sw-collapse" checked={collapse} onCheckedChange={onCollapse} />}
+        />
       </Block>
 
       <Block title={t("settings.notch.size")} sub={t("settings.notch.sizeSub")}>

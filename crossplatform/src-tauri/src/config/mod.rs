@@ -5,7 +5,7 @@ mod migrate;
 mod model;
 mod stored;
 
-pub use model::{Config, Slot, Theme, TrayMode, SCALE_MAX, SCALE_MIN};
+pub use model::{Config, NotchEdge, Slot, Theme, TrayMode, SCALE_MAX, SCALE_MIN};
 
 use crate::storage::versioned::{self, Loaded};
 use std::path::Path;

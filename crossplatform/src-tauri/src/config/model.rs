@@ -48,6 +48,45 @@ impl Theme {
     }
 }
 
+/// The screen edge the notch is welded to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum NotchEdge {
+    #[default]
+    Right,
+    Left,
+    Top,
+    Bottom,
+}
+
+impl NotchEdge {
+    pub const ALL: [NotchEdge; 4] = [NotchEdge::Top, NotchEdge::Left, NotchEdge::Right, NotchEdge::Bottom];
+
+    /// Unknown strings keep the notch where it always was
+    pub fn parse(s: &str) -> NotchEdge {
+        match s {
+            "left" => NotchEdge::Left,
+            "top" => NotchEdge::Top,
+            "bottom" => NotchEdge::Bottom,
+            _ => NotchEdge::Right,
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            NotchEdge::Right => "right",
+            NotchEdge::Left => "left",
+            NotchEdge::Top => "top",
+            NotchEdge::Bottom => "bottom",
+        }
+    }
+
+    /// Top and bottom lay the pill out as a row, so the window is wide instead of tall
+    pub fn is_horizontal(self) -> bool {
+        matches!(self, NotchEdge::Top | NotchEdge::Bottom)
+    }
+}
+
 impl TrayMode {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -81,8 +120,10 @@ pub struct Config {
     /// "auto" | "en" | "zh" | "ja" | "ko" | "pt"
     pub lang: String,
     pub theme: Theme,
-    /// Window centre as a fraction of the primary monitor's height, 0 = top, 1 = bottom
+    /// Window centre along the edge as a fraction of the primary monitor's height (left and
+    /// right edges) or width (top and bottom), 0 = top or left. Named for the right edge it began on.
     pub notch_y: f64,
+    pub notch_edge: NotchEdge,
     pub scale: f64,
     pub tray_mode: TrayMode,
     pub tray_slots: Vec<Slot>,
@@ -106,6 +147,7 @@ impl Default for Config {
             lang: "auto".into(),
             theme: Theme::System,
             notch_y: 0.5,
+            notch_edge: NotchEdge::Right,
             scale: 1.0,
             // A fresh install shows readings straight away; upgrades keep their mark (migrate.rs)
             tray_mode: TrayMode::Numbers,

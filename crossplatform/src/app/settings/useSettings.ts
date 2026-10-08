@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import i18n from "@/libs/i18n";
-import { commands, events, type Slot, type Theme, type TrayConfig, type TrayOption, type UiFlags } from "@/libs/ipc";
+import { commands, events, type NotchEdge, type Slot, type Theme, type TrayConfig, type TrayOption, type UiFlags } from "@/libs/ipc";
 import { applyTheme } from "@/libs/theme";
 import { normalizeTray, repairText } from "@/libs/settings";
 
@@ -15,6 +15,8 @@ export interface SettingsData {
   notchSlots: Slot[];
   /** Percent, 40 to 100 */
   scale: number;
+  /** The screen edge the notch is on */
+  edge: NotchEdge;
   flags: UiFlags;
   autostart: boolean;
   lang: string;
@@ -31,6 +33,7 @@ const EMPTY: SettingsData = {
   logo: null,
   notchSlots: [],
   scale: 100,
+  edge: "right",
   flags: { notch_visible: true, tray_visible: true, notch_collapse: true },
   autostart: false,
   lang: "auto",
@@ -92,8 +95,9 @@ export function useSettings() {
       commands.getHooksInstalled(),
       commands.appVersion(),
       commands.getTheme(),
+      commands.getNotchEdge(),
     ])
-      .then(([options, stored, logo, notchSlots, scale, flags, autostart, lang, hooks, version, theme]) => {
+      .then(([options, stored, logo, notchSlots, scale, flags, autostart, lang, hooks, version, theme, edge]) => {
         if (!alive) return;
         const { config, repair } = normalizeTray(options, stored);
         setData({
@@ -104,6 +108,7 @@ export function useSettings() {
           logo,
           notchSlots,
           scale: pct(scale),
+          edge,
           flags,
           autostart,
           lang: lang.lang,
@@ -120,6 +125,8 @@ export function useSettings() {
     const offs = [
       events.scale.listen((e) => patch({ scale: pct(e.payload) })),
       events.notchSlots.listen((e) => patch({ notchSlots: e.payload })),
+      // The tray menu moves the notch too
+      events.notchEdge.listen((e) => patch({ edge: e.payload })),
       events.lang.listen((e) => patch({ lang: e.payload.lang })),
       events.usage.listen(() => refreshOptions()),
     ];
@@ -153,6 +160,10 @@ export function useSettings() {
       patch({ scale });
       window.clearTimeout(scaleTimer.current);
       scaleTimer.current = window.setTimeout(() => commands.setScale(scale / 100).catch((e) => fail("set_scale", e)), 150);
+    },
+    setEdge: (edge: NotchEdge) => {
+      patch({ edge });
+      commands.setNotchEdge(edge).then(saved, (e) => fail("set_notch_edge", e));
     },
     setFlags: (flags: UiFlags) => {
       patch({ flags });

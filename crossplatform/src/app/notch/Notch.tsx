@@ -9,11 +9,14 @@ import { ScaleSlider } from "@/components/notch/ScaleSlider";
 import { NoticeToast } from "@/components/notch/NoticeToast";
 import type { ActivityArcState } from "@/components/notch/ActivityArc";
 import { commands, events, type ProviderId, type Slot } from "@/libs/ipc";
-import { notchWindowHeight, providerName } from "@/libs/usage";
+import { notchWindowLength, providerName } from "@/libs/usage";
+import { alongEdge, isHorizontal, shellPlacement } from "@/libs/notch-edge";
 import { useNotchData, type NotchData } from "./useNotchData";
 
-/** The window's designed width; a WebView that picked another monitor's DPR is zoomed back to it */
-const DESIGN_W = 340;
+/** The window's designed depth away from the edge (notch/mod.rs COLUMN_DEPTH, ROW_DEPTH); a
+ * WebView that picked another monitor's DPR is zoomed back to it. The length along the edge
+ * grows with the pill, so only the depth says what the DPR did. */
+const DESIGN_DEPTH = { column: 340, row: 380 };
 /** The grace for crossing the gap between card and cell (upstream motion rule) */
 const GRACE_MS = 250;
 /** Press and move further than this and it is a drag, not a click */
@@ -66,7 +69,7 @@ export default function Notch() {
   const root = useRef<HTMLDivElement>(null);
   const shell = useRef<HTMLDivElement>(null);
   const cardWrap = useRef<HTMLDivElement>(null);
-  const [hover, setHover] = useState<{ id: ProviderId; y: number } | null>(null);
+  const [hover, setHover] = useState<{ id: ProviderId; along: number } | null>(null);
   const [atShell, setAtShell] = useState(false);
   const [dragging, setDragging] = useState(false);
   const hideTimer = useRef<number>(undefined);
@@ -111,16 +114,19 @@ export default function Notch() {
     return () => cancelAnimationFrame(frame);
   }, [reportHot, hover, collapsed, data.scale, data.usage, data.slots, data.sessions]);
 
-  // ---- window height: grows when the pill does not fit the 460 px minimum ---------------------
+  // ---- window length: grows when the pill does not fit the minimum along its edge -------------
   const ringCount = ready ? cells(data).length : 0;
   useEffect(() => {
-    if (ringCount) commands.setNotchHeight(notchWindowHeight(ringCount, data.scale / 100)).catch(() => {});
-  }, [ringCount, data.scale]);
+    if (ringCount) commands.setNotchLength(notchWindowLength(data.edge, ringCount, data.scale / 100)).catch(() => {});
+  }, [ringCount, data.scale, data.edge]);
 
   // ---- DPR fit ---------------------------------------------------------------------------------
+  // The edge changes while the page lives (Settings, tray); the resize listener reads it from here
+  const edgeRef = useRef(data.edge);
+  edgeRef.current = data.edge;
   useLayoutEffect(() => {
     const fit = () => {
-      const z = window.innerWidth / DESIGN_W;
+      const z = isHorizontal(edgeRef.current) ? window.innerHeight / DESIGN_DEPTH.row : window.innerWidth / DESIGN_DEPTH.column;
       document.documentElement.style.zoom = Math.abs(z - 1) > 0.02 ? String(z) : "";
       commands.reportDpr(window.devicePixelRatio || 1, window.innerWidth, window.innerHeight).catch(() => {});
     };
@@ -148,9 +154,8 @@ export default function Notch() {
   const enterCell = (id: ProviderId, el: HTMLElement) => {
     if (dragging) return;
     keep();
-    const r = el.getBoundingClientRect();
-    const top = root.current?.getBoundingClientRect().top ?? 0;
-    setHover({ id, y: r.top + r.height / 2 - top });
+    if (!root.current) return;
+    setHover({ id, along: alongEdge(data.edge, el.getBoundingClientRect(), root.current.getBoundingClientRect()) });
   };
 
   // Rust's watchdog (cursor left, focus or workspace changed) collapses it from outside
@@ -218,7 +223,7 @@ export default function Notch() {
     <div ref={root} className="fixed inset-0 overflow-hidden select-none" onPointerLeave={() => open && scheduleHide()}>
       <div
         ref={shell}
-        className="absolute top-1/2 right-0 -translate-y-1/2"
+        className={shellPlacement[data.edge]}
         onPointerEnter={() => {
           keep();
           setAtShell(true);
@@ -230,7 +235,7 @@ export default function Notch() {
           press.current = { x: e.clientX, y: e.clientY, id: (cell?.dataset.provider as ProviderId) ?? hover?.id ?? null };
         }}
       >
-        <NotchShell collapsed={collapsed} scale={data.scale / 100} instant={first.current}>
+        <NotchShell edge={data.edge} collapsed={collapsed} scale={data.scale / 100} instant={first.current}>
           {shown.map((s) => {
             const id = s.provider as ProviderId;
             const snapshot = snapshotOf(id);
@@ -245,7 +250,7 @@ export default function Notch() {
       </div>
 
       <div ref={cardWrap} onPointerEnter={keep} onPointerLeave={() => scheduleHide()}>
-        <HoverCard open={!!card} anchorY={hover?.y ?? 230}>
+        <HoverCard open={!!card} edge={data.edge} anchor={hover?.along ?? 230}>
           {hover && card && (
             <>
               <CardHeader name={providerName[hover.id]} glyph={data.glyphs[hover.id]} fallback={hover.id === "gemini" ? "Ag" : hover.id[0].toUpperCase()} note={card.note} />

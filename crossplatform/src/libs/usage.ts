@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { LimitWindow, ProviderId, UsageSnapshot } from "@/libs/ipc";
+import { isHorizontal, type NotchEdge } from "@/libs/notch-edge";
 
 /**
  * The colour band a fraction used falls in. Thresholds are the official app's (UsageBand.swift):
@@ -63,13 +64,14 @@ export function formatReset(resetsAt: number | null, now: number, t: TFunction, 
 }
 
 /**
- * Logical height the notch window needs for `cells` rings at `scale` (0.4 to 1): the open pill
- * with its fillets, from the frame geometry in tokens.css, plus an 8 px margin top and bottom.
- * A cell is the ring, the label gap and the 14 px percent line. Five rings at 100 % need ~605 px,
- * more than the 460 px minimum, so the window grows (`set_notch_height`).
+ * Logical length the notch window needs along its edge for `cells` rings at `scale` (0.4 to 1):
+ * the open pill with its fillets, from NotchShell's geometry, plus an 8 px margin at each end.
+ * In a column a cell is the ring, the label gap and the 14 px percent line; in a row (top and
+ * bottom edges) it is only the ring's width. Five rings at 100 % in a column need ~605 px, more
+ * than the 460 px minimum, so the window grows (`set_notch_length`); a row fits the 520 px one.
  */
-export function notchWindowHeight(cells: number, scale: number): number {
-  const cell = 44 + 10.1 + 14;
-  const pill = 26.1 + 18.8 + cells * cell + Math.max(0, cells - 1) * 31.4;
+export function notchWindowLength(edge: NotchEdge, cells: number, scale: number): number {
+  const gaps = Math.max(0, cells - 1);
+  const pill = isHorizontal(edge) ? 24 + 24 + cells * 44 + gaps * 22 : 26.1 + 18.8 + cells * (44 + 10.1 + 14) + gaps * 31.4;
   return Math.ceil((pill + 2 * 38.7) * scale + 16);
 }

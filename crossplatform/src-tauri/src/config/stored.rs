@@ -1,7 +1,7 @@
 //! `config.json` exactly as it sits on disk. The model can change freely; this shape only
 //! changes through a migration.
 
-use super::model::{Config, Slot, Theme, TrayMode, DEFAULT_PORT};
+use super::model::{Config, NotchEdge, Slot, Theme, TrayMode, DEFAULT_PORT};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
@@ -25,6 +25,9 @@ pub struct StoredConfig {
     pub theme: Option<String>,
     #[serde(default = "default_notch_y")]
     pub notch_y: f64,
+    /// Absent means "right", and "right" is never written, like `theme`
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub notch_edge: Option<String>,
     #[serde(default = "default_scale")]
     pub scale: f64,
     #[serde(default = "default_tray_mode")]
@@ -78,6 +81,7 @@ impl From<StoredConfig> for Config {
             lang: s.lang,
             theme: s.theme.as_deref().map(Theme::parse).unwrap_or_default(),
             notch_y: s.notch_y,
+            notch_edge: s.notch_edge.as_deref().map(NotchEdge::parse).unwrap_or_default(),
             scale: s.scale,
             tray_mode: TrayMode::parse(&s.tray_mode),
             tray_slots: slots_in(s.tray_slots),
@@ -98,6 +102,7 @@ impl From<Config> for StoredConfig {
             lang: c.lang,
             theme: (c.theme != Theme::System).then(|| c.theme.as_str().into()),
             notch_y: c.notch_y,
+            notch_edge: (c.notch_edge != NotchEdge::Right).then(|| c.notch_edge.as_str().into()),
             scale: c.scale,
             tray_mode: c.tray_mode.as_str().into(),
             tray_slots: slots_out(c.tray_slots),

@@ -1,9 +1,9 @@
 //! Actions shared by commands, the tray menu and setup: they touch windows and the tray, so they
 //! live here, next to the AppHandle.
 
-use super::events::{LangChanged, PointerLeft};
+use super::events::{LangChanged, NotchEdgeChanged, PointerLeft};
 use super::state::AppState;
-use crate::config::{Slot, TrayMode};
+use crate::config::{NotchEdge, Slot, TrayMode};
 use crate::platform::{Platform, Window};
 use crate::providers::ProviderId;
 use crate::tray::{menu, readings, render};
@@ -16,10 +16,30 @@ pub const SETTINGS: &str = "settings";
 
 pub fn place_notch(app: &AppHandle) {
     let st = app.state::<AppState>();
-    let ratio = st.config.lock().unwrap().notch_y;
+    let (edge, ratio) = {
+        let c = st.config.lock().unwrap();
+        (c.notch_edge, c.notch_y)
+    };
     if let Some(w) = app.get_webview_window(NOTCH) {
-        crate::notch::placement::place(&w, ratio, st.notch.height());
+        crate::notch::placement::place(&w, edge, ratio, st.notch.length(edge));
     }
+}
+
+/// Moves the notch to another screen edge, from Settings or the tray. The length the page asked
+/// for was for the old orientation, so it starts from the minimum until the page asks again; the
+/// card closes, since it was laid out for the old edge.
+pub fn set_notch_edge(app: &AppHandle, edge: NotchEdge) {
+    let st = app.state::<AppState>();
+    let was = st.update_config(|c| std::mem::replace(&mut c.notch_edge, edge));
+    if was == edge {
+        return;
+    }
+    *st.notch.length.lock().unwrap() = 0.0;
+    st.notch.expanded.store(false, Ordering::Relaxed);
+    let _ = PointerLeft.emit(app);
+    place_notch(app);
+    let _ = NotchEdgeChanged(edge).emit(app);
+    menu::refresh(app);
 }
 
 /// Puts the two visibility switches into effect.
@@ -102,7 +122,7 @@ pub fn repaint_tray(app: &AppHandle) {
 pub fn apply_lang(app: &AppHandle, lang: String) {
     let st = app.state::<AppState>();
     st.update_config(|c| c.lang = lang.clone());
-    menu::refresh(app, lang.clone());
+    menu::refresh(app);
     let _ = LangChanged { resolved: crate::i18n::resolve(&lang).into(), lang }.emit(app);
 }
 
