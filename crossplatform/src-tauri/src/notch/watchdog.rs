@@ -12,10 +12,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 /// Also gates whether a click reaches the notch on Windows; at 150 ms a click in the wrong
-/// sample went to the window behind
-const TICK: Duration = Duration::from_millis(50);
-/// How long outside before the card closes
-const LEAVE_MS: u64 = 300;
+/// sample went to the window behind. 25 ms, so the centre widget goes back behind the windows
+/// as soon as the pointer has left it.
+const TICK: Duration = Duration::from_millis(25);
+/// How long outside before the card closes (the user's choice: 300 ms kept the widget over the
+/// windows noticeably after the pointer had gone)
+const LEAVE_MS: u64 = 100;
 
 pub fn start(w: tauri::WebviewWindow, state: Arc<NotchState>, pointer_left: impl Fn() + Send + 'static) {
     std::thread::Builder::new()
