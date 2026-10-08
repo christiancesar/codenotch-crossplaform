@@ -95,6 +95,11 @@ impl Executables for Platform {
     fn exe_names(&self, base: &str) -> Vec<String> {
         vec![format!("{base}.exe"), format!("{base}.cmd")]
     }
+    fn hide_console(&self, cmd: &mut std::process::Command) {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
 }
 
 impl Window for Platform {

@@ -2,8 +2,10 @@ use crate::support::time::now_ms;
 
 pub struct Credential {
     pub token: String,
-    /// The file's own expiry says it is past. Only a hint for the note: Claude Code refreshes
-    /// the token on its next use, and the server is the judge.
+    /// Epoch ms; None when the file names no expiry
+    pub expires_at: Option<u64>,
+    /// Past `expires_at`. The usage endpoint answers such a token with 429 and a Retry-After of
+    /// about an hour, not 401, so it must never be sent: it reads as an hour-long rate limit.
     pub expired: bool,
 }
 
@@ -13,16 +15,20 @@ pub fn read() -> Option<Credential> {
     let home = dirs::home_dir()?;
     [".credentials.json", "credentials.json"]
         .into_iter()
-        .find_map(|name| std::fs::read_to_string(home.join(".claude").join(name)).ok())
-        .and_then(|text| from_json(&text, now_ms()))
+        .filter_map(|name| std::fs::read_to_string(home.join(".claude").join(name)).ok())
+        .find_map(|text| from_json(&text, now_ms()))
 }
 
 fn from_json(text: &str, now: u64) -> Option<Credential> {
     let v: serde_json::Value = serde_json::from_str(text).ok()?;
     let oauth = v.get("claudeAiOauth").unwrap_or(&v);
     let token = oauth.get("accessToken")?.as_str()?.to_string();
-    let expired = oauth.get("expiresAt").and_then(|x| x.as_f64()).map(|ms| (ms as u64) <= now).unwrap_or(false);
-    Some(Credential { token, expired })
+    // An empty token is signed out, not a credential
+    if token.trim().is_empty() {
+        return None;
+    }
+    let expires_at = oauth.get("expiresAt").and_then(|x| x.as_f64()).map(|ms| ms as u64);
+    Some(Credential { token, expires_at, expired: expires_at.is_some_and(|e| e <= now) })
 }
 
 /// For doctor: never prints the token, only its length.
@@ -49,5 +55,6 @@ mod tests {
         assert!(from_json(nested, 2000).unwrap().expired);
         assert_eq!(from_json(r#"{"accessToken":"t2"}"#, 0).unwrap().token, "t2");
         assert!(from_json(r#"{"other":1}"#, 0).is_none());
+        assert!(from_json(r#"{"claudeAiOauth":{"accessToken":" "}}"#, 0).is_none(), "signed out");
     }
 }

@@ -59,6 +59,9 @@ pub trait Executables {
     /// `codex` on Linux.
     fn exe_names(&self, base: &str) -> Vec<String>;
 
+    /// A console tool started from the app must not flash a window (Windows); a no-op elsewhere.
+    fn hide_console(&self, _cmd: &mut std::process::Command) {}
+
     /// First match for `base` on PATH.
     fn find_on_path(&self, base: &str) -> Option<std::path::PathBuf> {
         let path = std::env::var_os("PATH")?;
