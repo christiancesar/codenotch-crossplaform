@@ -38,7 +38,15 @@ fn broadcast_sessions(app: &AppHandle) {
 pub fn start_sessions(app: &AppHandle, port: u16) {
     let a = app.clone();
     let sink: hook_server::Sink = Arc::new(move |ev: HookEvent| {
+        // The first pushes go to watch.log so `doctor` can tell "nothing arrived" from "arrived
+        // but was not shown"; then silence, to keep the log small
+        static LOGGED: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        let line = (LOGGED.fetch_add(1, std::sync::atomic::Ordering::Relaxed) < 30)
+            .then(|| format!("push {} src={:?} session={} cwd={}", ev.e, ev.src, ev.session_id, ev.cwd));
         let changed = a.state::<AppState>().sessions.lock().unwrap().apply(ev, crate::support::time::now_ms());
+        if let Some(line) = line {
+            crate::diagnostics::watch_log(&format!("{line} changed={changed}"));
+        }
         if changed {
             broadcast_sessions(&a);
         }
