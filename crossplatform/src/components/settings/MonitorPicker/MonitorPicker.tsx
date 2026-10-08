@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { NotchPosition } from "@/libs/notch-edge";
+import { CircleCheckIcon } from "lucide-react";
+import type { NotchEdge, NotchPosition } from "@/libs/notch-edge";
 import { effectiveMonitor, inReadingOrder, layOut, type MonitorInfo } from "@/libs/monitors";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -20,9 +21,9 @@ const BOX_H = 168;
 /** Below this a tile shows only its number */
 const ROOM_FOR_DETAILS = 92;
 
-/** The notch's mark on a tile: a short bar against the chosen edge, centred along it; a dot for the widget in the centre */
-const mark: Record<NotchPosition, string> = {
-  center: "top-1/2 left-1/2 size-1.5 -translate-1/2",
+/** The notch's mark on a tile: a short bar against the chosen edge, centred along it. The centre
+ * widget gets none: a dot there sat on the screen's number. */
+const mark: Record<NotchEdge, string> = {
   right: "right-0.5 top-1/2 h-1/4 w-1 -translate-y-1/2",
   left: "left-0.5 top-1/2 h-1/4 w-1 -translate-y-1/2",
   top: "top-0.5 left-1/2 w-1/4 h-1 -translate-x-1/2",
@@ -31,8 +32,8 @@ const mark: Record<NotchPosition, string> = {
 
 /**
  * The connected screens drawn the way they are arranged on the desk, like the OS's display
- * settings: click one to put the notch on it. Numbered left to right. The chosen screen carries
- * the notch's mark on its edge; a stored screen that is not connected falls back to the primary,
+ * settings: click one to put the notch on it. Numbered left to right. The chosen screen carries a
+ * check and the notch's mark on its edge; a stored screen that is not connected falls back to the primary,
  * and the note says so.
  */
 export function MonitorPicker({ monitors, selected, onSelect, edge }: MonitorPickerProps) {
@@ -90,7 +91,9 @@ export function MonitorPicker({ monitors, selected, onSelect, edge }: MonitorPic
               )}
               <span className={cn("font-semibold tabular-nums", h >= 48 ? "text-xl" : "text-sm")}>{n}</span>
               {w >= ROOM_FOR_DETAILS && h >= 48 && <span className="text-[10px] text-muted-foreground tabular-nums">{details}</span>}
-              {on && <span aria-hidden className={cn("absolute rounded-full bg-foreground", mark[edge])} />}
+              {/* The chosen one, said in the colour of good news; aria-checked says it to a screen reader */}
+              {on && <CircleCheckIcon aria-hidden className="absolute top-1.5 right-1.5 size-4 text-band-ample" />}
+              {on && edge !== "center" && <span aria-hidden className={cn("absolute rounded-full bg-foreground", mark[edge])} />}
             </button>
           );
         })}
