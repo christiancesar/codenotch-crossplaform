@@ -178,6 +178,31 @@ Checked on Windows 11, where 0.4.0 showed no sessions and no Claude usage:
 - Cutover: `crossplatform-v2/` became `crossplatform/`, and `cross-platform/` (the v0.3
   reference app, the spec, plans and notes) was removed; tag `archive/v0.3-reference` has it.
 
+## OpenCode 2
+
+OpenCode 2 (`@opencode/cli`, 2.x) is a separate package from the 1.x `opencode-ai` line the
+app was written against, and it changes what the app reads:
+
+- Sessions moved to `session_v2`, and the V2 database keeps the pre-upgrade `session` table
+  as a snapshot. Queries now resolve the table per connection, so the tally and the activity
+  list follow the upgrade without dropping an install that has not migrated yet.
+- The token tally adds `tokens_reasoning`, which is a separate column and not part of output
+  (a real session shows more reasoning than output). Cache reads and writes stay out: one day
+  of cache reads measured 14 M against 0.5 M of real tokens, since every step re-reads the
+  same context, so including them would make the number meaningless.
+- Credentials moved from `auth.json` to `account.json` (accounts keyed by id, `active` naming
+  the one per service). The Go key is read from there first, then from `auth.json` for
+  installs that never signed in again.
+
+The Go usage endpoint did not change: `opencode.ai/zen/go/v1/usage`.
+
+Free model ids are curated and churn: `hy3-free`, `ling-3.0-tiny-free`, `mimo-v2.5-free` and
+`muse-spark-1.2-contributor-free` are gone from the catalog. Current free ids are `big-pickle`,
+`beam-free`, `flint-40b-free`, `mimo-v2.6-flash-free`, `nemotron-3.5-lightning-free`,
+`nemotron-3.5-super-vl-free`, `deepseek-v4.1-flash-free`, `glm-5.3-flash-free` and
+`pulse-alpha-free`; `glm-5.3-flash-free` and `deepseek-v4.1-flash-free` are the zero-retention,
+no-training ones.
+
 ## Open decisions
 
 - Design-system open table (`design-system.md`, end): frame sizes vs v0.3 web sizes, card
