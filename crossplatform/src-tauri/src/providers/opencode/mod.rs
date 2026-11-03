@@ -1,7 +1,7 @@
 //! OpenCode. OpenCode has no quota of its own (Zen is prepaid credit, BYOK limits belong to the
 //! key's provider), with one exception: the Go subscription, whose rolling 5h / weekly / monthly
 //! percent windows come from `opencode.ai/zen/go/v1/usage` with the `opencode-go` key in
-//! OpenCode's own auth.json. Everyone else gets a derived token tally from the local
+//! OpenCode's own credential file. Everyone else gets a derived token tally from the local
 //! `opencode.db`, marked as ours. The DB's account and credential tables are never read.
 
 mod activity;
@@ -9,10 +9,29 @@ mod go;
 mod tally;
 
 use super::{Activity, FetchError, ProviderId, Reading, UsageProvider};
-use crate::support::sqlite::LiveQuery;
+use crate::support::sqlite::{has_table, LiveQuery};
+use rusqlite::Connection;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
-use crate::support::sqlite::open_ro;
-use std::path::PathBuf;
+
+/// V2 renamed the sessions table to `session_v2`; a database the V1 CLI wrote keeps `session`.
+/// The columns read here are the same in both, so only the name has to be resolved.
+const V2_TABLE: &str = "session_v2";
+const V1_TABLE: &str = "session";
+
+pub(super) fn table(conn: &Connection) -> &'static str {
+    if has_table(conn, V2_TABLE) {
+        V2_TABLE
+    } else {
+        V1_TABLE
+    }
+}
+
+/// Open whichever of the two generations the database carries. Nothing is written, so a V1
+/// install keeps working after the user upgrades the CLI and before it migrates the file.
+pub(super) fn open_sessions(path: &Path) -> Option<Connection> {
+    crate::support::sqlite::open_ro(path, V2_TABLE).filter(|c| has_table(c, table(c)))
+}
 
 pub struct OpenCode {
     activity: Mutex<LiveQuery<Vec<Activity>>>,
@@ -33,7 +52,7 @@ fn db_path() -> Option<PathBuf> {
 }
 
 fn tally() -> Result<Reading, FetchError> {
-    let conn = db_path().and_then(|p| open_ro(&p, "session")).ok_or(FetchError::Absent)?;
+    let conn = db_path().and_then(|p| open_sessions(&p)).ok_or(FetchError::Absent)?;
     tally::reading(&conn, crate::support::time::now_ms())
         .ok_or_else(|| FetchError::Other("Could not read opencode.db".into()))
 }
@@ -77,8 +96,8 @@ impl UsageProvider for OpenCode {
         if !p.is_file() {
             return format!("OpenCode: {} not found (not installed)", p.display());
         }
-        match open_ro(&p, "session") {
-            Some(_) => format!("OpenCode: {} opened read-only", p.display()),
+        match open_sessions(&p) {
+            Some(c) => format!("OpenCode: {} opened read-only ({})", p.display(), table(&c)),
             None => format!("OpenCode: {} exists but could not be opened read-only", p.display()),
         }
     }
