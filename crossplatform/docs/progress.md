@@ -194,7 +194,9 @@ app was written against, and it changes what the app reads:
   the one per service). The Go key is read from there first, then from `auth.json` for
   installs that never signed in again.
 
-The Go usage endpoint did not change: `opencode.ai/zen/go/v1/usage`.
+The Go usage endpoint did not change: `opencode.ai/zen/go/v1/usage`. A key the API rejects
+(401, `api_key_expired` once the console-side key has been rotated) is reported with its reason
+rather than a status code, and the card falls back to the local tally.
 
 Free model ids are curated and churn: `hy3-free`, `ling-3.0-tiny-free`, `mimo-v2.5-free` and
 `muse-spark-1.2-contributor-free` are gone from the catalog. Current free ids are `big-pickle`,
