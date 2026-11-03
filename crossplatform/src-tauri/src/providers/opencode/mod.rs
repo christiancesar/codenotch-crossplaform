@@ -57,6 +57,12 @@ fn tally() -> Result<Reading, FetchError> {
         .ok_or_else(|| FetchError::Other("Could not read opencode.db".into()))
 }
 
+/// V2 keeps credentials in `account.json`; `auth.json` is what V1 wrote. The old file lingers
+/// after an upgrade, so it is only read when the new one has nothing for Go.
+fn go_key(dir: &Path) -> Option<String> {
+    go::read_key(&dir.join("account.json")).or_else(|| go::read_auth_key(&dir.join("auth.json")))
+}
+
 impl UsageProvider for OpenCode {
     fn id(&self) -> ProviderId {
         ProviderId::Opencode
@@ -75,7 +81,7 @@ impl UsageProvider for OpenCode {
         if !db_path().map(|p| p.is_file()).unwrap_or(false) {
             return Err(FetchError::Absent);
         }
-        let Some(key) = data_dir().and_then(|d| go::read_key(&d.join("auth.json"))) else {
+        let Some(key) = data_dir().and_then(|d| go_key(&d)) else {
             return tally();
         };
         match go::fetch(&key) {

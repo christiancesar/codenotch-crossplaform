@@ -12,8 +12,27 @@ pub enum Error {
     Other(String),
 }
 
-/// The `opencode-go` entry's key only; other entries in auth.json are never touched.
-pub fn read_key(auth: &Path) -> Option<String> {
+/// The `opencode-go` entry's key only; other entries in the credential file are never touched.
+///
+/// V2 writes `account.json`, keyed by account id with an `active` map per service. The active
+/// entry is the one to use; falling back to the first Go account covers a file whose `active`
+/// entry was dropped while the account itself stayed.
+pub fn read_key(account: &Path) -> Option<String> {
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(account).ok()?).ok()?;
+    let accounts = v.get("accounts")?.as_object()?;
+    let active = v.get("active").and_then(|a| a.get("opencode-go")).and_then(|a| a.as_str());
+    active
+        .and_then(|id| accounts.get(id))
+        .or_else(|| accounts.values().find(|a| a.get("serviceID").and_then(|s| s.as_str()) == Some("opencode-go")))
+        .and_then(|a| a.get("credential"))
+        .and_then(|c| c.get("key"))
+        .and_then(|k| k.as_str())
+        .map(String::from)
+}
+
+/// What the V1 CLI wrote: one flat entry per provider. Still read because the file survives the
+/// upgrade and is the only source until the user signs in again.
+pub fn read_auth_key(auth: &Path) -> Option<String> {
     let v: Value = serde_json::from_str(&std::fs::read_to_string(auth).ok()?).ok()?;
     v.get("opencode-go")?.get("key")?.as_str().map(String::from)
 }
@@ -88,8 +107,39 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let p = dir.path().join("auth.json");
         std::fs::write(&p, r#"{"google":{"type":"oauth","access":"x"},"opencode-go":{"type":"api","key":"sk-test123"}}"#).unwrap();
-        assert_eq!(read_key(&p).as_deref(), Some("sk-test123"));
+        assert_eq!(read_auth_key(&p).as_deref(), Some("sk-test123"));
         std::fs::write(&p, r#"{"google":{"key":"x"}}"#).unwrap();
+        assert_eq!(read_auth_key(&p), None);
+    }
+
+    /// The V2 shape, with a second account that must not win.
+    #[test]
+    fn the_account_file_yields_the_active_go_key() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("account.json");
+        std::fs::write(
+            &p,
+            r#"{"version":2,"accounts":{
+                 "a1":{"id":"a1","serviceID":"opencode","credential":{"type":"api","key":"sk-paid"}},
+                 "a2":{"id":"a2","serviceID":"opencode-go","credential":{"type":"api","key":"sk-go"}}},
+               "active":{"opencode-go":"a2","opencode":"a1"}}"#,
+        )
+        .unwrap();
+        assert_eq!(read_key(&p).as_deref(), Some("sk-go"));
+    }
+
+    /// No `active` entry left: the subscription is still in the file, so its key is used.
+    #[test]
+    fn a_go_account_is_found_without_an_active_entry() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("account.json");
+        std::fs::write(
+            &p,
+            r#"{"version":2,"accounts":{"a2":{"id":"a2","serviceID":"opencode-go","credential":{"type":"api","key":"sk-go"}}}}"#,
+        )
+        .unwrap();
+        assert_eq!(read_key(&p).as_deref(), Some("sk-go"));
+        std::fs::write(&p, r#"{"version":2,"accounts":{},"active":{}}"#).unwrap();
         assert_eq!(read_key(&p), None);
     }
 }
