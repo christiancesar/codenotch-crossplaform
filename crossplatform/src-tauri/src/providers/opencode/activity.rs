@@ -9,7 +9,7 @@ const FRESH_MS: u64 = 90_000;
 
 pub fn query(conn: &Connection, now: u64) -> Option<Vec<Activity>> {
     let mut stmt = conn
-        .prepare("SELECT title, time_updated, time_compacting FROM session WHERE time_archived IS NULL ORDER BY time_updated DESC LIMIT 20")
+        .prepare("SELECT title, time_updated, time_compacting FROM session_v2 WHERE time_archived IS NULL ORDER BY time_updated DESC LIMIT 20")
         .ok()?;
     let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?, r.get::<_, Option<i64>>(2)?))).ok()?;
     let mut out: Vec<Activity> = rows
@@ -37,14 +37,16 @@ mod tests {
     #[test]
     fn fresh_and_compacting_sessions_are_busy() {
         let c = Connection::open_in_memory().unwrap();
-        c.execute_batch("CREATE TABLE session (title TEXT, time_updated INTEGER, time_compacting INTEGER, time_archived INTEGER);").unwrap();
+        c.execute_batch("CREATE TABLE session_v2 (title TEXT, time_updated INTEGER, time_compacting INTEGER, time_archived INTEGER);").unwrap();
         let now = 1_000_000i64;
         c.execute(
-            "INSERT INTO session VALUES ('live', ?1, NULL, NULL), ('', 0, 5, NULL), ('old', 0, NULL, NULL), ('gone', ?1, NULL, 9)",
+            "INSERT INTO session_v2 VALUES ('live', ?1, NULL, NULL), ('', 0, 5, NULL), ('old', 0, NULL, NULL), ('gone', ?1, NULL, 9)",
             [now - 1_000],
         )
         .unwrap();
         let a = query(&c, now as u64).unwrap();
         assert_eq!(a.iter().map(|x| (x.name.as_str(), x.detail.as_str())).collect::<Vec<_>>(), vec![("live", "Working"), ("OpenCode", "Compacting")]);
     }
+
+
 }
