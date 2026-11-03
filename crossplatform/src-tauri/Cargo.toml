@@ -1,6 +1,6 @@
 [package]
 name = "codenotch"
-version = "0.4.1"
+version = "0.4.2"
 description = "Usage notch for Claude, Codex, Cursor, Antigravity and OpenCode"
 license = "MIT"
 edition = "2021"
