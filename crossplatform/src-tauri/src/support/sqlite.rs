@@ -29,12 +29,6 @@ fn immutable_uri(path: &Path) -> String {
     format!("file:///{}?immutable=1", p.trim_start_matches('/').replace('#', "%23").replace('?', "%3F"))
 }
 
-/// Another app's schema changes between its own versions; the caller asks this before writing a
-/// query against a table it may not have.
-pub fn has_table(c: &Connection, table: &str) -> bool {
-    c.query_row("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1", [table], |_| Ok(())).is_ok()
-}
-
 /// A plain read-only connection that sees the WAL (immutable would show the world as of the last
 /// checkpoint, wrong for live state).
 pub fn open_live(path: &Path) -> Option<Connection> {

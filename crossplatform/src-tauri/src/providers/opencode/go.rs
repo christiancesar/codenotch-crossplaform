@@ -43,12 +43,6 @@ pub fn read_key(account: &Path) -> Option<String> {
         .map(String::from)
 }
 
-/// What the V1 CLI wrote: one flat entry per provider. Still read because the file survives the
-/// upgrade and is the only source until the user signs in again.
-pub fn read_auth_key(auth: &Path) -> Option<String> {
-    let v: Value = serde_json::from_str(&std::fs::read_to_string(auth).ok()?).ok()?;
-    v.get("opencode-go")?.get("key")?.as_str().map(String::from)
-}
 
 /// `usage.{rolling,weekly,monthly}`, each `{status, percent, resetsAt}`.
 pub fn windows(v: &Value) -> Vec<LimitWindow> {
@@ -128,16 +122,6 @@ mod tests {
         assert_eq!(rejected_reason(&body), "the key expired; create a new one in the OpenCode console");
         assert_eq!(rejected_reason(&serde_json::json!({"error":{"code":"api_key_revoked"}})), "api_key_revoked");
         assert_eq!(rejected_reason(&serde_json::json!({"unexpected":true})), "the key was rejected");
-    }
-
-    #[test]
-    fn only_the_go_entry_is_read() {
-        let dir = tempfile::tempdir().unwrap();
-        let p = dir.path().join("auth.json");
-        std::fs::write(&p, r#"{"google":{"type":"oauth","access":"x"},"opencode-go":{"type":"api","key":"sk-test123"}}"#).unwrap();
-        assert_eq!(read_auth_key(&p).as_deref(), Some("sk-test123"));
-        std::fs::write(&p, r#"{"google":{"key":"x"}}"#).unwrap();
-        assert_eq!(read_auth_key(&p), None);
     }
 
     /// The V2 shape, with a second account that must not win.

@@ -2,18 +2,15 @@
 //! every step), compacting counts too, archived sessions never do. OpenCode records no "waiting
 //! on you" signal.
 
-use crate::providers::opencode::table;
 use crate::providers::{Activity, ActivityState, ProviderId};
 use rusqlite::Connection;
 
 const FRESH_MS: u64 = 90_000;
 
 pub fn query(conn: &Connection, now: u64) -> Option<Vec<Activity>> {
-    let sql = format!(
-        "SELECT title, time_updated, time_compacting FROM {} WHERE time_archived IS NULL ORDER BY time_updated DESC LIMIT 20",
-        table(conn)
-    );
-    let mut stmt = conn.prepare(&sql).ok()?;
+    let mut stmt = conn
+        .prepare("SELECT title, time_updated, time_compacting FROM session_v2 WHERE time_archived IS NULL ORDER BY time_updated DESC LIMIT 20")
+        .ok()?;
     let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?, r.get::<_, Option<i64>>(2)?))).ok()?;
     let mut out: Vec<Activity> = rows
         .flatten()
@@ -51,14 +48,5 @@ mod tests {
         assert_eq!(a.iter().map(|x| (x.name.as_str(), x.detail.as_str())).collect::<Vec<_>>(), vec![("live", "Working"), ("OpenCode", "Compacting")]);
     }
 
-    /// A database the V1 CLI wrote must still list its sessions.
-    #[test]
-    fn the_v1_table_is_read_too() {
-        let c = Connection::open_in_memory().unwrap();
-        c.execute_batch("CREATE TABLE session (title TEXT, time_updated INTEGER, time_compacting INTEGER, time_archived INTEGER);").unwrap();
-        c.execute("INSERT INTO session VALUES ('v1', ?1, NULL, NULL)", [999_500i64]).unwrap();
-        let a = query(&c, 1_000_000).unwrap();
-        assert_eq!(a.len(), 1);
-        assert_eq!(a[0].name, "v1");
-    }
+
 }

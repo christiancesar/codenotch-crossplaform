@@ -9,28 +9,15 @@ mod go;
 mod tally;
 
 use super::{Activity, FetchError, ProviderId, Reading, UsageProvider};
-use crate::support::sqlite::{has_table, LiveQuery};
+use crate::support::sqlite::LiveQuery;
 use rusqlite::Connection;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
-/// V2 renamed the sessions table to `session_v2`; a database the V1 CLI wrote keeps `session`.
-/// The columns read here are the same in both, so only the name has to be resolved.
-const V2_TABLE: &str = "session_v2";
-const V1_TABLE: &str = "session";
+const SESSION_TABLE: &str = "session_v2";
 
-pub(super) fn table(conn: &Connection) -> &'static str {
-    if has_table(conn, V2_TABLE) {
-        V2_TABLE
-    } else {
-        V1_TABLE
-    }
-}
-
-/// Open whichever of the two generations the database carries. Nothing is written, so a V1
-/// install keeps working after the user upgrades the CLI and before it migrates the file.
 pub(super) fn open_sessions(path: &Path) -> Option<Connection> {
-    crate::support::sqlite::open_ro(path, V2_TABLE).filter(|c| has_table(c, table(c)))
+    crate::support::sqlite::open_ro(path, SESSION_TABLE)
 }
 
 pub struct OpenCode {
@@ -57,10 +44,8 @@ fn tally() -> Result<Reading, FetchError> {
         .ok_or_else(|| FetchError::Other("Could not read opencode.db".into()))
 }
 
-/// V2 keeps credentials in `account.json`; `auth.json` is what V1 wrote. The old file lingers
-/// after an upgrade, so it is only read when the new one has nothing for Go.
 fn go_key(dir: &Path) -> Option<String> {
-    go::read_key(&dir.join("account.json")).or_else(|| go::read_auth_key(&dir.join("auth.json")))
+    go::read_key(&dir.join("account.json"))
 }
 
 impl UsageProvider for OpenCode {
@@ -110,7 +95,7 @@ impl UsageProvider for OpenCode {
             return format!("OpenCode: {} not found (not installed)", p.display());
         }
         match open_sessions(&p) {
-            Some(c) => format!("OpenCode: {} opened read-only ({})", p.display(), table(&c)),
+            Some(_) => format!("OpenCode: {} opened read-only", p.display()),
             None => format!("OpenCode: {} exists but could not be opened read-only", p.display()),
         }
     }
