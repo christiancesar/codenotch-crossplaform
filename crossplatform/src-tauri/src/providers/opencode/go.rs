@@ -9,7 +9,20 @@ const ENDPOINT: &str = "https://opencode.ai/zen/go/v1/usage";
 pub enum Error {
     /// 403: the key exists but has no Go subscription
     NotGo,
+    /// 401: expired, revoked or mistyped. Nothing retries until the user replaces the key, so the
+    /// caller says so instead of showing a bare status code.
+    KeyRejected(String),
     Other(String),
+}
+
+/// The API answers a dead key with `{"error":{"code":"api_key_expired",...}}`. Only the code is
+/// read: the message is prose meant for a browser, and the code is what tells the cases apart.
+fn rejected_reason(v: &Value) -> String {
+    match v.pointer("/error/code").and_then(|c| c.as_str()) {
+        Some("api_key_expired") => "the key expired; create a new one in the OpenCode console".into(),
+        Some(code) => code.into(),
+        None => "the key was rejected".into(),
+    }
 }
 
 /// The `opencode-go` entry's key only; other entries in the credential file are never touched.
@@ -71,6 +84,10 @@ pub fn fetch(key: &str) -> Result<Vec<LimitWindow>, Error> {
             }
         }
         Err(ureq::Error::Status(403, _)) => Err(Error::NotGo),
+        Err(ureq::Error::Status(401, r)) => {
+            let reason = r.into_json::<Value>().map(|v| rejected_reason(&v)).unwrap_or_else(|_| "the key was rejected".into());
+            Err(Error::KeyRejected(reason))
+        }
         Err(ureq::Error::Status(code, _)) => Err(Error::Other(format!("HTTP {code}"))),
         Err(e) => Err(Error::Other(e.to_string())),
     }
@@ -96,10 +113,21 @@ mod tests {
     }
 
     #[test]
-    fn a_rate_limited_window_is_full_whatever_its_percent() {
-        let body: Value = serde_json::from_str(r#"{"usage":{"rolling":{"status":"rate-limited","percent":83,"resetsAt":"2026-09-16T01:16:22.384Z"}}}"#).unwrap();
+    fn a_rate_limited_window_is_full_whatever_its_percent() {        let body: Value = serde_json::from_str(r#"{"usage":{"rolling":{"status":"rate-limited","percent":83,"resetsAt":"2026-09-16T01:16:22.384Z"}}}"#).unwrap();
         assert_eq!(windows(&body)[0].used, 1.0);
         assert!(windows(&serde_json::json!({"error": {"type": "AuthError"}})).is_empty());
+    }
+
+    /// The exact body the API returned for an expired key on 2026-11-03.
+    #[test]
+    fn an_expired_key_is_explained_not_just_a_status_code() {
+        let body: Value = serde_json::from_str(
+            r#"{"error":{"type":"authentication_error","code":"api_key_expired","message":"This API key has expired."}}"#,
+        )
+        .unwrap();
+        assert_eq!(rejected_reason(&body), "the key expired; create a new one in the OpenCode console");
+        assert_eq!(rejected_reason(&serde_json::json!({"error":{"code":"api_key_revoked"}})), "api_key_revoked");
+        assert_eq!(rejected_reason(&serde_json::json!({"unexpected":true})), "the key was rejected");
     }
 
     #[test]

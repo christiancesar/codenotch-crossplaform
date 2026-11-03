@@ -88,6 +88,13 @@ impl UsageProvider for OpenCode {
             Ok(windows) => Ok(Reading::live(windows, "OpenCode Go")),
             // A key without the Go entitlement: nothing to ask for, not an error
             Err(go::Error::NotGo) => tally(),
+            // A dead key is the user's to fix, and the app would otherwise look like it simply
+            // stopped refreshing the Go windows.
+            Err(go::Error::KeyRejected(why)) => tally().map(|mut r| {
+                r.current = false;
+                r.note = format!("Go key rejected ({why}); showing local token tally");
+                r
+            }),
             Err(go::Error::Other(msg)) => tally().map(|mut r| {
                 r.current = false;
                 r.note = format!("Go usage check failed ({msg}); showing local token tally");
