@@ -4,11 +4,13 @@ use rusqlite::Connection;
 /// "Today" for the tally: a rolling 24 h, since the data carries no timezone for a calendar day.
 const WINDOW_MS: i64 = 24 * 60 * 60 * 1000;
 
-/// Sum of input + output tokens and the latest update across sessions touched in the window.
+/// Input, output and reasoning. Cache reads and writes are left out on purpose: every step
+/// re-reads the same context, so a day of cache reads dwarfs the work done (14 M against 0.5 M
+/// on a real database) and the number would stop meaning anything.
 fn windowed_totals(conn: &Connection, now: u64) -> Option<(i64, u64)> {
     conn.query_row(
-        "SELECT COALESCE(SUM(tokens_input + tokens_output), 0), COALESCE(MAX(time_updated), 0)
-         FROM session WHERE time_updated >= ?1",
+        "SELECT COALESCE(SUM(tokens_input + tokens_output + tokens_reasoning), 0), COALESCE(MAX(time_updated), 0)
+         FROM session_v2 WHERE time_updated >= ?1",
         [now as i64 - WINDOW_MS],
         |r| Ok((r.get::<_, i64>(0)?, r.get::<_, i64>(1)? as u64)),
     )
@@ -39,18 +41,23 @@ pub fn reading(conn: &Connection, now: u64) -> Option<Reading> {
 mod tests {
     use super::*;
 
+    fn db() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("CREATE TABLE session_v2 (id text PRIMARY KEY, time_updated integer NOT NULL, tokens_input integer DEFAULT 0 NOT NULL, tokens_output integer DEFAULT 0 NOT NULL, tokens_reasoning integer DEFAULT 0 NOT NULL);").unwrap();
+        conn
+    }
+
     #[test]
     fn sums_only_sessions_inside_the_window() {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch("CREATE TABLE session (id text PRIMARY KEY, time_updated integer NOT NULL, tokens_input integer DEFAULT 0 NOT NULL, tokens_output integer DEFAULT 0 NOT NULL);").unwrap();
+        let conn = db();
         let now: i64 = 1_791_000_000_000;
         conn.execute(
-            "INSERT INTO session VALUES ('a', ?1, 100, 50), ('b', ?2, 5, 5), ('old', ?3, 999, 999)",
+            "INSERT INTO session_v2 VALUES ('a', ?1, 100, 50, 20), ('b', ?2, 5, 5, 0), ('old', ?3, 999, 999, 999)",
             rusqlite::params![now, now - 1000, now - WINDOW_MS - 1000],
         )
         .unwrap();
         let r = reading(&conn, now as u64).unwrap();
-        assert_eq!(r.windows[0].count, Some(160));
+        assert_eq!(r.windows[0].count, Some(180));
         assert_eq!(r.recorded_at, Some(now as u64));
         assert!(r.windows[0].derived);
     }

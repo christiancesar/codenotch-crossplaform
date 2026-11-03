@@ -9,14 +9,40 @@ const ENDPOINT: &str = "https://opencode.ai/zen/go/v1/usage";
 pub enum Error {
     /// 403: the key exists but has no Go subscription
     NotGo,
+    /// 401: expired, revoked or mistyped. Nothing retries until the user replaces the key, so the
+    /// caller says so instead of showing a bare status code.
+    KeyRejected(String),
     Other(String),
 }
 
-/// The `opencode-go` entry's key only; other entries in auth.json are never touched.
-pub fn read_key(auth: &Path) -> Option<String> {
-    let v: Value = serde_json::from_str(&std::fs::read_to_string(auth).ok()?).ok()?;
-    v.get("opencode-go")?.get("key")?.as_str().map(String::from)
+/// The API answers a dead key with `{"error":{"code":"api_key_expired",...}}`. Only the code is
+/// read: the message is prose meant for a browser, and the code is what tells the cases apart.
+fn rejected_reason(v: &Value) -> String {
+    match v.pointer("/error/code").and_then(|c| c.as_str()) {
+        Some("api_key_expired") => "the key expired; create a new one in the OpenCode console".into(),
+        Some(code) => code.into(),
+        None => "the key was rejected".into(),
+    }
 }
+
+/// The `opencode-go` entry's key only; other entries in the credential file are never touched.
+///
+/// V2 writes `account.json`, keyed by account id with an `active` map per service. The active
+/// entry is the one to use; falling back to the first Go account covers a file whose `active`
+/// entry was dropped while the account itself stayed.
+pub fn read_key(account: &Path) -> Option<String> {
+    let v: Value = serde_json::from_str(&std::fs::read_to_string(account).ok()?).ok()?;
+    let accounts = v.get("accounts")?.as_object()?;
+    let active = v.get("active").and_then(|a| a.get("opencode-go")).and_then(|a| a.as_str());
+    active
+        .and_then(|id| accounts.get(id))
+        .or_else(|| accounts.values().find(|a| a.get("serviceID").and_then(|s| s.as_str()) == Some("opencode-go")))
+        .and_then(|a| a.get("credential"))
+        .and_then(|c| c.get("key"))
+        .and_then(|k| k.as_str())
+        .map(String::from)
+}
+
 
 /// `usage.{rolling,weekly,monthly}`, each `{status, percent, resetsAt}`.
 pub fn windows(v: &Value) -> Vec<LimitWindow> {
@@ -52,6 +78,10 @@ pub fn fetch(key: &str) -> Result<Vec<LimitWindow>, Error> {
             }
         }
         Err(ureq::Error::Status(403, _)) => Err(Error::NotGo),
+        Err(ureq::Error::Status(401, r)) => {
+            let reason = r.into_json::<Value>().map(|v| rejected_reason(&v)).unwrap_or_else(|_| "the key was rejected".into());
+            Err(Error::KeyRejected(reason))
+        }
         Err(ureq::Error::Status(code, _)) => Err(Error::Other(format!("HTTP {code}"))),
         Err(e) => Err(Error::Other(e.to_string())),
     }
@@ -77,19 +107,51 @@ mod tests {
     }
 
     #[test]
-    fn a_rate_limited_window_is_full_whatever_its_percent() {
-        let body: Value = serde_json::from_str(r#"{"usage":{"rolling":{"status":"rate-limited","percent":83,"resetsAt":"2026-09-16T01:16:22.384Z"}}}"#).unwrap();
+    fn a_rate_limited_window_is_full_whatever_its_percent() {        let body: Value = serde_json::from_str(r#"{"usage":{"rolling":{"status":"rate-limited","percent":83,"resetsAt":"2026-09-16T01:16:22.384Z"}}}"#).unwrap();
         assert_eq!(windows(&body)[0].used, 1.0);
         assert!(windows(&serde_json::json!({"error": {"type": "AuthError"}})).is_empty());
     }
 
+    /// The exact body the API returned for an expired key on 2026-11-03.
     #[test]
-    fn only_the_go_entry_is_read() {
+    fn an_expired_key_is_explained_not_just_a_status_code() {
+        let body: Value = serde_json::from_str(
+            r#"{"error":{"type":"authentication_error","code":"api_key_expired","message":"This API key has expired."}}"#,
+        )
+        .unwrap();
+        assert_eq!(rejected_reason(&body), "the key expired; create a new one in the OpenCode console");
+        assert_eq!(rejected_reason(&serde_json::json!({"error":{"code":"api_key_revoked"}})), "api_key_revoked");
+        assert_eq!(rejected_reason(&serde_json::json!({"unexpected":true})), "the key was rejected");
+    }
+
+    /// The V2 shape, with a second account that must not win.
+    #[test]
+    fn the_account_file_yields_the_active_go_key() {
         let dir = tempfile::tempdir().unwrap();
-        let p = dir.path().join("auth.json");
-        std::fs::write(&p, r#"{"google":{"type":"oauth","access":"x"},"opencode-go":{"type":"api","key":"sk-test123"}}"#).unwrap();
-        assert_eq!(read_key(&p).as_deref(), Some("sk-test123"));
-        std::fs::write(&p, r#"{"google":{"key":"x"}}"#).unwrap();
+        let p = dir.path().join("account.json");
+        std::fs::write(
+            &p,
+            r#"{"version":2,"accounts":{
+                 "a1":{"id":"a1","serviceID":"opencode","credential":{"type":"api","key":"sk-paid"}},
+                 "a2":{"id":"a2","serviceID":"opencode-go","credential":{"type":"api","key":"sk-go"}}},
+               "active":{"opencode-go":"a2","opencode":"a1"}}"#,
+        )
+        .unwrap();
+        assert_eq!(read_key(&p).as_deref(), Some("sk-go"));
+    }
+
+    /// No `active` entry left: the subscription is still in the file, so its key is used.
+    #[test]
+    fn a_go_account_is_found_without_an_active_entry() {
+        let dir = tempfile::tempdir().unwrap();
+        let p = dir.path().join("account.json");
+        std::fs::write(
+            &p,
+            r#"{"version":2,"accounts":{"a2":{"id":"a2","serviceID":"opencode-go","credential":{"type":"api","key":"sk-go"}}}}"#,
+        )
+        .unwrap();
+        assert_eq!(read_key(&p).as_deref(), Some("sk-go"));
+        std::fs::write(&p, r#"{"version":2,"accounts":{},"active":{}}"#).unwrap();
         assert_eq!(read_key(&p), None);
     }
 }
